@@ -5,6 +5,10 @@
 
 from engines.base_engine import BaseEngine
 
+from core.state import (
+    price_history,
+)
+
 
 class ZoneEngine(BaseEngine):
 
@@ -44,8 +48,7 @@ class ZoneEngine(BaseEngine):
         )
 
         previous_levels_data = self._detect_previous_levels(
-            row=row,
-            context=context
+            row=row
         )
 
         context.zone = {
@@ -59,10 +62,6 @@ class ZoneEngine(BaseEngine):
         self.output = context.zone
 
         return self.output
-
-    # ==================================================
-    # PSYCHOLOGICAL LEVEL LOGIC
-    # ==================================================
 
     def _detect_psychological_level(self, price, context):
 
@@ -156,30 +155,9 @@ class ZoneEngine(BaseEngine):
 
         return round(strength, 4)
 
-    # ==================================================
-    # PREVIOUS HIGH / LOW LOGIC
-    # ==================================================
-
-    def _detect_previous_levels(self, row, context):
+    def _detect_previous_levels(self, row):
 
         close_price = self._get_value(row, "close")
-
-        price_history = self._safe_context_get(
-            context,
-            "price_history",
-            []
-        )
-
-        if not price_history:
-
-            return {
-                "previous_high": None,
-                "previous_low": None,
-                "distance_to_previous_high": None,
-                "distance_to_previous_low": None,
-                "near_previous_high": False,
-                "near_previous_low": False,
-            }
 
         recent_prices = list(price_history)[
             -self.previous_window:
@@ -218,10 +196,6 @@ class ZoneEngine(BaseEngine):
             "near_previous_high": near_previous_high,
             "near_previous_low": near_previous_low,
         }
-
-    # ==================================================
-    # SAFE HELPERS
-    # ==================================================
 
     def _get_value(self, source, key, default=None):
 

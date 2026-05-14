@@ -29,7 +29,8 @@ class OutputManager:
         print(f"DELTA: {self._get(row, 'delta')}")
         print(f"DELTA RATIO: {self._get(row, 'delta_ratio')}")
         print(f"VELOCITY: {self._get(row, 'velocity')}")
-        print(f"DURATION: {self._get(row, 'duration')}")
+        print(f"DURATION SEC: {self._get(row, 'duration_sec')}")
+        print(f"DURATION MS: {self._get(row, 'duration_ms')}")
         print(f"TICK COUNT: {self._get(row, 'tick_count')}")
         print(f"ADAPTIVE WINDOW: {self._get(row, 'adaptive_window')}")
 
@@ -97,6 +98,9 @@ class OutputManager:
 
         print(f"ACTIVE ENGINES: {active_engines}")
 
+    def display(self, context):
+        self.print_row_summary(context)
+
     def _get(self, source, key, default=None):
 
         if source is None:
@@ -107,6 +111,11 @@ class OutputManager:
 
         return getattr(source, key, default)
 
+
+# ==================================================
+# BACKWARD COMPATIBILITY
+# stream_manager.py imports this function
+# ==================================================
 
 def print_row_summary(context):
 

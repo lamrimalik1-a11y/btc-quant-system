@@ -7,23 +7,7 @@ from engines.base_engine import (
 )
 
 from core.statistics import (
-
-    add_zscores,
-
-    add_statistical_zones,
-
     add_distribution_features,
-)
-
-from core.state import (
-
-    price_history,
-
-    volume_history,
-
-    delta_history,
-
-    velocity_history,
 )
 
 
@@ -44,23 +28,6 @@ class StatisticsEngine(
     ):
 
         row = context.row
-
-        row = add_zscores(
-
-            row,
-
-            list(price_history),
-
-            list(volume_history),
-
-            list(delta_history),
-
-            list(velocity_history),
-        )
-
-        row = add_statistical_zones(
-            row
-        )
 
         row = add_distribution_features(
             row

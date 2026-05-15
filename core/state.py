@@ -55,6 +55,12 @@ engine_state = {
 }
 
 
+system_state = {
+
+    "row_counter": 0,
+}
+
+
 price_history = statistics_state["price_history"]
 
 volume_history = statistics_state["volume_history"]
@@ -81,3 +87,5 @@ def update_history(row):
     velocity_history.append(
         row["velocity"]
     )
+
+    system_state["row_counter"] += 1

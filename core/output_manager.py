@@ -4,6 +4,7 @@
 
 from core.state import (
     price_history,
+    system_state,
 )
 
 
@@ -22,7 +23,15 @@ class OutputManager:
         print("NEW ROW CREATED")
         print("=" * 70)
 
+        print(f"ROW COUNTER: {system_state['row_counter']}")
+
+        print("\n--- ROW OHLC ---")
+        print(f"OPEN: {self._get(row, 'open')}")
+        print(f"HIGH: {self._get(row, 'high')}")
+        print(f"LOW: {self._get(row, 'low')}")
         print(f"CLOSE: {self._get(row, 'close')}")
+
+        print("\n--- ROW FLOW ---")
         print(f"VOLUME: {self._get(row, 'volume')}")
         print(f"BUY VOLUME: {self._get(row, 'buy_volume')}")
         print(f"SELL VOLUME: {self._get(row, 'sell_volume')}")
@@ -99,6 +108,7 @@ class OutputManager:
 
         print("\n--- SYSTEM STATE ---")
         print(f"HISTORY SIZE: {len(price_history)}")
+        print(f"ROW COUNTER: {system_state['row_counter']}")
 
         if isinstance(engine_outputs, dict):
             active_engines = list(engine_outputs.keys())

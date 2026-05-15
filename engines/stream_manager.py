@@ -78,6 +78,7 @@ DEPTH_URL = (
     f"wss://stream.binance.com:9443/ws/{SYMBOL}@depth5@100ms"
 )
 
+
 tick_buffer = []
 latest_orderbook = None
 
@@ -106,18 +107,20 @@ async def process_depth_stream():
 
             update_depth_clock()
 
-            data = json.loads(message)
+            data = json.loads(
+                message
+            )
 
             if (
-                "b" not in data
+                "bids" not in data
                 or
-                "a" not in data
+                "asks" not in data
             ):
                 continue
 
             depth_data = {
-                "bids": data.get("b", []),
-                "asks": data.get("a", []),
+                "bids": data.get("bids", []),
+                "asks": data.get("asks", []),
             }
 
             processed_orderbook = process_orderbook(
@@ -148,7 +151,9 @@ async def process_trade_stream():
 
         async for message in websocket:
 
-            data = json.loads(message)
+            data = json.loads(
+                message
+            )
 
             required_keys = [
                 "p",
@@ -164,12 +169,23 @@ async def process_trade_stream():
             ):
                 continue
 
-            price = float(data["p"])
-            quantity = float(data["q"])
-            is_sell = data["m"]
-            timestamp = int(data["T"])
+            price = float(
+                data["p"]
+            )
 
-            update_trade_clock(timestamp)
+            quantity = float(
+                data["q"]
+            )
+
+            is_sell = data["m"]
+
+            timestamp = int(
+                data["T"]
+            )
+
+            update_trade_clock(
+                timestamp
+            )
 
             trade = {
                 "trade_id": data["t"],
@@ -183,7 +199,9 @@ async def process_trade_stream():
                 ),
             }
 
-            validation = validate_trade(trade)
+            validation = validate_trade(
+                trade
+            )
 
             if not validation["is_valid"]:
 
@@ -195,7 +213,9 @@ async def process_trade_stream():
 
                 continue
 
-            gap_result = detect_gap(trade)
+            gap_result = detect_gap(
+                trade
+            )
 
             if gap_result["gap_detected"]:
 
@@ -207,16 +227,22 @@ async def process_trade_stream():
                     "ms"
                 )
 
-            tick_buffer.append(trade)
+            tick_buffer.append(
+                trade
+            )
 
             if len(tick_buffer) < ROW_SIZE:
                 continue
 
-            row = build_trade_row(tick_buffer)
+            row = build_trade_row(
+                tick_buffer
+            )
 
             tick_buffer.clear()
 
-            update_history(row)
+            update_history(
+                row
+            )
 
             adaptive_window = calculate_adaptive_window(
                 row["velocity"],
@@ -228,34 +254,20 @@ async def process_trade_stream():
             if latest_orderbook is not None:
 
                 row["spread"] = latest_orderbook.get("spread")
-                row["imbalance"] = latest_orderbook.get(
-                    "imbalance",
-                    0
-                )
-                row["best_bid"] = latest_orderbook.get(
-                    "best_bid_price"
-                )
-                row["best_ask"] = latest_orderbook.get(
-                    "best_ask_price"
-                )
-                row["best_bid_size"] = latest_orderbook.get(
-                    "best_bid_size"
-                )
-                row["best_ask_size"] = latest_orderbook.get(
-                    "best_ask_size"
-                )
-                row["bid_wall_price"] = latest_orderbook.get(
-                    "bid_wall_price"
-                )
-                row["bid_wall_size"] = latest_orderbook.get(
-                    "bid_wall_size"
-                )
-                row["ask_wall_price"] = latest_orderbook.get(
-                    "ask_wall_price"
-                )
-                row["ask_wall_size"] = latest_orderbook.get(
-                    "ask_wall_size"
-                )
+                row["imbalance"] = latest_orderbook.get("imbalance", 0)
+
+                row["best_bid"] = latest_orderbook.get("best_bid_price")
+                row["best_ask"] = latest_orderbook.get("best_ask_price")
+
+                row["best_bid_size"] = latest_orderbook.get("best_bid_size")
+                row["best_ask_size"] = latest_orderbook.get("best_ask_size")
+
+                row["bid_wall_price"] = latest_orderbook.get("bid_wall_price")
+                row["bid_wall_size"] = latest_orderbook.get("bid_wall_size")
+
+                row["ask_wall_price"] = latest_orderbook.get("ask_wall_price")
+                row["ask_wall_size"] = latest_orderbook.get("ask_wall_size")
+
                 row["liquidity_strength"] = latest_orderbook.get(
                     "liquidity_strength"
                 )
@@ -264,14 +276,19 @@ async def process_trade_stream():
 
                 row["spread"] = None
                 row["imbalance"] = 0
+
                 row["best_bid"] = None
                 row["best_ask"] = None
+
                 row["best_bid_size"] = None
                 row["best_ask_size"] = None
+
                 row["bid_wall_price"] = None
                 row["bid_wall_size"] = None
+
                 row["ask_wall_price"] = None
                 row["ask_wall_size"] = None
+
                 row["liquidity_strength"] = None
 
             market_clock = get_market_clock()
@@ -297,15 +314,16 @@ async def process_trade_stream():
                 engine_outputs
             )
 
-            save_row(row)
-
-            context.active_engines = (
-                engine_registry.list_engines()
+            save_row(
+                row
             )
 
+            context.active_engines = engine_registry.list_engines()
             context.history = price_history
 
-            print_row_summary(context)
+            print_row_summary(
+                context
+            )
 
 
 async def start_stream():
@@ -331,7 +349,9 @@ async def start_stream():
                 f"\n[RECONNECTING IN {RECONNECT_DELAY} SECONDS]"
             )
 
-            await asyncio.sleep(RECONNECT_DELAY)
+            await asyncio.sleep(
+                RECONNECT_DELAY
+            )
 
 
 async def main():
@@ -341,4 +361,6 @@ async def main():
 
 if __name__ == "__main__":
 
-    asyncio.run(main())
+    asyncio.run(
+        main()
+    )

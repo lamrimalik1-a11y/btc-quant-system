@@ -302,7 +302,7 @@ def add_distribution_features(row):
     )
 
     row["delta_percentile"] = calculate_percentile(
-        row["delta"],
+        row["delta"],  
         delta_distribution
     )
 

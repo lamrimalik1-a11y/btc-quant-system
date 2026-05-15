@@ -1,6 +1,6 @@
 # ==================================================
 # PHASE 2A — ZONE ENGINE
-# STEP 2A-1 + STEP 2A-2
+# STEP 2A-1 + STEP 2A-2 + ZONE SCORING
 # ==================================================
 
 from engines.base_engine import BaseEngine
@@ -51,10 +51,19 @@ class ZoneEngine(BaseEngine):
             row=row
         )
 
+        zone_score = self._calculate_zone_score(
+            psychological_data=psychological_data,
+            previous_levels_data=previous_levels_data
+        )
+
+        zone_priority = self._classify_zone_priority(
+            zone_score=zone_score
+        )
+
         context.zone = {
             "engine": self.NAME,
-            "score": None,
-            "priority": None,
+            "score": round(zone_score, 2),
+            "priority": zone_priority,
             "psychological": psychological_data,
             "previous_levels": previous_levels_data,
         }
@@ -62,6 +71,53 @@ class ZoneEngine(BaseEngine):
         self.output = context.zone
 
         return self.output
+
+    # ==================================================
+    # ZONE SCORING
+    # ==================================================
+
+    def _calculate_zone_score(
+        self,
+        psychological_data,
+        previous_levels_data
+    ):
+
+        score = 0.0
+
+        if psychological_data.get("inside_zone"):
+            score += 2.0
+
+        psychological_strength = psychological_data.get(
+            "strength",
+            0.0
+        )
+
+        score += psychological_strength * 2.0
+
+        if previous_levels_data.get("near_previous_high"):
+            score += 1.5
+
+        if previous_levels_data.get("near_previous_low"):
+            score += 1.5
+
+        return score
+
+    def _classify_zone_priority(self, zone_score):
+
+        if zone_score >= 5.0:
+            return "HIGH_PRIORITY_ZONE"
+
+        if zone_score >= 3.0:
+            return "MEDIUM_PRIORITY_ZONE"
+
+        if zone_score >= 1.0:
+            return "LOW_PRIORITY_ZONE"
+
+        return "NO_PRIORITY_ZONE"
+
+    # ==================================================
+    # PSYCHOLOGICAL LEVEL LOGIC
+    # ==================================================
 
     def _detect_psychological_level(self, price, context):
 
@@ -155,6 +211,10 @@ class ZoneEngine(BaseEngine):
 
         return round(strength, 4)
 
+    # ==================================================
+    # PREVIOUS HIGH / LOW LOGIC
+    # ==================================================
+
     def _detect_previous_levels(self, row):
 
         close_price = self._get_value(row, "close")
@@ -196,6 +256,10 @@ class ZoneEngine(BaseEngine):
             "near_previous_high": near_previous_high,
             "near_previous_low": near_previous_low,
         }
+
+    # ==================================================
+    # SAFE HELPERS
+    # ==================================================
 
     def _get_value(self, source, key, default=None):
 

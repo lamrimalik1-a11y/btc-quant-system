@@ -1,3 +1,7 @@
+# ==================================================
+# STATISTICS ENGINE
+# ==================================================
+
 from engines.base_engine import (
     BaseEngine
 )
@@ -41,30 +45,17 @@ class StatisticsEngine(
 
         row = context.row
 
-        adaptive_window = row.get(
-            "adaptive_window",
-            20
-        )
-
         row = add_zscores(
 
             row,
 
-            list(price_history)[
-                -adaptive_window:
-            ],
+            list(price_history),
 
-            list(volume_history)[
-                -adaptive_window:
-            ],
+            list(volume_history),
 
-            list(delta_history)[
-                -adaptive_window:
-            ],
+            list(delta_history),
 
-            list(velocity_history)[
-                -adaptive_window:
-            ],
+            list(velocity_history),
         )
 
         row = add_statistical_zones(
@@ -97,6 +88,41 @@ class StatisticsEngine(
             "velocity_zscore":
                 row.get(
                     "velocity_zscore"
+                ),
+
+            "fast_price_zscore":
+                row.get(
+                    "fast_price_zscore"
+                ),
+
+            "medium_price_zscore":
+                row.get(
+                    "medium_price_zscore"
+                ),
+
+            "slow_price_zscore":
+                row.get(
+                    "slow_price_zscore"
+                ),
+
+            "price_variance":
+                row.get(
+                    "price_variance"
+                ),
+
+            "volume_variance":
+                row.get(
+                    "volume_variance"
+                ),
+
+            "delta_variance":
+                row.get(
+                    "delta_variance"
+                ),
+
+            "velocity_variance":
+                row.get(
+                    "velocity_variance"
                 ),
 
             "distribution_ready":

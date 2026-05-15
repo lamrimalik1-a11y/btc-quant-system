@@ -7,6 +7,10 @@ MIN_HISTORY_SIZE = 10
 
 DISTRIBUTION_WINDOW = 200
 
+FAST_WINDOW = 10
+MEDIUM_WINDOW = 30
+SLOW_WINDOW = 60
+
 
 price_distribution = deque(
     maxlen=DISTRIBUTION_WINDOW
@@ -33,7 +37,7 @@ def calculate_mean(values):
     return sum(values) / len(values)
 
 
-def calculate_std(values):
+def calculate_variance(values):
 
     if len(values) < 2:
         return 0
@@ -49,6 +53,18 @@ def calculate_std(values):
         for value in values
 
     ) / len(values)
+
+    return variance
+
+
+def calculate_std(values):
+
+    if len(values) < 2:
+        return 0
+
+    variance = calculate_variance(
+        values
+    )
 
     return math.sqrt(
         variance
@@ -77,6 +93,50 @@ def calculate_zscore(
     return (
         value - mean
     ) / std
+
+
+def calculate_multizscore(
+    value,
+    history
+):
+
+    history = list(history)
+
+    scores = {
+
+        "fast_zscore": 0,
+        "medium_zscore": 0,
+        "slow_zscore": 0,
+    }
+
+    if len(history) >= FAST_WINDOW:
+
+        scores["fast_zscore"] = (
+            calculate_zscore(
+                value,
+                history[-FAST_WINDOW:]
+            )
+        )
+
+    if len(history) >= MEDIUM_WINDOW:
+
+        scores["medium_zscore"] = (
+            calculate_zscore(
+                value,
+                history[-MEDIUM_WINDOW:]
+            )
+        )
+
+    if len(history) >= SLOW_WINDOW:
+
+        scores["slow_zscore"] = (
+            calculate_zscore(
+                value,
+                history[-SLOW_WINDOW:]
+            )
+        )
+
+    return scores
 
 
 def calculate_percentile(
@@ -154,7 +214,7 @@ def classify_percentile_zone(
     else:
 
         return "NORMAL_DISTRIBUTION"
-    
+
 
 def add_zscores(
     row,
@@ -190,6 +250,23 @@ def add_zscores(
         row["velocity"],
 
         velocity_history
+    )
+
+    price_multi = calculate_multizscore(
+        row["close"],
+        price_history
+    )
+
+    row["fast_price_zscore"] = (
+        price_multi["fast_zscore"]
+    )
+
+    row["medium_price_zscore"] = (
+        price_multi["medium_zscore"]
+    )
+
+    row["slow_price_zscore"] = (
+        price_multi["slow_zscore"]
     )
 
     return row
@@ -296,6 +373,22 @@ def add_distribution_features(
     )
 
     distribution = distribution_snapshot()
+
+    row["price_variance"] = calculate_variance(
+        price_distribution
+    )
+
+    row["volume_variance"] = calculate_variance(
+        volume_distribution
+    )
+
+    row["delta_variance"] = calculate_variance(
+        delta_distribution
+    )
+
+    row["velocity_variance"] = calculate_variance(
+        velocity_distribution
+    )
 
     row["distribution_ready"] = (
         distribution["ready"]

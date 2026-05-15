@@ -44,6 +44,9 @@ class OutputManager:
 
         print("\n--- STATISTICS / NORMAL DISTRIBUTION ---")
         print(f"PRICE ZSCORE: {self._get(statistics, 'price_zscore')}")
+        print(f"FAST PRICE ZSCORE: {self._get(statistics, 'fast_price_zscore')}")
+        print(f"MEDIUM PRICE ZSCORE: {self._get(statistics, 'medium_price_zscore')}")
+        print(f"SLOW PRICE ZSCORE: {self._get(statistics, 'slow_price_zscore')}")
         print(f"VOLUME ZSCORE: {self._get(statistics, 'volume_zscore')}")
         print(f"DELTA ZSCORE: {self._get(statistics, 'delta_zscore')}")
         print(f"VELOCITY ZSCORE: {self._get(statistics, 'velocity_zscore')}")
@@ -51,6 +54,12 @@ class OutputManager:
         print(f"VOLUME ZONE: {self._get(row, 'volume_zone')}")
         print(f"DELTA ZONE: {self._get(row, 'delta_zone')}")
         print(f"VELOCITY ZONE: {self._get(row, 'velocity_zone')}")
+
+        print("\n--- VARIANCE ---")
+        print(f"PRICE VARIANCE: {self._get(row, 'price_variance')}")
+        print(f"VOLUME VARIANCE: {self._get(row, 'volume_variance')}")
+        print(f"DELTA VARIANCE: {self._get(row, 'delta_variance')}")
+        print(f"VELOCITY VARIANCE: {self._get(row, 'velocity_variance')}")
 
         print("\n--- DISTRIBUTION SNAPSHOT ---")
         print(f"DISTRIBUTION READY: {self._get(row, 'distribution_ready')}")
@@ -114,7 +123,6 @@ class OutputManager:
 
 # ==================================================
 # BACKWARD COMPATIBILITY
-# stream_manager.py imports this function
 # ==================================================
 
 def print_row_summary(context):

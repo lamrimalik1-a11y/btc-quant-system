@@ -4,34 +4,34 @@ from collections import deque
 
 
 MIN_HISTORY_SIZE = 10
-
-MIN_DISTRIBUTION_WINDOW = 50
 DEFAULT_DISTRIBUTION_WINDOW = 200
-MAX_DISTRIBUTION_WINDOW = 500
 
 FAST_WINDOW = 10
 MEDIUM_WINDOW = 30
 SLOW_WINDOW = 60
 
 
-price_distribution = deque(
-    maxlen=DEFAULT_DISTRIBUTION_WINDOW
-)
+price_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
+volume_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
+delta_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
+velocity_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
 
-volume_distribution = deque(
-    maxlen=DEFAULT_DISTRIBUTION_WINDOW
-)
+tail_history = deque(maxlen=10)
 
-delta_distribution = deque(
-    maxlen=DEFAULT_DISTRIBUTION_WINDOW
-)
+volatility_regime_history = deque(maxlen=20)
+volatility_ratio_history = deque(maxlen=20)
 
-velocity_distribution = deque(
-    maxlen=DEFAULT_DISTRIBUTION_WINDOW
-)
+cumulative_delta_history = deque(maxlen=200)
+delta_pressure_history = deque(maxlen=50)
+delta_acceleration_history = deque(maxlen=50)
 
+
+# ==================================================
+# BASIC STATISTICS
+# ==================================================
 
 def calculate_mean(values):
+    values = list(values)
 
     if len(values) == 0:
         return 0
@@ -40,40 +40,236 @@ def calculate_mean(values):
 
 
 def calculate_variance(values):
+    values = list(values)
 
     if len(values) < 2:
         return 0
 
     mean = calculate_mean(values)
 
-    variance = sum(
+    return sum(
         (value - mean) ** 2
         for value in values
     ) / len(values)
 
-    return variance
-
 
 def calculate_std(values):
+    return math.sqrt(
+        calculate_variance(values)
+    )
+
+
+# ==================================================
+# ADVANCED STANDARD DEVIATION
+# ==================================================
+
+def calculate_weighted_mean(values):
+    values = list(values)
+
+    if len(values) == 0:
+        return 0
+
+    weights = list(range(1, len(values) + 1))
+
+    weighted_sum = sum(
+        value * weight
+        for value, weight in zip(values, weights)
+    )
+
+    return weighted_sum / sum(weights)
+
+
+def calculate_weighted_std(values):
+    values = list(values)
 
     if len(values) < 2:
         return 0
 
-    variance = calculate_variance(values)
+    weighted_mean = calculate_weighted_mean(values)
 
-    return math.sqrt(variance)
+    weights = list(range(1, len(values) + 1))
 
+    weighted_variance = sum(
+        weight * ((value - weighted_mean) ** 2)
+        for value, weight in zip(values, weights)
+    ) / sum(weights)
+
+    return math.sqrt(weighted_variance)
+
+
+def calculate_robust_std(values):
+    values = list(values)
+
+    if len(values) < 2:
+        return 0
+
+    median = statistics.median(values)
+
+    absolute_deviations = [
+        abs(value - median)
+        for value in values
+    ]
+
+    mad = statistics.median(absolute_deviations)
+
+    return mad * 1.4826
+
+
+def calculate_ewma_std(values, alpha=0.20):
+    values = list(values)
+
+    if len(values) < 2:
+        return 0
+
+    ewma_mean = values[0]
+    ewma_variance = 0
+
+    for value in values[1:]:
+        previous_mean = ewma_mean
+
+        ewma_mean = (
+            alpha * value
+            +
+            (1 - alpha) * ewma_mean
+        )
+
+        ewma_variance = (
+            alpha * ((value - previous_mean) ** 2)
+            +
+            (1 - alpha) * ewma_variance
+        )
+
+    return math.sqrt(ewma_variance)
+
+
+def calculate_volatility_weighted_std(values):
+    values = list(values)
+
+    if len(values) < 2:
+        return 0
+
+    changes = []
+
+    for i in range(1, len(values)):
+        changes.append(
+            abs(values[i] - values[i - 1])
+        )
+
+    if len(changes) == 0:
+        return 0
+
+    weights = [
+        max(change, 0.0001)
+        for change in changes
+    ]
+
+    aligned_values = values[1:]
+
+    weighted_mean = (
+        sum(
+            value * weight
+            for value, weight in zip(aligned_values, weights)
+        )
+        /
+        sum(weights)
+    )
+
+    weighted_variance = (
+        sum(
+            weight * ((value - weighted_mean) ** 2)
+            for value, weight in zip(aligned_values, weights)
+        )
+        /
+        sum(weights)
+    )
+
+    return math.sqrt(weighted_variance)
+
+
+def detect_std_instability(
+    basic_std,
+    weighted_std,
+    robust_std,
+    ewma_std,
+    volatility_weighted_std
+):
+    stds = [
+        basic_std,
+        weighted_std,
+        robust_std,
+        ewma_std,
+        volatility_weighted_std,
+    ]
+
+    valid_stds = [
+        value
+        for value in stds
+        if value > 0
+    ]
+
+    if len(valid_stds) < 2:
+        return "UNKNOWN_INSTABILITY"
+
+    max_std = max(valid_stds)
+    min_std = min(valid_stds)
+
+    if min_std == 0:
+        return "EXTREME_INSTABILITY"
+
+    ratio = max_std / min_std
+
+    if ratio >= 3:
+        return "EXTREME_INSTABILITY"
+
+    elif ratio >= 2:
+        return "HIGH_INSTABILITY"
+
+    elif ratio >= 1.5:
+        return "MODERATE_INSTABILITY"
+
+    return "STABLE_STD"
+
+
+def calculate_adaptive_std(values):
+    values = list(values)
+
+    if len(values) < 2:
+        return 0
+
+    basic_std = calculate_std(values)
+    weighted_std = calculate_weighted_std(values)
+    robust_std = calculate_robust_std(values)
+    ewma_std = calculate_ewma_std(values)
+    volatility_weighted_std = calculate_volatility_weighted_std(values)
+
+    if robust_std == 0:
+        robust_std = basic_std
+
+    return (
+        basic_std * 0.20
+        +
+        weighted_std * 0.20
+        +
+        robust_std * 0.20
+        +
+        ewma_std * 0.20
+        +
+        volatility_weighted_std * 0.20
+    )
+
+
+# ==================================================
+# ZSCORE
+# ==================================================
 
 def calculate_zscore(value, history):
-
     history = list(history)
 
     if len(history) < MIN_HISTORY_SIZE:
         return 0
 
     mean = calculate_mean(history)
-
-    std = calculate_std(history)
+    std = calculate_adaptive_std(history)
 
     if std == 0:
         return 0
@@ -82,254 +278,507 @@ def calculate_zscore(value, history):
 
 
 def calculate_multizscore(value, history):
-
     history = list(history)
 
     scores = {
-
         "fast_zscore": 0,
-
         "medium_zscore": 0,
-
         "slow_zscore": 0,
     }
 
     if len(history) >= FAST_WINDOW:
-
-        scores["fast_zscore"] = (
-            calculate_zscore(
-                value,
-                history[-FAST_WINDOW:]
-            )
+        scores["fast_zscore"] = calculate_zscore(
+            value,
+            history[-FAST_WINDOW:]
         )
 
     if len(history) >= MEDIUM_WINDOW:
-
-        scores["medium_zscore"] = (
-            calculate_zscore(
-                value,
-                history[-MEDIUM_WINDOW:]
-            )
+        scores["medium_zscore"] = calculate_zscore(
+            value,
+            history[-MEDIUM_WINDOW:]
         )
 
     if len(history) >= SLOW_WINDOW:
-
-        scores["slow_zscore"] = (
-            calculate_zscore(
-                value,
-                history[-SLOW_WINDOW:]
-            )
+        scores["slow_zscore"] = calculate_zscore(
+            value,
+            history[-SLOW_WINDOW:]
         )
 
     return scores
 
 
-def calculate_percentile(
-    value,
-    distribution
-):
+# ==================================================
+# ZONES / PERCENTILES
+# ==================================================
+
+def calculate_percentile(value, distribution):
+    distribution = list(distribution)
 
     if len(distribution) == 0:
         return 0
 
     count = sum(
-
         sample <= value
-
         for sample in distribution
     )
 
-    percentile = (
-        count / len(distribution)
-    ) * 100
-
-    return percentile
+    return (count / len(distribution)) * 100
 
 
-def classify_statistical_zone(
-    zscore
-):
-
+def classify_statistical_zone(zscore):
     if zscore >= 2.5:
-
         return "EXTREME_HIGH_ZONE"
 
     elif zscore >= 2:
-
         return "HIGH_STATISTICAL_ZONE"
 
     elif zscore <= -2.5:
-
         return "EXTREME_LOW_ZONE"
 
     elif zscore <= -2:
-
         return "LOW_STATISTICAL_ZONE"
 
     elif -1 <= zscore <= 1:
-
         return "NORMAL_ZONE"
 
     else:
-
         return "TRANSITION_ZONE"
 
 
-def classify_percentile_zone(
-    percentile
-):
+def classify_percentile_zone(percentile):
+    if percentile is None:
+        return None
 
     if percentile >= 97:
-
         return "EXTREME_TOP_TAIL"
 
     elif percentile >= 90:
-
         return "HIGH_TAIL"
 
     elif percentile <= 3:
-
         return "EXTREME_BOTTOM_TAIL"
 
     elif percentile <= 10:
-
         return "LOW_TAIL"
 
-    else:
-
-        return "NORMAL_DISTRIBUTION"
+    return "NORMAL_DISTRIBUTION"
 
 
-def get_adaptive_distribution_window(
-    row
-):
+# ==================================================
+# TAIL DETECTION
+# ==================================================
 
-    velocity = row.get(
-        "velocity",
-        0
+def detect_tail_side(percentile):
+    if percentile is None:
+        return "UNKNOWN_TAIL"
+
+    if percentile >= 97:
+        return "EXTREME_RIGHT_TAIL"
+
+    elif percentile >= 90:
+        return "RIGHT_TAIL"
+
+    elif percentile <= 3:
+        return "EXTREME_LEFT_TAIL"
+
+    elif percentile <= 10:
+        return "LEFT_TAIL"
+
+    return "DISTRIBUTION_BODY"
+
+
+def detect_tail_strength(zscore, percentile):
+    abs_zscore = abs(zscore)
+
+    if percentile is None:
+        return "UNKNOWN_TAIL_STRENGTH"
+
+    if abs_zscore >= 3 or percentile >= 99 or percentile <= 1:
+        return "EXTREME_TAIL_EVENT"
+
+    elif abs_zscore >= 2.5 or percentile >= 97 or percentile <= 3:
+        return "STRONG_TAIL_EVENT"
+
+    elif abs_zscore >= 2 or percentile >= 90 or percentile <= 10:
+        return "MODERATE_TAIL_EVENT"
+
+    return "NO_TAIL_EVENT"
+
+
+def detect_tail_risk(zscore, percentile, volatility_regime):
+    tail_strength = detect_tail_strength(
+        zscore,
+        percentile
     )
 
-    if velocity > 250:
+    if tail_strength == "EXTREME_TAIL_EVENT":
+        if volatility_regime in [
+            "HIGH_VOLATILITY",
+            "EXTREME_VOLATILITY",
+        ]:
+            return "CRITICAL_TAIL_RISK"
 
+        return "HIGH_TAIL_RISK"
+
+    if tail_strength == "STRONG_TAIL_EVENT":
+        if volatility_regime in [
+            "HIGH_VOLATILITY",
+            "EXTREME_VOLATILITY",
+        ]:
+            return "HIGH_TAIL_RISK"
+
+        return "MODERATE_TAIL_RISK"
+
+    if tail_strength == "MODERATE_TAIL_EVENT":
+        return "LOW_TAIL_RISK"
+
+    return "NO_TAIL_RISK"
+
+
+def detect_tail_persistence(current_tail_side, tail_history_values):
+    if len(tail_history_values) < 5:
+        return "INSUFFICIENT_TAIL_HISTORY"
+
+    same_side_count = sum(
+        side == current_tail_side
+        for side in tail_history_values
+    )
+
+    ratio = same_side_count / len(tail_history_values)
+
+    if ratio >= 0.80:
+        return "PERSISTENT_TAIL"
+
+    elif ratio >= 0.50:
+        return "MODERATE_TAIL_PERSISTENCE"
+
+    return "NON_PERSISTENT_TAIL"
+
+
+def detect_tail_exhaustion(zscore, percentile, volatility_ratio):
+    abs_zscore = abs(zscore)
+
+    if (
+        abs_zscore >= 3
+        and
+        (
+            percentile >= 99
+            or percentile <= 1
+        )
+        and
+        volatility_ratio < 1
+    ):
+        return "TAIL_EXHAUSTION"
+
+    elif (
+        abs_zscore >= 2.5
+        and volatility_ratio < 0.8
+    ):
+        return "POSSIBLE_EXHAUSTION"
+
+    return "NO_EXHAUSTION"
+
+
+# ==================================================
+# VOLATILITY REGIME
+# ==================================================
+
+def classify_volatility_regime(volatility_ratio):
+    if volatility_ratio >= 3.0:
+        return "EXTREME_VOLATILITY"
+
+    elif volatility_ratio >= 2.0:
+        return "HIGH_VOLATILITY"
+
+    elif volatility_ratio <= 0.50:
+        return "COMPRESSION_REGIME"
+
+    elif volatility_ratio <= 0.80:
+        return "LOW_VOLATILITY"
+
+    return "NORMAL_VOLATILITY"
+
+
+def calculate_volatility_ratio():
+    if len(price_distribution) < 30:
+        return 1.0
+
+    fast_window = list(price_distribution)[-20:]
+    slow_window = list(price_distribution)[-100:]
+
+    fast_std = calculate_adaptive_std(fast_window)
+    slow_std = calculate_adaptive_std(slow_window)
+
+    if slow_std == 0:
+        return 1.0
+
+    return fast_std / slow_std
+
+
+def detect_volatility_transition(current_regime, previous_regime):
+    if previous_regime is None:
+        return "NO_PREVIOUS_REGIME"
+
+    if current_regime == previous_regime:
+        return "NO_REGIME_CHANGE"
+
+    return f"{previous_regime}_TO_{current_regime}"
+
+
+def detect_volatility_persistence(current_regime, regime_history_values):
+    if len(regime_history_values) < 5:
+        return "INSUFFICIENT_REGIME_HISTORY"
+
+    same_count = sum(
+        regime == current_regime
+        for regime in regime_history_values
+    )
+
+    ratio = same_count / len(regime_history_values)
+
+    if ratio >= 0.80:
+        return "PERSISTENT_REGIME"
+
+    elif ratio >= 0.50:
+        return "MODERATE_REGIME_PERSISTENCE"
+
+    return "UNSTABLE_REGIME"
+
+
+def detect_volatility_acceleration(ratio_history_values):
+    if len(ratio_history_values) < 6:
+        return "INSUFFICIENT_RATIO_HISTORY"
+
+    recent = list(ratio_history_values)[-3:]
+    previous = list(ratio_history_values)[-6:-3]
+
+    recent_mean = calculate_mean(recent)
+    previous_mean = calculate_mean(previous)
+
+    change = recent_mean - previous_mean
+
+    if change >= 0.75:
+        return "FAST_VOLATILITY_ACCELERATION"
+
+    elif change >= 0.30:
+        return "VOLATILITY_ACCELERATION"
+
+    elif change <= -0.75:
+        return "FAST_VOLATILITY_DECELERATION"
+
+    elif change <= -0.30:
+        return "VOLATILITY_DECELERATION"
+
+    return "STABLE_VOLATILITY_SPEED"
+
+
+# ==================================================
+# DELTA STATISTICS
+# ==================================================
+
+def calculate_cumulative_delta():
+    if len(cumulative_delta_history) == 0:
+        return 0
+
+    return sum(cumulative_delta_history)
+
+
+def calculate_delta_pressure(delta, volume):
+    if volume == 0:
+        return 0
+
+    return delta / volume
+
+
+def detect_delta_domination(delta_pressure):
+    if delta_pressure >= 0.80:
+        return "EXTREME_BUYER_DOMINATION"
+
+    elif delta_pressure >= 0.50:
+        return "BUYER_DOMINATION"
+
+    elif delta_pressure <= -0.80:
+        return "EXTREME_SELLER_DOMINATION"
+
+    elif delta_pressure <= -0.50:
+        return "SELLER_DOMINATION"
+
+    return "BALANCED_MARKET"
+
+
+def detect_aggressive_flow(delta_zscore, velocity_zscore):
+    if (
+        delta_zscore >= 2
+        and velocity_zscore >= 1.5
+    ):
+        return "AGGRESSIVE_BUYERS"
+
+    elif (
+        delta_zscore <= -2
+        and velocity_zscore >= 1.5
+    ):
+        return "AGGRESSIVE_SELLERS"
+
+    return "NORMAL_FLOW"
+
+
+def detect_delta_pressure_state(pressure):
+    if pressure >= 0.70:
+        return "EXTREME_BUY_PRESSURE"
+
+    elif pressure >= 0.40:
+        return "BUY_PRESSURE"
+
+    elif pressure <= -0.70:
+        return "EXTREME_SELL_PRESSURE"
+
+    elif pressure <= -0.40:
+        return "SELL_PRESSURE"
+
+    return "NEUTRAL_PRESSURE"
+
+
+def calculate_delta_acceleration():
+    if len(delta_pressure_history) < 6:
+        return 0
+
+    recent = list(delta_pressure_history)[-3:]
+    previous = list(delta_pressure_history)[-6:-3]
+
+    recent_mean = calculate_mean(recent)
+    previous_mean = calculate_mean(previous)
+
+    return recent_mean - previous_mean
+
+
+def detect_delta_acceleration_state(acceleration):
+    if acceleration >= 0.50:
+        return "FAST_BUY_ACCELERATION"
+
+    elif acceleration >= 0.20:
+        return "BUY_ACCELERATION"
+
+    elif acceleration <= -0.50:
+        return "FAST_SELL_ACCELERATION"
+
+    elif acceleration <= -0.20:
+        return "SELL_ACCELERATION"
+
+    return "STABLE_DELTA_SPEED"
+
+
+def detect_delta_exhaustion(delta_zscore, velocity_zscore, pressure):
+    if (
+        abs(delta_zscore) >= 3
+        and velocity_zscore < 1
+        and abs(pressure) < 0.30
+    ):
+        return "DELTA_EXHAUSTION"
+
+    elif (
+        abs(delta_zscore) >= 2
+        and abs(pressure) < 0.20
+    ):
+        return "POSSIBLE_DELTA_EXHAUSTION"
+
+    return "NO_DELTA_EXHAUSTION"
+
+
+def detect_imbalance_state(imbalance):
+    if imbalance is None:
+        imbalance = 0
+
+    if imbalance >= 0.60:
+        return "STRONG_BID_IMBALANCE"
+
+    elif imbalance >= 0.30:
+        return "BID_IMBALANCE"
+
+    elif imbalance <= -0.60:
+        return "STRONG_ASK_IMBALANCE"
+
+    elif imbalance <= -0.30:
+        return "ASK_IMBALANCE"
+
+    return "BALANCED_ORDERBOOK"
+
+
+# ==================================================
+# DISTRIBUTION UPDATE
+# ==================================================
+
+def get_adaptive_distribution_window(row):
+    velocity = row.get("velocity", 0)
+
+    if velocity > 250:
         return 50
 
     elif velocity > 150:
-
         return 100
 
     elif velocity > 75:
-
         return 150
 
-    else:
-
-        return 200
+    return 200
 
 
-def update_distributions(
-    row
-):
-
-    adaptive_window = (
-        get_adaptive_distribution_window(
-            row
-        )
-    )
+def update_distributions(row):
+    adaptive_window = get_adaptive_distribution_window(row)
 
     while len(price_distribution) > adaptive_window:
-
         price_distribution.popleft()
 
     while len(volume_distribution) > adaptive_window:
-
         volume_distribution.popleft()
 
     while len(delta_distribution) > adaptive_window:
-
         delta_distribution.popleft()
 
     while len(velocity_distribution) > adaptive_window:
-
         velocity_distribution.popleft()
 
-    price_distribution.append(
-        row["close"]
-    )
+    price_distribution.append(row["close"])
+    volume_distribution.append(row["volume"])
+    delta_distribution.append(row["delta"])
+    velocity_distribution.append(row["velocity"])
 
-    volume_distribution.append(
-        row["volume"]
-    )
-
-    delta_distribution.append(
-        row["delta"]
-    )
-
-    velocity_distribution.append(
-        row["velocity"]
-    )
-
-    row["adaptive_distribution_window"] = (
-        adaptive_window
-    )
+    row["adaptive_distribution_window"] = adaptive_window
 
 
-def add_zscores(
-    row,
-    price_history=None,
-    volume_history=None,
-    delta_history=None,
-    velocity_history=None
-):
-
+def add_zscores(row):
     row["price_zscore"] = calculate_zscore(
-
         row["close"],
         price_distribution
     )
 
     row["volume_zscore"] = calculate_zscore(
-
         row["volume"],
         volume_distribution
     )
 
     row["delta_zscore"] = calculate_zscore(
-
         row["delta"],
         delta_distribution
     )
 
     row["velocity_zscore"] = calculate_zscore(
-
         row["velocity"],
         velocity_distribution
     )
 
     price_multi = calculate_multizscore(
-
         row["close"],
         price_distribution
     )
 
-    row["fast_price_zscore"] = (
-        price_multi["fast_zscore"]
-    )
-
-    row["medium_price_zscore"] = (
-        price_multi["medium_zscore"]
-    )
-
-    row["slow_price_zscore"] = (
-        price_multi["slow_zscore"]
-    )
+    row["fast_price_zscore"] = price_multi["fast_zscore"]
+    row["medium_price_zscore"] = price_multi["medium_zscore"]
+    row["slow_price_zscore"] = price_multi["slow_zscore"]
 
     return row
 
 
-def add_statistical_zones(
-    row
-):
-
+def add_statistical_zones(row):
     row["price_zone"] = classify_statistical_zone(
         row["price_zscore"]
     )
@@ -349,169 +798,220 @@ def add_statistical_zones(
     return row
 
 
-def distribution_snapshot():
+# ==================================================
+# MAIN FEATURE ADDER
+# ==================================================
 
-    if len(price_distribution) < 30:
+def add_distribution_features(row):
+    update_distributions(row)
 
-        return {
+    row = add_zscores(row)
+    row = add_statistical_zones(row)
 
-            "ready": False,
-        }
+    volatility_ratio = calculate_volatility_ratio()
 
-    snapshot = {
-
-        "ready": True,
-
-        "price_min":
-            min(price_distribution),
-
-        "price_max":
-            max(price_distribution),
-
-        "price_mean":
-            statistics.mean(
-                price_distribution
-            ),
-
-        "price_median":
-            statistics.median(
-                price_distribution
-            ),
-
-        "volume_mean":
-            statistics.mean(
-                volume_distribution
-            ),
-
-        "delta_mean":
-            statistics.mean(
-                delta_distribution
-            ),
-
-        "velocity_mean":
-            statistics.mean(
-                velocity_distribution
-            ),
-    }
-
-    return snapshot
-
-
-def add_distribution_features(
-    row
-):
-
-    update_distributions(
-        row
+    row["volatility_ratio"] = volatility_ratio
+    row["volatility_regime"] = classify_volatility_regime(
+        volatility_ratio
     )
 
-    row = add_zscores(
-        row
+    previous_regime = (
+        volatility_regime_history[-1]
+        if len(volatility_regime_history) > 0
+        else None
     )
 
-    row = add_statistical_zones(
-        row
+    volatility_regime_history.append(
+        row["volatility_regime"]
     )
 
-    distribution = (
-        distribution_snapshot()
+    volatility_ratio_history.append(
+        row["volatility_ratio"]
     )
 
-    row["price_variance"] = (
-        calculate_variance(
-            price_distribution
-        )
+    row["volatility_transition"] = detect_volatility_transition(
+        row["volatility_regime"],
+        previous_regime
     )
 
-    row["volume_variance"] = (
-        calculate_variance(
-            volume_distribution
-        )
+    row["volatility_persistence"] = detect_volatility_persistence(
+        row["volatility_regime"],
+        list(volatility_regime_history)
     )
 
-    row["delta_variance"] = (
-        calculate_variance(
-            delta_distribution
-        )
+    row["volatility_acceleration"] = detect_volatility_acceleration(
+        list(volatility_ratio_history)
     )
 
-    row["velocity_variance"] = (
-        calculate_variance(
-            velocity_distribution
-        )
+    row["price_variance"] = calculate_variance(price_distribution)
+    row["volume_variance"] = calculate_variance(volume_distribution)
+    row["delta_variance"] = calculate_variance(delta_distribution)
+    row["velocity_variance"] = calculate_variance(velocity_distribution)
+
+    row["price_std"] = calculate_std(price_distribution)
+    row["price_weighted_std"] = calculate_weighted_std(price_distribution)
+    row["price_robust_std"] = calculate_robust_std(price_distribution)
+    row["price_ewma_std"] = calculate_ewma_std(price_distribution)
+    row["price_volatility_weighted_std"] = calculate_volatility_weighted_std(
+        price_distribution
+    )
+    row["price_adaptive_std"] = calculate_adaptive_std(price_distribution)
+
+    row["std_instability_state"] = detect_std_instability(
+        row["price_std"],
+        row["price_weighted_std"],
+        row["price_robust_std"],
+        row["price_ewma_std"],
+        row["price_volatility_weighted_std"],
     )
 
-    row["distribution_ready"] = (
-        distribution["ready"]
-    )
+    row["volume_adaptive_std"] = calculate_adaptive_std(volume_distribution)
+    row["delta_adaptive_std"] = calculate_adaptive_std(delta_distribution)
+    row["velocity_adaptive_std"] = calculate_adaptive_std(velocity_distribution)
 
-    if not distribution["ready"]:
+    row["distribution_ready"] = len(price_distribution) >= 30
 
+    if not row["distribution_ready"]:
         row["price_distribution_mean"] = None
-
         row["price_distribution_median"] = None
-
         row["distribution_range"] = None
 
         row["price_percentile"] = None
-
         row["volume_percentile"] = None
-
         row["delta_percentile"] = None
-
         row["velocity_percentile"] = None
 
         row["price_percentile_zone"] = None
 
-        return row
+        row["price_tail_side"] = None
+        row["price_tail_strength"] = None
+        row["price_tail_risk"] = None
+        row["price_tail_persistence"] = None
+        row["price_tail_exhaustion"] = None
 
-    row["price_distribution_mean"] = (
-        distribution["price_mean"]
-    )
+    else:
+        row["price_distribution_mean"] = statistics.mean(
+            price_distribution
+        )
 
-    row["price_distribution_median"] = (
-        distribution["price_median"]
-    )
+        row["price_distribution_median"] = statistics.median(
+            price_distribution
+        )
 
-    row["distribution_range"] = (
+        row["distribution_range"] = (
+            max(price_distribution)
+            -
+            min(price_distribution)
+        )
 
-        distribution["price_max"]
-        -
-        distribution["price_min"]
-    )
-
-    row["price_percentile"] = (
-        calculate_percentile(
+        row["price_percentile"] = calculate_percentile(
             row["close"],
             price_distribution
         )
-    )
 
-    row["volume_percentile"] = (
-        calculate_percentile(
+        row["volume_percentile"] = calculate_percentile(
             row["volume"],
             volume_distribution
         )
-    )
 
-    row["delta_percentile"] = (
-        calculate_percentile(
+        row["delta_percentile"] = calculate_percentile(
             row["delta"],
             delta_distribution
         )
-    )
 
-    row["velocity_percentile"] = (
-        calculate_percentile(
+        row["velocity_percentile"] = calculate_percentile(
             row["velocity"],
             velocity_distribution
         )
-    )
 
-    row["price_percentile_zone"] = (
-        classify_percentile_zone(
+        row["price_percentile_zone"] = classify_percentile_zone(
             row["price_percentile"]
         )
+
+        row["price_tail_side"] = detect_tail_side(
+            row["price_percentile"]
+        )
+
+        tail_history.append(
+            row["price_tail_side"]
+        )
+
+        row["price_tail_strength"] = detect_tail_strength(
+            row["price_zscore"],
+            row["price_percentile"]
+        )
+
+        row["price_tail_risk"] = detect_tail_risk(
+            row["price_zscore"],
+            row["price_percentile"],
+            row["volatility_regime"]
+        )
+
+        row["price_tail_persistence"] = detect_tail_persistence(
+            row["price_tail_side"],
+            list(tail_history)
+        )
+
+        row["price_tail_exhaustion"] = detect_tail_exhaustion(
+            row["price_zscore"],
+            row["price_percentile"],
+            row["volatility_ratio"]
+        )
+
+    # ==================================================
+    # DELTA STATISTICS
+    # ==================================================
+
+    cumulative_delta_history.append(
+        row["delta"]
+    )
+
+    row["cumulative_delta"] = calculate_cumulative_delta()
+
+    delta_pressure = calculate_delta_pressure(
+        row["delta"],
+        row["volume"]
+    )
+
+    row["delta_pressure"] = delta_pressure
+
+    row["delta_domination"] = detect_delta_domination(
+        delta_pressure
+    )
+
+    row["aggressive_flow"] = detect_aggressive_flow(
+        row["delta_zscore"],
+        row["velocity_zscore"]
+    )
+
+    delta_pressure_history.append(
+        delta_pressure
+    )
+
+    row["delta_pressure_state"] = detect_delta_pressure_state(
+        delta_pressure
+    )
+
+    delta_acceleration = calculate_delta_acceleration()
+
+    row["delta_acceleration"] = delta_acceleration
+
+    delta_acceleration_history.append(
+        delta_acceleration
+    )
+
+    row["delta_acceleration_state"] = detect_delta_acceleration_state(
+        delta_acceleration
+    )
+
+    row["delta_exhaustion"] = detect_delta_exhaustion(
+        row["delta_zscore"],
+        row["velocity_zscore"],
+        delta_pressure
+    )
+
+    row["imbalance_state"] = detect_imbalance_state(
+        row.get("imbalance", 0)
     )
 
     return row

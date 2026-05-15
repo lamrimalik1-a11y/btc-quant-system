@@ -56,13 +56,35 @@ class OutputManager:
         print(f"FAST PRICE ZSCORE: {self._get(statistics, 'fast_price_zscore')}")
         print(f"MEDIUM PRICE ZSCORE: {self._get(statistics, 'medium_price_zscore')}")
         print(f"SLOW PRICE ZSCORE: {self._get(statistics, 'slow_price_zscore')}")
+
         print(f"VOLUME ZSCORE: {self._get(statistics, 'volume_zscore')}")
         print(f"DELTA ZSCORE: {self._get(statistics, 'delta_zscore')}")
         print(f"VELOCITY ZSCORE: {self._get(statistics, 'velocity_zscore')}")
-        print(f"PRICE ZONE: {self._get(row, 'price_zone')}")
-        print(f"VOLUME ZONE: {self._get(row, 'volume_zone')}")
-        print(f"DELTA ZONE: {self._get(row, 'delta_zone')}")
-        print(f"VELOCITY ZONE: {self._get(row, 'velocity_zone')}")
+
+        print(f"PRICE STD: {self._get(statistics, 'price_std')}")
+        print(f"WEIGHTED STD: {self._get(statistics, 'price_weighted_std')}")
+        print(f"ROBUST STD: {self._get(statistics, 'price_robust_std')}")
+        print(f"EWMA STD: {self._get(statistics, 'price_ewma_std')}")
+        print(f"VOLATILITY WEIGHTED STD: {self._get(statistics, 'price_volatility_weighted_std')}")
+        print(f"ADAPTIVE STD: {self._get(statistics, 'price_adaptive_std')}")
+        print(f"STD INSTABILITY: {self._get(statistics, 'std_instability_state')}")
+
+        print(f"VOLUME ADAPTIVE STD: {self._get(statistics, 'volume_adaptive_std')}")
+        print(f"DELTA ADAPTIVE STD: {self._get(statistics, 'delta_adaptive_std')}")
+        print(f"VELOCITY ADAPTIVE STD: {self._get(statistics, 'velocity_adaptive_std')}")
+        print(f"ADAPTIVE DISTRIBUTION WINDOW: {self._get(statistics, 'adaptive_distribution_window')}")
+
+        print("\n--- DISTRIBUTION SNAPSHOT ---")
+        print(f"DISTRIBUTION READY: {self._get(row, 'distribution_ready')}")
+        print(f"PRICE DISTRIBUTION MEAN: {self._get(row, 'price_distribution_mean')}")
+        print(f"PRICE DISTRIBUTION MEDIAN: {self._get(row, 'price_distribution_median')}")
+        print(f"DISTRIBUTION RANGE: {self._get(row, 'distribution_range')}")
+
+        print(f"PRICE PERCENTILE: {self._get(row, 'price_percentile')}")
+        print(f"VOLUME PERCENTILE: {self._get(row, 'volume_percentile')}")
+        print(f"DELTA PERCENTILE: {self._get(row, 'delta_percentile')}")
+        print(f"VELOCITY PERCENTILE: {self._get(row, 'velocity_percentile')}")
+        print(f"PRICE PERCENTILE ZONE: {self._get(row, 'price_percentile_zone')}")
 
         print("\n--- VARIANCE ---")
         print(f"PRICE VARIANCE: {self._get(row, 'price_variance')}")
@@ -70,16 +92,36 @@ class OutputManager:
         print(f"DELTA VARIANCE: {self._get(row, 'delta_variance')}")
         print(f"VELOCITY VARIANCE: {self._get(row, 'velocity_variance')}")
 
-        print("\n--- DISTRIBUTION SNAPSHOT ---")
-        print(f"DISTRIBUTION READY: {self._get(row, 'distribution_ready')}")
-        print(f"PRICE DISTRIBUTION MEAN: {self._get(row, 'price_distribution_mean')}")
-        print(f"PRICE DISTRIBUTION MEDIAN: {self._get(row, 'price_distribution_median')}")
-        print(f"DISTRIBUTION RANGE: {self._get(row, 'distribution_range')}")
-        print(f"PRICE PERCENTILE: {self._get(row, 'price_percentile')}")
-        print(f"VOLUME PERCENTILE: {self._get(row, 'volume_percentile')}")
-        print(f"DELTA PERCENTILE: {self._get(row, 'delta_percentile')}")
-        print(f"VELOCITY PERCENTILE: {self._get(row, 'velocity_percentile')}")
-        print(f"PRICE PERCENTILE ZONE: {self._get(row, 'price_percentile_zone')}")
+        print("\n--- DISTRIBUTION ZONES ---")
+        print(f"PRICE ZONE: {self._get(row, 'price_zone')}")
+        print(f"VOLUME ZONE: {self._get(row, 'volume_zone')}")
+        print(f"DELTA ZONE: {self._get(row, 'delta_zone')}")
+        print(f"VELOCITY ZONE: {self._get(row, 'velocity_zone')}")
+
+        print("\n--- VOLATILITY REGIME ---")
+        print(f"VOLATILITY RATIO: {self._get(statistics, 'volatility_ratio')}")
+        print(f"VOLATILITY REGIME: {self._get(statistics, 'volatility_regime')}")
+        print(f"VOLATILITY TRANSITION: {self._get(statistics, 'volatility_transition')}")
+        print(f"VOLATILITY PERSISTENCE: {self._get(statistics, 'volatility_persistence')}")
+        print(f"VOLATILITY ACCELERATION: {self._get(statistics, 'volatility_acceleration')}")
+
+        print("\n--- DELTA STATISTICS ---")
+        print(f"CUMULATIVE DELTA: {self._get(statistics, 'cumulative_delta')}")
+        print(f"DELTA DOMINATION: {self._get(statistics, 'delta_domination')}")
+        print(f"AGGRESSIVE FLOW: {self._get(statistics, 'aggressive_flow')}")
+        print(f"DELTA PRESSURE: {self._get(statistics, 'delta_pressure')}")
+        print(f"DELTA PRESSURE STATE: {self._get(statistics, 'delta_pressure_state')}")
+        print(f"DELTA ACCELERATION: {self._get(statistics, 'delta_acceleration')}")
+        print(f"DELTA ACCELERATION STATE: {self._get(statistics, 'delta_acceleration_state')}")
+        print(f"DELTA EXHAUSTION: {self._get(statistics, 'delta_exhaustion')}")
+        print(f"IMBALANCE STATE: {self._get(statistics, 'imbalance_state')}")
+
+        print("\n--- TAIL DETECTION ---")
+        print(f"PRICE TAIL SIDE: {self._get(statistics, 'price_tail_side')}")
+        print(f"PRICE TAIL STRENGTH: {self._get(statistics, 'price_tail_strength')}")
+        print(f"PRICE TAIL RISK: {self._get(statistics, 'price_tail_risk')}")
+        print(f"PRICE TAIL PERSISTENCE: {self._get(statistics, 'price_tail_persistence')}")
+        print(f"PRICE TAIL EXHAUSTION: {self._get(statistics, 'price_tail_exhaustion')}")
 
         print("\n--- RENKO ---")
         print(f"RVI: {self._get(renko, 'rvi')}")
@@ -87,7 +129,6 @@ class OutputManager:
         print(f"RENKO DIRECTION: {self._get(renko, 'renko_direction')}")
         print(f"RENKO EVENT: {self._get(renko, 'renko_event')}")
         print(f"RENKO BRICKS: {self._get(renko, 'renko_bricks')}")
-        print(f"RENKO EXPANSION: {self._get(row, 'renko_expansion')}")
 
         print("\n--- ZONE ENGINE ---")
 
@@ -110,11 +151,7 @@ class OutputManager:
         print(f"HISTORY SIZE: {len(price_history)}")
         print(f"ROW COUNTER: {system_state['row_counter']}")
 
-        if isinstance(engine_outputs, dict):
-            active_engines = list(engine_outputs.keys())
-        else:
-            active_engines = []
-
+        active_engines = list(engine_outputs.keys())
         print(f"ACTIVE ENGINES: {active_engines}")
 
     def display(self, context):

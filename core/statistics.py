@@ -10,11 +10,15 @@ FAST_WINDOW = 10
 MEDIUM_WINDOW = 30
 SLOW_WINDOW = 60
 
+SHIFT_RECENT_WINDOW = 20
+SHIFT_BASELINE_WINDOW = 100
+
 
 price_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
 volume_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
 delta_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
 velocity_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
+spread_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
 
 tail_history = deque(maxlen=10)
 
@@ -742,6 +746,9 @@ def update_distributions(row):
     delta_distribution.append(row["delta"])
     velocity_distribution.append(row["velocity"])
 
+    if row.get("spread") is not None:
+        spread_distribution.append(row["spread"])
+
     row["adaptive_distribution_window"] = adaptive_window
 
 
@@ -793,6 +800,375 @@ def add_statistical_zones(row):
 
     row["velocity_zone"] = classify_statistical_zone(
         row["velocity_zscore"]
+    )
+
+    return row
+
+
+def add_volume_statistical_foundation(row):
+    if (
+        not row.get("distribution_ready")
+        or len(volume_distribution) < 30
+    ):
+        row["volume_mean"] = None
+        row["volume_std"] = None
+        row["volume_state"] = None
+        row["volume_expansion"] = False
+        row["volume_compression"] = False
+        row["abnormal_volume"] = False
+        row["climactic_volume"] = False
+
+        return row
+
+    volume_zscore = row.get("volume_zscore")
+
+    if volume_zscore is None:
+        row["volume_mean"] = None
+        row["volume_std"] = None
+        row["volume_state"] = None
+        row["volume_expansion"] = False
+        row["volume_compression"] = False
+        row["abnormal_volume"] = False
+        row["climactic_volume"] = False
+
+        return row
+
+    volume_mean = calculate_mean(volume_distribution)
+    volume_std = calculate_std(volume_distribution)
+
+    row["volume_mean"] = volume_mean
+    row["volume_std"] = volume_std
+
+    if volume_mean <= 0 or volume_std <= 0:
+        row["volume_state"] = None
+        row["volume_expansion"] = False
+        row["volume_compression"] = False
+        row["abnormal_volume"] = False
+        row["climactic_volume"] = False
+
+        return row
+
+    if volume_zscore >= 2.5:
+        row["volume_state"] = "EXTREME_VOLUME"
+    elif volume_zscore >= 1.5:
+        row["volume_state"] = "HIGH_VOLUME"
+    elif volume_zscore <= -1:
+        row["volume_state"] = "COMPRESSED_VOLUME"
+    else:
+        row["volume_state"] = "NORMAL_VOLUME"
+
+    row["volume_expansion"] = volume_zscore >= 1.5
+    row["volume_compression"] = volume_zscore <= -1
+    row["abnormal_volume"] = abs(volume_zscore) >= 2
+    row["climactic_volume"] = volume_zscore >= 2.5
+
+    return row
+
+
+def add_spread_statistical_foundation(row):
+    spread = row.get("spread")
+
+    if (
+        spread is None
+        or len(spread_distribution) < 30
+    ):
+        row["spread_mean"] = None
+        row["spread_std"] = None
+        row["spread_zscore"] = None
+        row["spread_state"] = None
+        row["spread_expansion"] = False
+        row["spread_compression"] = False
+        row["abnormal_spread"] = False
+        row["execution_quality"] = None
+
+        return row
+
+    spread_mean = calculate_mean(spread_distribution)
+    spread_std = calculate_std(spread_distribution)
+
+    row["spread_mean"] = spread_mean
+    row["spread_std"] = spread_std
+
+    if spread_std <= 0:
+        row["spread_zscore"] = None
+        row["spread_state"] = None
+        row["spread_expansion"] = False
+        row["spread_compression"] = False
+        row["abnormal_spread"] = False
+        row["execution_quality"] = None
+
+        return row
+
+    spread_zscore = (spread - spread_mean) / spread_std
+
+    row["spread_zscore"] = spread_zscore
+
+    if spread_zscore >= 2.5:
+        row["spread_state"] = "EXTREME_SPREAD"
+    elif spread_zscore >= 1.5:
+        row["spread_state"] = "WIDE_SPREAD"
+    elif spread_zscore <= -1:
+        row["spread_state"] = "TIGHT_SPREAD"
+    else:
+        row["spread_state"] = "NORMAL_SPREAD"
+
+    row["spread_expansion"] = spread_zscore >= 1.5
+    row["spread_compression"] = spread_zscore <= -1
+    row["abnormal_spread"] = spread_zscore >= 2
+
+    if spread_zscore >= 2:
+        row["execution_quality"] = "BAD_EXECUTION"
+    elif spread_zscore >= 1:
+        row["execution_quality"] = "WIDE_EXECUTION"
+    else:
+        row["execution_quality"] = "GOOD_EXECUTION"
+
+    return row
+
+
+def add_velocity_statistical_foundation(row):
+    if (
+        not row.get("distribution_ready")
+        or len(velocity_distribution) < MIN_HISTORY_SIZE
+    ):
+        row["velocity_mean"] = None
+        row["velocity_std"] = None
+        row["velocity_state"] = None
+        row["velocity_expansion"] = False
+        row["velocity_compression"] = False
+        row["abnormal_velocity"] = False
+
+        return row
+
+    velocity_zscore = row.get("velocity_zscore")
+
+    if velocity_zscore is None:
+        row["velocity_mean"] = None
+        row["velocity_std"] = None
+        row["velocity_state"] = None
+        row["velocity_expansion"] = False
+        row["velocity_compression"] = False
+        row["abnormal_velocity"] = False
+
+        return row
+
+    row["velocity_mean"] = calculate_mean(velocity_distribution)
+    row["velocity_std"] = calculate_std(velocity_distribution)
+
+    if velocity_zscore >= 2:
+        row["velocity_state"] = "EXTREME_VELOCITY"
+    elif velocity_zscore >= 1:
+        row["velocity_state"] = "HIGH_VELOCITY"
+    elif velocity_zscore <= -1:
+        row["velocity_state"] = "COMPRESSED_VELOCITY"
+    else:
+        row["velocity_state"] = "NORMAL_VELOCITY"
+
+    row["velocity_expansion"] = velocity_zscore >= 1.5
+    row["velocity_compression"] = velocity_zscore <= -1
+    row["abnormal_velocity"] = abs(velocity_zscore) >= 2
+
+    return row
+
+
+def add_velocity_acceleration_features(row):
+    if (
+        not row.get("distribution_ready")
+        or len(velocity_distribution) < 3
+    ):
+        row["velocity_change"] = None
+        row["velocity_acceleration"] = None
+        row["velocity_acceleration_state"] = None
+        row["velocity_deceleration"] = False
+        row["velocity_shock"] = False
+
+        return row
+
+    velocity_values = list(velocity_distribution)
+
+    current_velocity = velocity_values[-1]
+    previous_velocity = velocity_values[-2]
+    previous_previous_velocity = velocity_values[-3]
+
+    velocity_change = current_velocity - previous_velocity
+    previous_velocity_change = previous_velocity - previous_previous_velocity
+    velocity_acceleration = velocity_change - previous_velocity_change
+
+    row["velocity_change"] = velocity_change
+    row["velocity_acceleration"] = velocity_acceleration
+
+    baseline = row.get("velocity_adaptive_std")
+
+    if baseline is None or baseline <= 0:
+        baseline = row.get("velocity_std")
+
+    if baseline is None or baseline <= 0:
+        row["velocity_acceleration_state"] = None
+        row["velocity_deceleration"] = False
+        row["velocity_shock"] = False
+
+        return row
+
+    ratio = velocity_acceleration / baseline
+
+    if abs(ratio) >= 2:
+        row["velocity_acceleration_state"] = "VELOCITY_SHOCK"
+    elif ratio >= 1:
+        row["velocity_acceleration_state"] = "ACCELERATING_VELOCITY"
+    elif ratio <= -1:
+        row["velocity_acceleration_state"] = "DECELERATING_VELOCITY"
+    else:
+        row["velocity_acceleration_state"] = "STABLE_VELOCITY"
+
+    row["velocity_deceleration"] = ratio <= -1
+    row["velocity_shock"] = abs(ratio) >= 2
+
+    return row
+
+
+def add_velocity_exhaustion_features(row):
+    # Velocity exhaustion is a baseline warning signal, not a confirmed reversal signal.
+    row["velocity_exhaustion"] = False
+    row["velocity_exhaustion_state"] = None
+    row["exhaustion_strength"] = None
+
+    if (
+        not row.get("distribution_ready")
+        or len(velocity_distribution) < MIN_HISTORY_SIZE
+    ):
+        return row
+
+    velocity_zscore = row.get("velocity_zscore")
+    velocity_state = row.get("velocity_state")
+    velocity_acceleration = row.get("velocity_acceleration")
+    velocity_deceleration = row.get("velocity_deceleration")
+    abnormal_velocity = row.get("abnormal_velocity")
+
+    if (
+        velocity_zscore is None
+        or velocity_acceleration is None
+    ):
+        return row
+
+    baseline = row.get("velocity_adaptive_std")
+
+    if baseline is None or baseline <= 0:
+        baseline = row.get("velocity_std")
+
+    if baseline is None or baseline <= 0:
+        return row
+
+    active_velocity_context = (
+        velocity_state in [
+            "HIGH_VELOCITY",
+            "EXTREME_VELOCITY",
+        ]
+        or abnormal_velocity is True
+        or velocity_zscore >= 1.25
+    )
+
+    if velocity_acceleration >= 0:
+        return row
+
+    collapse_ratio = abs(velocity_acceleration) / baseline
+
+    velocity_exhaustion = (
+        active_velocity_context is True
+        and velocity_deceleration is True
+        and collapse_ratio >= 1
+    )
+
+    row["velocity_exhaustion"] = velocity_exhaustion
+
+    if not velocity_exhaustion:
+        return row
+
+    row["exhaustion_strength"] = min(
+        collapse_ratio / 3,
+        1
+    )
+
+    if (
+        collapse_ratio >= 2
+        and abnormal_velocity is True
+    ):
+        row["velocity_exhaustion_state"] = "EXTREME_VELOCITY_EXHAUSTION"
+    elif collapse_ratio >= 1.5:
+        row["velocity_exhaustion_state"] = "STRONG_VELOCITY_EXHAUSTION"
+    elif collapse_ratio >= 1:
+        row["velocity_exhaustion_state"] = "VELOCITY_EXHAUSTION"
+
+    return row
+
+
+def add_distribution_shift_features(row):
+    # Distribution shift is a statistical warning, not a trading signal.
+    row["price_mean_shift"] = None
+    row["price_std_shift"] = None
+    row["distribution_shift"] = False
+    row["distribution_shift_state"] = None
+    row["distribution_shift_strength"] = None
+
+    if len(price_distribution) < SHIFT_BASELINE_WINDOW:
+        return row
+
+    values = list(price_distribution)
+
+    recent_values = values[-SHIFT_RECENT_WINDOW:]
+    baseline_values = values[-SHIFT_BASELINE_WINDOW:]
+
+    recent_mean = calculate_mean(recent_values)
+    baseline_mean = calculate_mean(baseline_values)
+
+    recent_std = calculate_adaptive_std(recent_values)
+    baseline_std = calculate_adaptive_std(baseline_values)
+
+    if baseline_std <= 0:
+        return row
+
+    price_mean_shift = abs(
+        recent_mean
+        -
+        baseline_mean
+    ) / baseline_std
+
+    price_std_shift = recent_std / baseline_std
+
+    mean_shift_detected = price_mean_shift >= 1.5
+
+    std_shift_detected = (
+        price_std_shift >= 1.5
+        or price_std_shift <= 0.65
+    )
+
+    row["price_mean_shift"] = price_mean_shift
+    row["price_std_shift"] = price_std_shift
+    row["distribution_shift"] = (
+        mean_shift_detected
+        or std_shift_detected
+    )
+
+    if (
+        price_mean_shift >= 2.5
+        or price_std_shift >= 2.0
+    ):
+        row["distribution_shift_state"] = "MAJOR_DISTRIBUTION_SHIFT"
+    elif (
+        price_mean_shift >= 1.5
+        or price_std_shift >= 1.5
+    ):
+        row["distribution_shift_state"] = "DISTRIBUTION_SHIFT"
+    elif price_std_shift <= 0.65:
+        row["distribution_shift_state"] = "DISTRIBUTION_COMPRESSION_SHIFT"
+
+    shift_score = max(
+        price_mean_shift / 3,
+        abs(price_std_shift - 1)
+    )
+
+    row["distribution_shift_strength"] = min(
+        shift_score,
+        1
     )
 
     return row
@@ -870,6 +1246,13 @@ def add_distribution_features(row):
     row["velocity_adaptive_std"] = calculate_adaptive_std(velocity_distribution)
 
     row["distribution_ready"] = len(price_distribution) >= 30
+
+    row = add_volume_statistical_foundation(row)
+    row = add_spread_statistical_foundation(row)
+    row = add_velocity_statistical_foundation(row)
+    row = add_velocity_acceleration_features(row)
+    row = add_velocity_exhaustion_features(row)
+    row = add_distribution_shift_features(row)
 
     if not row["distribution_ready"]:
         row["price_distribution_mean"] = None

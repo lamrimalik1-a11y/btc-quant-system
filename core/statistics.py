@@ -1174,6 +1174,243 @@ def add_distribution_shift_features(row):
     return row
 
 
+def add_gaussian_modeling_features(row):
+    # Gaussian modeling is statistical rarity context only.
+    row["price_gaussian_prob"] = None
+    row["gaussian_zone"] = None
+    row["gaussian_tail"] = None
+    row["gaussian_extreme"] = False
+    row["gaussian_confidence"] = None
+
+    if (
+        not row.get("distribution_ready")
+        or len(price_distribution) < 30
+    ):
+        return row
+
+    price = row.get("close")
+
+    if price is None:
+        return row
+
+    price_mean = calculate_mean(price_distribution)
+    price_std = row.get("price_std")
+
+    if price_std is None:
+        price_std = calculate_std(price_distribution)
+
+    if (
+        price_mean is None
+        or price_std is None
+        or price_std <= 0
+    ):
+        return row
+
+    zscore = row.get("price_zscore")
+
+    if zscore is None:
+        zscore = (price - price_mean) / price_std
+
+    probability_zscore = max(
+        min(zscore, 8),
+        -8
+    )
+
+    row["price_gaussian_prob"] = (
+        1
+        /
+        (
+            price_std
+            *
+            math.sqrt(2 * math.pi)
+        )
+    ) * math.exp(
+        -0.5 * (probability_zscore ** 2)
+    )
+
+    abs_zscore = abs(zscore)
+
+    if abs_zscore < 2:
+        row["gaussian_zone"] = "GAUSSIAN_NORMAL"
+    elif abs_zscore < 3:
+        row["gaussian_zone"] = "GAUSSIAN_OUTER"
+    else:
+        row["gaussian_zone"] = "GAUSSIAN_EXTREME"
+
+    if (
+        abs_zscore >= 2
+        and zscore > 0
+    ):
+        row["gaussian_tail"] = "UPPER_TAIL"
+    elif (
+        abs_zscore >= 2
+        and zscore < 0
+    ):
+        row["gaussian_tail"] = "LOWER_TAIL"
+
+    row["gaussian_extreme"] = abs_zscore >= 3
+
+    if row.get("distribution_shift") is True:
+        row["gaussian_confidence"] = "UNSTABLE_GAUSSIAN"
+    elif row["gaussian_zone"] == "GAUSSIAN_NORMAL":
+        row["gaussian_confidence"] = "HIGH_CONFIDENCE"
+    elif row["gaussian_zone"] == "GAUSSIAN_OUTER":
+        row["gaussian_confidence"] = "MEDIUM_CONFIDENCE"
+    elif row["gaussian_zone"] == "GAUSSIAN_EXTREME":
+        row["gaussian_confidence"] = "LOW_CONFIDENCE"
+
+    return row
+
+
+def add_extreme_event_detection_features(row):
+    # Extreme event detection is a statistical abnormality classifier only.
+    row["price_extreme_event"] = False
+    row["volume_extreme_event"] = False
+    row["delta_extreme_event"] = False
+    row["velocity_extreme_event"] = False
+    row["gaussian_extreme_event"] = False
+    row["spread_extreme_event"] = False
+    row["global_extreme_event"] = False
+    row["extreme_event_score"] = 0
+    row["extreme_event_state"] = "NO_EXTREME_EVENT"
+    row["extreme_event_context"] = "NO_EXTREME_CONTEXT"
+    row["extreme_event_origin"] = "NONE"
+
+    if not row.get("distribution_ready"):
+        return row
+
+    price_zscore = row.get("price_zscore")
+    volume_zscore = row.get("volume_zscore")
+    delta_zscore = row.get("delta_zscore")
+    velocity_zscore = row.get("velocity_zscore")
+
+    row["price_extreme_event"] = (
+        price_zscore is not None
+        and abs(price_zscore) >= 3
+    )
+
+    row["volume_extreme_event"] = (
+        row.get("climactic_volume") is True
+        or (
+            volume_zscore is not None
+            and volume_zscore >= 2.5
+        )
+    )
+
+    row["delta_extreme_event"] = (
+        delta_zscore is not None
+        and abs(delta_zscore) >= 2.5
+    )
+
+    row["velocity_extreme_event"] = (
+        row.get("velocity_shock") is True
+        or (
+            velocity_zscore is not None
+            and abs(velocity_zscore) >= 2.5
+        )
+    )
+
+    row["gaussian_extreme_event"] = (
+        row.get("gaussian_extreme") is True
+        or row.get("gaussian_zone") == "GAUSSIAN_EXTREME"
+    )
+
+    row["spread_extreme_event"] = (
+        row.get("abnormal_spread") is True
+        or row.get("execution_quality") == "BAD_EXECUTION"
+    )
+
+    active_dimensions = sum([
+        row["price_extreme_event"],
+        row["volume_extreme_event"],
+        row["delta_extreme_event"],
+        row["velocity_extreme_event"],
+        row["gaussian_extreme_event"],
+        row["spread_extreme_event"],
+    ])
+
+    row["global_extreme_event"] = active_dimensions >= 2
+
+    gaussian_weight = (
+        0
+        if row.get("gaussian_confidence") == "UNSTABLE_GAUSSIAN"
+        else 0.20
+    )
+
+    extreme_event_score = 0
+
+    if row["price_extreme_event"]:
+        extreme_event_score += 0.20
+
+    if row["gaussian_extreme_event"]:
+        extreme_event_score += gaussian_weight
+
+    if row["volume_extreme_event"]:
+        extreme_event_score += 0.15
+
+    if row["delta_extreme_event"]:
+        extreme_event_score += 0.15
+
+    if row["velocity_extreme_event"]:
+        extreme_event_score += 0.15
+
+    if row["spread_extreme_event"]:
+        extreme_event_score += 0.15
+
+    row["extreme_event_score"] = min(
+        extreme_event_score,
+        1
+    )
+
+    if (
+        row.get("distribution_shift") is True
+        and active_dimensions >= 2
+    ):
+        row["extreme_event_state"] = "UNSTABLE_EXTREME_CONTEXT"
+    elif active_dimensions == 0:
+        row["extreme_event_state"] = "NO_EXTREME_EVENT"
+    elif active_dimensions == 1:
+        row["extreme_event_state"] = "SINGLE_FACTOR_EXTREME"
+    elif active_dimensions == 2:
+        row["extreme_event_state"] = "MULTI_FACTOR_EXTREME"
+    else:
+        row["extreme_event_state"] = "CRITICAL_EXTREME_EVENT"
+
+    if active_dimensions >= 2:
+        row["extreme_event_origin"] = "MULTI_FACTOR_EXTREME"
+    elif row["price_extreme_event"]:
+        row["extreme_event_origin"] = "PRICE_DOMINATED"
+    elif row["volume_extreme_event"]:
+        row["extreme_event_origin"] = "VOLUME_DOMINATED"
+    elif row["gaussian_extreme_event"]:
+        row["extreme_event_origin"] = "GAUSSIAN_DOMINATED"
+    elif row["velocity_extreme_event"]:
+        row["extreme_event_origin"] = "VELOCITY_DOMINATED"
+    elif row["spread_extreme_event"]:
+        row["extreme_event_origin"] = "SPREAD_DOMINATED"
+    elif row["delta_extreme_event"]:
+        row["extreme_event_origin"] = "DELTA_DOMINATED"
+
+    if row["extreme_event_state"] == "UNSTABLE_EXTREME_CONTEXT":
+        row["extreme_event_context"] = "UNSTABLE_EXTREME_CONTEXT"
+    elif (
+        row["price_extreme_event"]
+        and row["gaussian_extreme_event"]
+    ):
+        row["extreme_event_context"] = "PRICE_GAUSSIAN_EXTREME"
+    elif (
+        row["volume_extreme_event"]
+        and row["velocity_extreme_event"]
+    ):
+        row["extreme_event_context"] = "VOLUME_VELOCITY_EXTREME"
+    elif row["spread_extreme_event"]:
+        row["extreme_event_context"] = "SPREAD_EXECUTION_RISK"
+    elif active_dimensions >= 2:
+        row["extreme_event_context"] = "MULTI_FACTOR_STATISTICAL_EVENT"
+
+    return row
+
+
 # ==================================================
 # MAIN FEATURE ADDER
 # ==================================================
@@ -1253,6 +1490,8 @@ def add_distribution_features(row):
     row = add_velocity_acceleration_features(row)
     row = add_velocity_exhaustion_features(row)
     row = add_distribution_shift_features(row)
+    row = add_gaussian_modeling_features(row)
+    row = add_extreme_event_detection_features(row)
 
     if not row["distribution_ready"]:
         row["price_distribution_mean"] = None

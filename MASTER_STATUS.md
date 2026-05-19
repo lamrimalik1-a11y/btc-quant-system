@@ -26,6 +26,16 @@ COMPLETED ITEMS
 - Velocity Acceleration
 - Velocity Exhaustion
 - Distribution Shift Detection
+- Gaussian Modeling
+- Extreme Event Detection
+
+Extreme Event Detection = statistical abnormality classifier.
+
+NOT entry signal.
+NOT reversal signal.
+NOT execution logic.
+
+Calibration of weights and false positives will be reviewed later after live observation.
 
 
 ==================================================
@@ -173,11 +183,23 @@ These are optional future architecture paths, not current implementation require
 NEXT STEP
 ==================================================
 
-Gaussian Modeling
+PHASE 1B OBSERVATION / CALIBRATION
+
+Current Focus:
+
+Extreme Event Detection live observation
+
+Objectives:
+
+- Observe false positives
+- Observe Gaussian interaction
+- Observe distribution shift interaction
+- Observe extreme score behavior
+- Monitor live outputs
 
 Status:
 
-Not Implemented Yet
+ACTIVE OBSERVATION
 
 DO NOT ADVANCE PHASES
 

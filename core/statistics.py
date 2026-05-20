@@ -1411,6 +1411,58 @@ def add_extreme_event_detection_features(row):
     return row
 
 
+def add_statistical_dashboard_features(row):
+    row["statistical_dashboard_score"] = 0
+    row["statistical_dashboard_state"] = "NO_STRONG_CONFLUENCE"
+    row["statistical_dashboard_conditions"] = []
+    row["statistical_dashboard_active"] = False
+
+    active_conditions = []
+
+    if row.get("gaussian_extreme") is True:
+        active_conditions.append("GAUSSIAN_EXTREME")
+
+    if row.get("distribution_shift") is True:
+        active_conditions.append("DISTRIBUTION_SHIFT")
+
+    if row.get("climactic_volume") is True:
+        active_conditions.append("CLIMACTIC_VOLUME")
+
+    if row.get("velocity_shock") is True:
+        active_conditions.append("VELOCITY_SHOCK")
+
+    if row.get("velocity_exhaustion") is True:
+        active_conditions.append("VELOCITY_EXHAUSTION")
+
+    if row.get("abnormal_spread") is True:
+        active_conditions.append("ABNORMAL_SPREAD_EXECUTION_RISK")
+
+    delta_zscore = row.get("delta_zscore")
+
+    if (
+        delta_zscore is not None
+        and abs(delta_zscore) >= 2
+    ):
+        active_conditions.append("DELTA_ZSCORE_EXTREME")
+
+    score = len(active_conditions)
+
+    row["statistical_dashboard_score"] = score
+    row["statistical_dashboard_conditions"] = active_conditions
+    row["statistical_dashboard_active"] = score >= 2
+
+    if score <= 1:
+        row["statistical_dashboard_state"] = "NO_STRONG_CONFLUENCE"
+    elif score <= 3:
+        row["statistical_dashboard_state"] = "WEAK_CONFLUENCE"
+    elif score <= 5:
+        row["statistical_dashboard_state"] = "MODERATE_CONFLUENCE"
+    else:
+        row["statistical_dashboard_state"] = "STRONG_CONFLUENCE"
+
+    return row
+
+
 # ==================================================
 # MAIN FEATURE ADDER
 # ==================================================
@@ -1492,6 +1544,7 @@ def add_distribution_features(row):
     row = add_distribution_shift_features(row)
     row = add_gaussian_modeling_features(row)
     row = add_extreme_event_detection_features(row)
+    row = add_statistical_dashboard_features(row)
 
     if not row["distribution_ready"]:
         row["price_distribution_mean"] = None

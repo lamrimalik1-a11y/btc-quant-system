@@ -7,6 +7,14 @@ from core.state import (
     system_state,
 )
 
+from core.observation_logger import (
+    log_observation_events,
+)
+
+from core.observation_archive import (
+    archive_observation_row,
+)
+
 
 class OutputManager:
 
@@ -215,6 +223,59 @@ class OutputManager:
 
         active_engines = list(engine_outputs.keys())
         print(f"ACTIVE ENGINES: {active_engines}")
+
+        log_observation_events(
+            row=row,
+            statistics=statistics,
+            row_id=system_state["row_counter"],
+        )
+
+        archive_observation_row(
+            row=row,
+            statistics=statistics,
+            row_id=system_state["row_counter"],
+        )
+
+        print("\n--- STATISTICAL DASHBOARD ---")
+
+        dashboard_state = self._get(
+            statistics,
+            "statistical_dashboard_state"
+        )
+
+        dashboard_score = self._get(
+            statistics,
+            "statistical_dashboard_score"
+        )
+
+        dashboard_conditions = self._get(
+            statistics,
+            "statistical_dashboard_conditions",
+            []
+        )
+
+        if dashboard_state == "NO_STRONG_CONFLUENCE":
+            print("NO_STRONG_CONFLUENCE")
+        else:
+            print(f"Confluence Score: {dashboard_score}")
+            print(f"State: {dashboard_state}")
+            print("Active Conditions:")
+
+            for condition in dashboard_conditions:
+                print(f"- {condition}")
+
+            print("\n" + "=" * 40)
+            print("STATISTICAL ALERT")
+            print("=" * 40)
+            print(f"ROW: {system_state['row_counter']}")
+            print(f"STATE: {dashboard_state}")
+            print(f"SCORE: {dashboard_score}")
+            print("ACTIVE CONDITIONS:")
+
+            for condition in dashboard_conditions:
+                print(f"- {condition}")
+
+            print("=" * 40)
 
     def display(self, context):
         self.print_row_summary(context)

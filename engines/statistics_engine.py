@@ -102,6 +102,10 @@ class StatisticsEngine(BaseEngine):
             "extreme_event_state": row.get("extreme_event_state"),
             "extreme_event_context": row.get("extreme_event_context"),
             "extreme_event_origin": row.get("extreme_event_origin"),
+            "statistical_dashboard_score": row.get("statistical_dashboard_score"),
+            "statistical_dashboard_state": row.get("statistical_dashboard_state"),
+            "statistical_dashboard_conditions": row.get("statistical_dashboard_conditions"),
+            "statistical_dashboard_active": row.get("statistical_dashboard_active"),
 
             "adaptive_distribution_window": row.get("adaptive_distribution_window"),
 

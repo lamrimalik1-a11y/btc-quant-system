@@ -8,9 +8,11 @@ PHASE 1B STATUS
 
 Current Active Phase:
 
-PHASE 1B
+PHASE 1B LOCKED V2.7
 
 Advanced Statistical Engine
+
+Observation / Calibration Checkpoint
 
 Status:
 
@@ -28,6 +30,18 @@ COMPLETED ITEMS
 - Distribution Shift Detection
 - Gaussian Modeling
 - Extreme Event Detection
+- Statistical Dashboard V1
+- Statistical Dashboard Alert Block
+- Observation Logger
+- Observation Events CSV
+- Dashboard Episodes CSV
+- Streamlit Observation Studio
+- Smooth Panel Refresh
+- Active Episode Tracking
+- LIVE / REPLAY Observation Mode
+- Replay Generator
+- Observation Row Archive
+- Observation Rows CSV
 
 Extreme Event Detection = statistical abnormality classifier.
 
@@ -187,7 +201,7 @@ PHASE 1B OBSERVATION / CALIBRATION
 
 Current Focus:
 
-Extreme Event Detection live observation
+Observation Studio replay/archive calibration
 
 Objectives:
 
@@ -196,6 +210,9 @@ Objectives:
 - Observe distribution shift interaction
 - Observe extreme score behavior
 - Monitor live outputs
+- Review observation events
+- Review dashboard episodes
+- Replay archived observation rows
 
 Status:
 

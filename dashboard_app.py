@@ -12,6 +12,13 @@ DASHBOARD_EPISODES_FILE = OUTPUT_DIR / "dashboard_episodes.csv"
 REPLAY_MARKET_ROWS_FILE = OUTPUT_DIR / "replay_market_rows.csv"
 REPLAY_OBSERVATION_EVENTS_FILE = OUTPUT_DIR / "replay_observation_events.csv"
 REPLAY_DASHBOARD_EPISODES_FILE = OUTPUT_DIR / "replay_dashboard_episodes.csv"
+HISTORICAL_OBSERVATION_ROWS_FILE = OUTPUT_DIR / "historical_observation_rows.csv"
+HISTORICAL_REPLAY_OBSERVATION_EVENTS_FILE = (
+    OUTPUT_DIR / "historical_replay_observation_events.csv"
+)
+HISTORICAL_REPLAY_DASHBOARD_EPISODES_FILE = (
+    OUTPUT_DIR / "historical_replay_dashboard_episodes.csv"
+)
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
@@ -19,10 +26,15 @@ OBSERVATION_FILE_SOURCES = {
         "observation_events": OBSERVATION_EVENTS_FILE,
         "dashboard_episodes": DASHBOARD_EPISODES_FILE,
     },
-    "REPLAY": {
+    "RECORDED REPLAY": {
         "market_rows": REPLAY_MARKET_ROWS_FILE,
         "observation_events": REPLAY_OBSERVATION_EVENTS_FILE,
         "dashboard_episodes": REPLAY_DASHBOARD_EPISODES_FILE,
+    },
+    "HISTORICAL REPLAY": {
+        "market_rows": HISTORICAL_OBSERVATION_ROWS_FILE,
+        "observation_events": HISTORICAL_REPLAY_OBSERVATION_EVENTS_FILE,
+        "dashboard_episodes": HISTORICAL_REPLAY_DASHBOARD_EPISODES_FILE,
     },
 }
 
@@ -785,8 +797,10 @@ def render_live_observation_panels(
         and observation_events.empty
         and dashboard_episodes.empty
     ):
-        if observation_mode == "REPLAY":
-            st.info("Waiting for replay data...")
+        if observation_mode == "RECORDED REPLAY":
+            st.info("Waiting for recorded replay data...")
+        elif observation_mode == "HISTORICAL REPLAY":
+            st.info("Historical replay data not generated yet.")
         else:
             st.info("Waiting for live data...")
         return
@@ -844,6 +858,10 @@ def main():
 
     if "observation_mode" not in st.session_state:
         st.session_state["observation_mode"] = "LIVE"
+    elif st.session_state["observation_mode"] == "REPLAY":
+        st.session_state["observation_mode"] = "RECORDED REPLAY"
+    elif st.session_state["observation_mode"] not in OBSERVATION_FILE_SOURCES:
+        st.session_state["observation_mode"] = "LIVE"
 
     st.title("BTC Quant Observation Studio V1.6")
     st.caption("PHASE 1B Observation / Calibration - read-only CSV interface")
@@ -852,7 +870,7 @@ def main():
         st.header("Observation Mode")
         observation_mode = st.selectbox(
             "Observation Mode",
-            ["LIVE", "REPLAY"],
+            ["LIVE", "RECORDED REPLAY", "HISTORICAL REPLAY"],
             key="observation_mode",
         )
 

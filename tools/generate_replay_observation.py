@@ -60,6 +60,46 @@ EPISODE_FIELDNAMES = [
     "peak_delta_zscore",
 ]
 
+V2_EVENT_FIELDNAMES = [
+    "event_timestamp_utc",
+    "market_timestamp",
+    "row_id",
+    "event_type",
+    "previous_dashboard_v2_state",
+    "new_dashboard_v2_state",
+    "dashboard_v2_layer_count",
+    "dashboard_v2_max_severity",
+    "dashboard_v2_primary_context",
+    "dashboard_v2_conditions",
+    "dashboard_v2_active_layers",
+    "observation_confidence",
+    "price",
+    "rvi",
+    "velocity",
+    "delta_zscore",
+]
+
+V2_EPISODE_FIELDNAMES = [
+    "episode_id",
+    "episode_start_timestamp_utc",
+    "episode_end_timestamp_utc",
+    "duration_seconds",
+    "start_row_id",
+    "end_row_id",
+    "peak_state",
+    "peak_layer_count",
+    "peak_max_severity",
+    "peak_primary_context",
+    "peak_conditions",
+    "peak_active_layers",
+    "peak_observation_confidence",
+    "start_price",
+    "end_price",
+    "peak_rvi",
+    "peak_velocity",
+    "peak_delta_zscore",
+]
+
 DASHBOARD_CONDITIONS = [
     ("gaussian_extreme", "GAUSSIAN_EXTREME"),
     ("distribution_shift", "DISTRIBUTION_SHIFT"),
@@ -246,6 +286,249 @@ def build_replay_observation(market_rows):
         previous_dashboard_state = new_dashboard_state
 
     return events, episodes
+
+
+def build_replay_observation_v2(market_rows):
+    events = []
+    episodes = []
+    previous_state = "NO_CONFLUENCE"
+    active_episode = None
+    episode_counter = 0
+
+    for row_index, row in market_rows.iterrows():
+        row_data = row.to_dict()
+        row_id = get_row_id(row_data, row_index)
+        event_timestamp = get_v2_event_timestamp(row_data, row_index)
+        market_timestamp = get_v2_market_timestamp(row_data)
+        snapshot = get_dashboard_v2_snapshot(row_data)
+        new_state = snapshot["state"]
+        is_active = new_state != "NO_CONFLUENCE"
+
+        if previous_state == "NO_CONFLUENCE" and is_active:
+            episode_counter += 1
+            active_episode = {
+                "episode_id": episode_counter,
+                "episode_start_timestamp_utc": event_timestamp,
+                "start_row_id": row_id,
+                "peak_state": new_state,
+                "peak_layer_count": snapshot["layer_count"],
+                "peak_max_severity": snapshot["max_severity"],
+                "peak_primary_context": snapshot["primary_context"],
+                "peak_conditions": snapshot["conditions"],
+                "peak_active_layers": snapshot["active_layers"],
+                "peak_observation_confidence": snapshot[
+                    "observation_confidence"
+                ],
+                "start_price": get_value(row_data, "close"),
+                "peak_rvi": to_number(get_value(row_data, "rvi")),
+                "peak_velocity": to_number(get_value(row_data, "velocity")),
+                "peak_delta_zscore": to_number(
+                    get_value(row_data, "delta_zscore")
+                ),
+            }
+
+        if active_episode is not None:
+            update_v2_episode_peak(
+                active_episode,
+                row_data,
+                snapshot,
+            )
+
+            if is_active is False and previous_state != "NO_CONFLUENCE":
+                episodes.append(
+                    build_v2_episode_row(
+                        active_episode,
+                        row_data,
+                        row_id,
+                        event_timestamp,
+                    )
+                )
+                active_episode = None
+
+        if new_state != previous_state:
+            events.append(
+                build_v2_event_row(
+                    row_data=row_data,
+                    row_id=row_id,
+                    event_timestamp=event_timestamp,
+                    market_timestamp=market_timestamp,
+                    event_type="DASHBOARD_V2_STATE_CHANGE",
+                    previous_state=previous_state,
+                    new_state=new_state,
+                    snapshot=snapshot,
+                )
+            )
+
+        if is_active:
+            events.append(
+                build_v2_event_row(
+                    row_data=row_data,
+                    row_id=row_id,
+                    event_timestamp=event_timestamp,
+                    market_timestamp=market_timestamp,
+                    event_type="DASHBOARD_V2_ACTIVE",
+                    previous_state=previous_state,
+                    new_state=new_state,
+                    snapshot=snapshot,
+                )
+            )
+
+        previous_state = new_state
+
+    return events, episodes
+
+
+def get_dashboard_v2_snapshot(row_data):
+    state = get_value(row_data, "dashboard_v2_state", "NO_CONFLUENCE")
+
+    if state is None:
+        state = "NO_CONFLUENCE"
+
+    return {
+        "state": str(state),
+        "layer_count": to_int(
+            get_value(row_data, "dashboard_v2_layer_count"),
+            0,
+        ),
+        "max_severity": get_value(row_data, "dashboard_v2_max_severity"),
+        "primary_context": get_value(
+            row_data,
+            "dashboard_v2_primary_context",
+        ),
+        "conditions": format_conditions(
+            get_value(row_data, "dashboard_v2_conditions")
+        ),
+        "active_layers": format_conditions(
+            get_value(row_data, "dashboard_v2_active_layers")
+        ),
+        "observation_confidence": get_value(
+            row_data,
+            "observation_confidence",
+        ),
+    }
+
+
+def get_v2_market_timestamp(row_data):
+    timestamp = (
+        get_value(row_data, "market_timestamp")
+        or get_value(row_data, "end_ts")
+        or get_value(row_data, "timestamp")
+        or get_value(row_data, "start_ts")
+    )
+
+    if timestamp is None:
+        return None
+
+    return timestamp
+
+
+def get_v2_event_timestamp(row_data, row_index):
+    market_timestamp = get_v2_market_timestamp(row_data)
+
+    if market_timestamp is not None:
+        return str(market_timestamp)
+
+    return f"REPLAY_ROW_{row_index + 1}"
+
+
+def build_v2_event_row(
+    row_data,
+    row_id,
+    event_timestamp,
+    market_timestamp,
+    event_type,
+    previous_state,
+    new_state,
+    snapshot,
+):
+    return {
+        "event_timestamp_utc": event_timestamp,
+        "market_timestamp": market_timestamp,
+        "row_id": row_id,
+        "event_type": event_type,
+        "previous_dashboard_v2_state": previous_state,
+        "new_dashboard_v2_state": new_state,
+        "dashboard_v2_layer_count": snapshot["layer_count"],
+        "dashboard_v2_max_severity": snapshot["max_severity"],
+        "dashboard_v2_primary_context": snapshot["primary_context"],
+        "dashboard_v2_conditions": snapshot["conditions"],
+        "dashboard_v2_active_layers": snapshot["active_layers"],
+        "observation_confidence": snapshot["observation_confidence"],
+        "price": get_value(row_data, "close"),
+        "rvi": get_value(row_data, "rvi"),
+        "velocity": get_value(row_data, "velocity"),
+        "delta_zscore": get_value(row_data, "delta_zscore"),
+    }
+
+
+def update_v2_episode_peak(active_episode, row_data, snapshot):
+    if (
+        snapshot["layer_count"]
+        >= active_episode.get("peak_layer_count", 0)
+    ):
+        active_episode["peak_state"] = snapshot["state"]
+        active_episode["peak_layer_count"] = snapshot["layer_count"]
+        active_episode["peak_max_severity"] = snapshot["max_severity"]
+        active_episode["peak_primary_context"] = snapshot["primary_context"]
+        active_episode["peak_conditions"] = snapshot["conditions"]
+        active_episode["peak_active_layers"] = snapshot["active_layers"]
+        active_episode["peak_observation_confidence"] = snapshot[
+            "observation_confidence"
+        ]
+
+    rvi = to_number(get_value(row_data, "rvi"))
+    velocity = to_number(get_value(row_data, "velocity"))
+    delta_zscore = to_number(get_value(row_data, "delta_zscore"))
+
+    if rvi is not None:
+        peak_rvi = active_episode.get("peak_rvi")
+        if peak_rvi is None or rvi > peak_rvi:
+            active_episode["peak_rvi"] = rvi
+
+    if velocity is not None:
+        peak_velocity = active_episode.get("peak_velocity")
+        if peak_velocity is None or velocity > peak_velocity:
+            active_episode["peak_velocity"] = velocity
+
+    if delta_zscore is not None:
+        peak_delta_zscore = active_episode.get("peak_delta_zscore")
+        if (
+            peak_delta_zscore is None
+            or abs(delta_zscore) > abs(peak_delta_zscore)
+        ):
+            active_episode["peak_delta_zscore"] = delta_zscore
+
+
+def build_v2_episode_row(
+    active_episode,
+    row_data,
+    row_id,
+    event_timestamp,
+):
+    start_timestamp = active_episode["episode_start_timestamp_utc"]
+
+    return {
+        "episode_id": active_episode["episode_id"],
+        "episode_start_timestamp_utc": start_timestamp,
+        "episode_end_timestamp_utc": event_timestamp,
+        "duration_seconds": duration_seconds(start_timestamp, event_timestamp),
+        "start_row_id": active_episode["start_row_id"],
+        "end_row_id": row_id,
+        "peak_state": active_episode["peak_state"],
+        "peak_layer_count": active_episode["peak_layer_count"],
+        "peak_max_severity": active_episode["peak_max_severity"],
+        "peak_primary_context": active_episode["peak_primary_context"],
+        "peak_conditions": active_episode["peak_conditions"],
+        "peak_active_layers": active_episode["peak_active_layers"],
+        "peak_observation_confidence": active_episode[
+            "peak_observation_confidence"
+        ],
+        "start_price": active_episode["start_price"],
+        "end_price": get_value(row_data, "close"),
+        "peak_rvi": active_episode.get("peak_rvi"),
+        "peak_velocity": active_episode.get("peak_velocity"),
+        "peak_delta_zscore": active_episode.get("peak_delta_zscore"),
+    }
 
 
 def get_dashboard_snapshot(row_data):
@@ -542,6 +825,15 @@ def to_number(value):
         return None
 
     return number
+
+
+def to_int(value, default=None):
+    number = to_number(value)
+
+    if number is None:
+        return default
+
+    return int(number)
 
 
 def is_true(value):

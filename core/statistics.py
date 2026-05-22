@@ -1,6 +1,7 @@
 import math
 import statistics
 from collections import deque
+from dataclasses import dataclass, field
 
 
 MIN_HISTORY_SIZE = 10
@@ -12,6 +13,1054 @@ SLOW_WINDOW = 60
 
 SHIFT_RECENT_WINDOW = 20
 SHIFT_BASELINE_WINDOW = 100
+
+DASHBOARD_V2_SEVERITY_RANKS = {
+    None: 0,
+    "": 0,
+    "LOW": 1,
+    "MEDIUM": 2,
+    "HIGH": 3,
+    "EXTREME": 4,
+}
+
+DASHBOARD_V2_LAYERS = [
+    "distribution",
+    "multi_zscore",
+    "price_rarity",
+    "volatility",
+    "volume",
+    "velocity",
+    "delta",
+    "spread_execution",
+    "extreme_event",
+]
+
+
+@dataclass
+class LayerResult:
+    layer_name: str
+    active: bool = False
+    severity: str = None
+    primary_condition: str = None
+    supporting_conditions: list = field(default_factory=list)
+    display_fields: list = field(default_factory=list)
+    notes: str = ""
+
+    def to_scalar_fields(self):
+        return {
+            "layer_name": self.layer_name,
+            "active": self.active,
+            "severity": self.severity,
+            "primary_condition": self.primary_condition,
+            "supporting_conditions": format_condition_list(
+                self.supporting_conditions
+            ),
+            "display_fields": format_condition_list(
+                self.display_fields
+            ),
+            "notes": self.notes or "",
+        }
+
+
+def severity_rank(severity):
+    return DASHBOARD_V2_SEVERITY_RANKS.get(
+        severity,
+        0
+    )
+
+
+def max_severity(*severities):
+    if (
+        len(severities) == 1
+        and isinstance(severities[0], (list, tuple, set))
+    ):
+        severities = tuple(severities[0])
+
+    ranked_severities = [
+        severity
+        for severity in severities
+        if severity_rank(severity) > 0
+    ]
+
+    if not ranked_severities:
+        return None
+
+    return max(
+        ranked_severities,
+        key=severity_rank
+    )
+
+
+def format_condition_list(values):
+    if values is None:
+        return ""
+
+    if isinstance(values, str):
+        return values
+
+    if not isinstance(values, (list, tuple, set)):
+        return str(values)
+
+    return "|".join(
+        str(value)
+        for value in values
+        if value is not None and str(value).strip() != ""
+    )
+
+
+def evaluate_distribution_layer(row):
+    state = row.get("distribution_shift_state")
+    strength = _safe_number(row.get("distribution_shift_strength"))
+    mean_shift = _safe_number(row.get("price_mean_shift"))
+    std_shift = _safe_number(row.get("price_std_shift"))
+    supporting_conditions = []
+
+    if strength is not None:
+        supporting_conditions.append("DISTRIBUTION_SHIFT_STRENGTH")
+
+    if mean_shift is not None:
+        supporting_conditions.append("PRICE_MEAN_SHIFT")
+
+    if std_shift is not None:
+        supporting_conditions.append("PRICE_STD_SHIFT")
+
+    active = (
+        state == "MAJOR_DISTRIBUTION_SHIFT"
+        or (strength is not None and strength >= 0.75)
+        or (mean_shift is not None and mean_shift >= 2.5)
+        or (
+            std_shift is not None
+            and (std_shift >= 2.0 or std_shift <= 0.50)
+        )
+    )
+    severity = None
+    primary_condition = None
+
+    if active:
+        primary_condition = state or "DISTRIBUTION_SHIFT"
+
+        if state == "MAJOR_DISTRIBUTION_SHIFT":
+            severity = "HIGH"
+
+            if (
+                (strength is not None and strength >= 0.85)
+                or (mean_shift is not None and mean_shift >= 2.5)
+                or (
+                    std_shift is not None
+                    and (std_shift >= 2.0 or std_shift <= 0.5)
+                )
+            ):
+                severity = "EXTREME"
+
+        elif (
+            (strength is not None and strength >= 0.75)
+            or (mean_shift is not None and mean_shift >= 2.5)
+            or (
+                std_shift is not None
+                and (std_shift >= 2.0 or std_shift <= 0.50)
+            )
+        ):
+            severity = "MEDIUM"
+        else:
+            severity = "LOW"
+
+    return LayerResult(
+        layer_name="distribution",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "distribution_shift_strength",
+            "price_mean_shift",
+            "price_std_shift",
+        ],
+    )
+
+
+def evaluate_multi_zscore_layer(row):
+    zscore_fields = [
+        "price_zscore",
+        "volume_zscore",
+        "velocity_zscore",
+        "spread_zscore",
+        "delta_zscore",
+    ]
+
+    active_zscores = []
+    extreme_zscores = []
+
+    for field_name in zscore_fields:
+        value = _safe_number(row.get(field_name))
+
+        if value is None:
+            continue
+
+        if abs(value) >= 2:
+            active_zscores.append(field_name.upper())
+
+        if abs(value) >= 3:
+            extreme_zscores.append(field_name.upper())
+
+    active = len(active_zscores) > 0
+    severity = None
+    primary_condition = None
+
+    if active:
+        delta_zscore = _safe_number(row.get("delta_zscore"))
+        primary_condition = "MULTI_ZSCORE_CONTEXT"
+        severity = "LOW"
+
+        if delta_zscore is not None and abs(delta_zscore) >= 2:
+            primary_condition = "DELTA_ZSCORE_EXTREME"
+            severity = "MEDIUM"
+
+        if len(active_zscores) >= 2:
+            severity = max_severity(severity, "HIGH")
+
+        if len(extreme_zscores) > 0 or len(active_zscores) >= 3:
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="multi_zscore",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=active_zscores,
+        display_fields=zscore_fields,
+    )
+
+
+def evaluate_price_rarity_layer(row):
+    gaussian_zone = row.get("gaussian_zone")
+    gaussian_extreme = row.get("gaussian_extreme") is True
+    gaussian_confidence = row.get("gaussian_confidence")
+    tail_risk = row.get("price_tail_risk")
+    tail_persistence = row.get("price_tail_persistence")
+    tail_exhaustion = row.get("price_tail_exhaustion")
+    price_zscore = _safe_number(row.get("price_zscore"))
+    strong_price_zscore = (
+        price_zscore is not None
+        and abs(price_zscore) >= 2
+    )
+    tail_risk_active = _is_active_label(tail_risk)
+
+    supporting_conditions = []
+
+    if _is_active_label(gaussian_confidence):
+        supporting_conditions.append(f"GAUSSIAN_CONFIDENCE:{gaussian_confidence}")
+
+    if tail_persistence is True or _is_active_label(tail_persistence):
+        supporting_conditions.append("PRICE_TAIL_PERSISTENCE")
+
+    active = (
+        gaussian_extreme
+        or (
+            gaussian_zone == "GAUSSIAN_OUTER"
+            and tail_risk_active
+            and strong_price_zscore
+        )
+        or (
+            tail_exhaustion is True
+            and (
+                tail_risk_active
+                or strong_price_zscore
+            )
+        )
+    )
+    severity = None
+    primary_condition = None
+
+    if active:
+        severity = "LOW"
+        primary_condition = gaussian_zone or "PRICE_RARITY_CONTEXT"
+
+        if gaussian_zone == "GAUSSIAN_OUTER" or tail_risk_active:
+            severity = "MEDIUM"
+
+        if gaussian_zone == "GAUSSIAN_EXTREME":
+            severity = "HIGH"
+
+        if (
+            gaussian_zone == "GAUSSIAN_EXTREME"
+            and (
+                tail_risk_active
+                or tail_exhaustion is True
+            )
+        ):
+            severity = "EXTREME"
+
+        if (
+            tail_exhaustion is True
+            and severity_rank(severity) < severity_rank("HIGH")
+        ):
+            severity = "HIGH"
+
+    return LayerResult(
+        layer_name="price_rarity",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "gaussian_extreme",
+            "gaussian_zone",
+            "gaussian_confidence",
+            "price_tail_risk",
+            "price_tail_persistence",
+            "price_tail_exhaustion",
+        ],
+    )
+
+
+def evaluate_volatility_layer(row):
+    transition = row.get("volatility_transition")
+    regime = row.get("volatility_regime")
+    acceleration = _safe_number(row.get("volatility_acceleration"))
+
+    active = (
+        _is_active_label(transition)
+        or (
+            acceleration is not None
+            and abs(acceleration) >= 1.0
+        )
+    )
+    severity = None
+    primary_condition = None
+    supporting_conditions = []
+
+    if _is_active_label(regime):
+        supporting_conditions.append(f"VOLATILITY_REGIME:{regime}")
+
+    if acceleration is not None:
+        supporting_conditions.append("VOLATILITY_ACCELERATION")
+
+    if active:
+        primary_condition = transition or "VOLATILITY_ACCELERATION"
+        severity = "MEDIUM"
+
+        if acceleration is not None and abs(acceleration) >= 0.5:
+            severity = "HIGH"
+
+        if acceleration is not None and abs(acceleration) >= 1.0:
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="volatility",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "volatility_regime",
+            "volatility_transition",
+            "volatility_acceleration",
+        ],
+    )
+
+
+def evaluate_volume_layer(row):
+    climactic_volume = row.get("climactic_volume") is True
+    abnormal_volume = row.get("abnormal_volume") is True
+    volume_state = row.get("volume_state")
+    volume_expansion = row.get("volume_expansion") is True
+
+    active = (
+        climactic_volume
+        or abnormal_volume
+        or volume_state in ["HIGH_VOLUME", "EXTREME_VOLUME"]
+        or volume_expansion
+    )
+    severity = None
+    primary_condition = None
+    supporting_conditions = []
+
+    if volume_state is not None:
+        supporting_conditions.append(f"VOLUME_STATE:{volume_state}")
+
+    if volume_expansion:
+        supporting_conditions.append("VOLUME_EXPANSION")
+
+    if active:
+        severity = "LOW"
+        primary_condition = volume_state or "VOLUME_CONTEXT"
+
+        if abnormal_volume:
+            primary_condition = "ABNORMAL_VOLUME"
+            severity = "MEDIUM"
+
+        if climactic_volume:
+            primary_condition = "CLIMACTIC_VOLUME"
+            severity = "HIGH"
+
+    return LayerResult(
+        layer_name="volume",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "volume_state",
+            "volume_expansion",
+            "abnormal_volume",
+            "climactic_volume",
+        ],
+    )
+
+
+def evaluate_velocity_layer(row):
+    velocity_shock = row.get("velocity_shock") is True
+    exhaustion_state = row.get("velocity_exhaustion_state")
+    acceleration_state = row.get("velocity_acceleration_state")
+    velocity_state = row.get("velocity_state")
+
+    active = (
+        velocity_shock
+        or _is_active_label(exhaustion_state)
+        or acceleration_state in [
+            "VELOCITY_SHOCK",
+            "ACCELERATING_VELOCITY",
+            "DECELERATING_VELOCITY",
+        ]
+        or velocity_state in ["HIGH_VELOCITY", "EXTREME_VELOCITY"]
+    )
+    severity = None
+    primary_condition = None
+    supporting_conditions = []
+
+    for label, value in [
+        ("VELOCITY_STATE", velocity_state),
+        ("VELOCITY_ACCELERATION_STATE", acceleration_state),
+        ("VELOCITY_EXHAUSTION_STATE", exhaustion_state),
+    ]:
+        if _is_active_label(value):
+            supporting_conditions.append(f"{label}:{value}")
+
+    if active:
+        severity = "LOW"
+        primary_condition = velocity_state or "VELOCITY_CONTEXT"
+
+        if velocity_shock:
+            primary_condition = "VELOCITY_SHOCK"
+            severity = "MEDIUM"
+
+        if exhaustion_state == "VELOCITY_EXHAUSTION":
+            primary_condition = exhaustion_state
+            severity = max_severity(severity, "MEDIUM")
+
+        if exhaustion_state == "STRONG_VELOCITY_EXHAUSTION":
+            primary_condition = exhaustion_state
+            severity = "HIGH"
+
+        if exhaustion_state == "EXTREME_VELOCITY_EXHAUSTION":
+            primary_condition = exhaustion_state
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="velocity",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "velocity_state",
+            "velocity_acceleration_state",
+            "velocity_deceleration",
+            "velocity_exhaustion_state",
+            "exhaustion_strength",
+        ],
+    )
+
+
+def evaluate_delta_layer(row):
+    pressure_state = row.get("delta_pressure_state")
+    imbalance_state = row.get("imbalance_state")
+    aggressive_flow = row.get("aggressive_flow")
+    delta_zscore = _safe_number(row.get("delta_zscore"))
+    delta_exhaustion = row.get("delta_exhaustion") is True
+    acceleration_state = row.get("delta_acceleration_state")
+
+    pressure_confirmed = (
+        _is_active_label(pressure_state)
+        and _is_active_label(aggressive_flow)
+    )
+    acceleration_confirmed = (
+        _is_active_label(acceleration_state)
+        and _is_active_label(aggressive_flow)
+        and delta_zscore is not None
+        and abs(delta_zscore) >= 2
+    )
+    exhaustion_confirmed = (
+        delta_exhaustion
+        and (
+            _is_active_label(pressure_state)
+            or _is_active_label(aggressive_flow)
+        )
+    )
+
+    active = (
+        pressure_confirmed
+        or (delta_zscore is not None and abs(delta_zscore) >= 2.75)
+        or exhaustion_confirmed
+        or acceleration_confirmed
+    )
+    severity = None
+    primary_condition = None
+    supporting_conditions = []
+
+    for label, value in [
+        ("DELTA_PRESSURE_STATE", pressure_state),
+        ("IMBALANCE_STATE", imbalance_state),
+        ("AGGRESSIVE_FLOW", aggressive_flow),
+        ("DELTA_ACCELERATION_STATE", acceleration_state),
+    ]:
+        if _is_active_label(value):
+            supporting_conditions.append(f"{label}:{value}")
+
+    if active:
+        severity = "LOW"
+        primary_condition = pressure_state or "DELTA_CONTEXT"
+
+        if delta_zscore is not None and abs(delta_zscore) >= 2.75:
+            primary_condition = "DELTA_ZSCORE_EXTREME"
+            severity = "MEDIUM"
+
+        if pressure_confirmed:
+            primary_condition = pressure_state
+            severity = max_severity(severity, "MEDIUM")
+
+        if acceleration_confirmed:
+            primary_condition = acceleration_state
+            severity = max_severity(severity, "MEDIUM")
+
+        if exhaustion_confirmed:
+            primary_condition = "DELTA_EXHAUSTION"
+            severity = "HIGH"
+
+        if delta_zscore is not None and abs(delta_zscore) >= 3:
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="delta",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "delta_pressure_state",
+            "delta_zscore",
+            "delta_exhaustion",
+            "imbalance_state",
+            "aggressive_flow",
+            "delta_acceleration_state",
+        ],
+    )
+
+
+def evaluate_spread_execution_layer(row):
+    abnormal_spread = row.get("abnormal_spread") is True
+    execution_quality = row.get("execution_quality")
+    spread_state = row.get("spread_state")
+
+    active = (
+        abnormal_spread
+        or execution_quality in ["WIDE_EXECUTION", "BAD_EXECUTION"]
+        or spread_state in ["WIDE_SPREAD", "EXTREME_SPREAD"]
+    )
+    severity = None
+    primary_condition = None
+    supporting_conditions = []
+
+    if _is_active_label(spread_state):
+        supporting_conditions.append(f"SPREAD_STATE:{spread_state}")
+
+    if abnormal_spread:
+        supporting_conditions.append("ABNORMAL_SPREAD")
+
+    if active:
+        severity = "LOW"
+        primary_condition = spread_state or "SPREAD_EXECUTION_CONTEXT"
+
+        if execution_quality == "WIDE_EXECUTION":
+            primary_condition = execution_quality
+            severity = "MEDIUM"
+
+        if execution_quality == "BAD_EXECUTION" or abnormal_spread:
+            primary_condition = execution_quality or "ABNORMAL_SPREAD"
+            severity = "HIGH"
+
+        if spread_state == "EXTREME_SPREAD" and (
+            execution_quality == "BAD_EXECUTION"
+            or abnormal_spread
+        ):
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="spread_execution",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=supporting_conditions,
+        display_fields=[
+            "abnormal_spread",
+            "execution_quality",
+            "spread_state",
+            "spread_expansion",
+            "spread_zscore",
+        ],
+    )
+
+
+def evaluate_extreme_event_layer(row):
+    state = row.get("extreme_event_state")
+    extreme_fields = [
+        "price_extreme_event",
+        "volume_extreme_event",
+        "delta_extreme_event",
+        "velocity_extreme_event",
+        "spread_extreme_event",
+    ]
+    active_extremes = [
+        field_name.upper()
+        for field_name in extreme_fields
+        if row.get(field_name) is True
+    ]
+
+    active = (
+        state is not None
+        and state != "NO_EXTREME_EVENT"
+    ) or len(active_extremes) > 0
+    severity = None
+    primary_condition = None
+
+    if active:
+        primary_condition = state or "EXTREME_EVENT_CONTEXT"
+        severity = "LOW"
+
+        if state == "MULTI_FACTOR_EXTREME":
+            severity = "MEDIUM"
+
+        if state == "CRITICAL_EXTREME_EVENT":
+            severity = "HIGH"
+
+        if state == "UNSTABLE_EXTREME_CONTEXT":
+            severity = "EXTREME"
+
+    return LayerResult(
+        layer_name="extreme_event",
+        active=active,
+        severity=severity,
+        primary_condition=primary_condition,
+        supporting_conditions=active_extremes,
+        display_fields=[
+            "extreme_event_state",
+            "extreme_event_context",
+            "extreme_event_origin",
+        ] + extreme_fields,
+        notes="Escalation context only in Dashboard V2",
+    )
+
+
+def add_statistical_dashboard_v2_features(row):
+    layer_results = [
+        evaluate_distribution_layer(row),
+        evaluate_multi_zscore_layer(row),
+        evaluate_price_rarity_layer(row),
+        evaluate_volatility_layer(row),
+        evaluate_volume_layer(row),
+        evaluate_velocity_layer(row),
+        evaluate_delta_layer(row),
+        evaluate_spread_execution_layer(row),
+        evaluate_extreme_event_layer(row),
+    ]
+
+    counted_layers = [
+        result
+        for result in layer_results
+        if _is_counted_dashboard_layer(result)
+    ]
+    extreme_layer = _find_layer_result(
+        layer_results,
+        "extreme_event"
+    )
+
+    layer_count = len(counted_layers)
+    active_layers = [
+        result.layer_name
+        for result in counted_layers
+    ]
+    layer_severities = [
+        result.severity
+        for result in counted_layers
+    ]
+    strongest_severity = max_severity(layer_severities)
+
+    if (
+        extreme_layer is not None
+        and extreme_layer.active
+        and layer_count > 0
+    ):
+        strongest_severity = max_severity(
+            strongest_severity,
+            extreme_layer.severity
+        )
+
+    active = (
+        layer_count >= 2
+        or strongest_severity == "EXTREME"
+    )
+
+    primary_context = _select_primary_dashboard_context(
+        counted_layers,
+        extreme_layer
+    )
+    conditions = _collect_dashboard_conditions(
+        counted_layers,
+        extreme_layer
+    )
+    display_context = _collect_dashboard_display_context(
+        layer_results
+    )
+    observation_confidence = _dashboard_v2_observation_confidence(
+        row,
+        layer_results
+    )
+    active = _apply_dashboard_v2_combination_filter(
+        active,
+        counted_layers,
+        extreme_layer,
+        observation_confidence,
+    )
+    state = _dashboard_v2_state(
+        active=active,
+        layer_count=layer_count,
+        max_layer_severity=strongest_severity,
+        observation_confidence=observation_confidence,
+    )
+
+    row["dashboard_v2_active"] = active
+    row["dashboard_v2_state"] = state
+    row["dashboard_v2_layer_count"] = layer_count
+    row["dashboard_v2_active_layers"] = format_condition_list(
+        active_layers
+    )
+    row["dashboard_v2_max_severity"] = strongest_severity
+    row["dashboard_v2_primary_context"] = primary_context
+    row["dashboard_v2_conditions"] = format_condition_list(
+        conditions
+    )
+    row["dashboard_v2_display_context"] = format_condition_list(
+        display_context
+    )
+    row["observation_confidence"] = observation_confidence
+
+    _add_dashboard_v2_layer_fields(
+        row,
+        layer_results
+    )
+
+    return row
+
+
+def _find_layer_result(layer_results, layer_name):
+    for result in layer_results:
+        if result.layer_name == layer_name:
+            return result
+
+    return None
+
+
+def _add_dashboard_v2_layer_fields(row, layer_results):
+    for result in layer_results:
+        prefix = f"dashboard_v2_{result.layer_name}"
+
+        row[f"{prefix}_active"] = result.active
+        row[f"{prefix}_severity"] = result.severity
+        row[f"{prefix}_primary_condition"] = result.primary_condition
+        row[f"{prefix}_supporting_conditions"] = format_condition_list(
+            result.supporting_conditions
+        )
+
+
+def _is_counted_dashboard_layer(result):
+    if not result.active:
+        return False
+
+    if result.layer_name in [
+        "extreme_event",
+        "spread_execution",
+    ]:
+        return False
+
+    if (
+        result.layer_name == "multi_zscore"
+        and len(result.supporting_conditions) < 2
+    ):
+        return False
+
+    return True
+
+
+def _count_active_dashboard_layers(layer_results):
+    return len([
+        result
+        for result in layer_results
+        if _is_counted_dashboard_layer(result)
+    ])
+
+
+def _apply_dashboard_v2_combination_filter(
+    active,
+    counted_layers,
+    extreme_layer,
+    observation_confidence,
+):
+    if not active:
+        return False
+
+    if len(counted_layers) != 2:
+        return active
+
+    active_layer_names = {
+        result.layer_name
+        for result in counted_layers
+    }
+    weak_context_layers = {
+        "distribution",
+        "volatility",
+        "price_rarity",
+    }
+
+    if not active_layer_names.issubset(weak_context_layers):
+        return active
+
+    if observation_confidence == "UNSTABLE_STATISTICAL_CONTEXT":
+        return active
+
+    if (
+        extreme_layer is not None
+        and extreme_layer.active
+        and severity_rank(extreme_layer.severity) >= severity_rank("HIGH")
+    ):
+        return active
+
+    if any(
+        severity_rank(result.severity) >= severity_rank("HIGH")
+        for result in counted_layers
+    ):
+        return active
+
+    return False
+
+
+def _select_primary_dashboard_context(counted_layers, extreme_layer):
+    if not counted_layers:
+        return None
+
+    strongest_layer = max(
+        counted_layers,
+        key=lambda result: severity_rank(result.severity)
+    )
+
+    if (
+        extreme_layer is not None
+        and extreme_layer.active
+        and severity_rank(extreme_layer.severity)
+        > severity_rank(strongest_layer.severity)
+    ):
+        return extreme_layer.primary_condition
+
+    return strongest_layer.primary_condition
+
+
+def _collect_dashboard_conditions(counted_layers, extreme_layer):
+    conditions = []
+
+    for result in counted_layers:
+        if result.primary_condition:
+            conditions.append(result.primary_condition)
+
+        conditions.extend(result.supporting_conditions)
+
+    if (
+        extreme_layer is not None
+        and extreme_layer.active
+        and counted_layers
+    ):
+        if extreme_layer.primary_condition:
+            conditions.append(extreme_layer.primary_condition)
+
+        conditions.extend(extreme_layer.supporting_conditions)
+
+    return _unique_condition_list(conditions)
+
+
+def _collect_dashboard_display_context(layer_results):
+    display_context = []
+
+    for result in layer_results:
+        if not result.active:
+            continue
+
+        display_context.append(
+            ":".join(
+                [
+                    result.layer_name,
+                    result.severity or "NONE",
+                    result.primary_condition or "NONE",
+                ]
+            )
+        )
+
+    return display_context
+
+
+def _unique_condition_list(values):
+    unique_values = []
+    seen = set()
+
+    for value in values:
+        if value is None:
+            continue
+
+        text = str(value).strip()
+
+        if text == "" or text in seen:
+            continue
+
+        seen.add(text)
+        unique_values.append(text)
+
+    return unique_values
+
+
+def _dashboard_v2_observation_confidence(row, layer_results):
+    gaussian_confidence = row.get("gaussian_confidence")
+    distribution_layer = _find_layer_result(
+        layer_results,
+        "distribution"
+    )
+    price_rarity_layer = _find_layer_result(
+        layer_results,
+        "price_rarity"
+    )
+    extreme_layer = _find_layer_result(
+        layer_results,
+        "extreme_event"
+    )
+    spread_layer = _find_layer_result(
+        layer_results,
+        "spread_execution"
+    )
+
+    if (
+        (
+            distribution_layer is not None
+            and distribution_layer.active
+            and price_rarity_layer is not None
+            and price_rarity_layer.active
+            and gaussian_confidence == "UNSTABLE_GAUSSIAN"
+        )
+        or (
+            extreme_layer is not None
+            and extreme_layer.primary_condition
+            == "UNSTABLE_EXTREME_CONTEXT"
+            and _count_active_dashboard_layers(layer_results) > 0
+        )
+    ):
+        return "UNSTABLE_STATISTICAL_CONTEXT"
+
+    if (
+        spread_layer is not None
+        and spread_layer.active
+        and severity_rank(spread_layer.severity) >= severity_rank("HIGH")
+    ):
+        return "LOW_CONFIDENCE"
+
+    if (
+        spread_layer is not None
+        and spread_layer.active
+    ):
+        return "MEDIUM_CONFIDENCE"
+
+    return "HIGH_CONFIDENCE"
+
+
+def _dashboard_v2_state(
+    active,
+    layer_count,
+    max_layer_severity,
+    observation_confidence,
+):
+    if not active:
+        return "NO_CONFLUENCE"
+
+    if observation_confidence == "UNSTABLE_STATISTICAL_CONTEXT":
+        return "UNSTABLE_STATISTICAL_CONTEXT"
+
+    if (
+        max_layer_severity == "EXTREME"
+        and layer_count >= 2
+    ):
+        return "EXTREME_LAYER_CONFLUENCE"
+
+    if layer_count >= 4:
+        return "EXTREME_LAYER_CONFLUENCE"
+
+    if layer_count >= 3:
+        return "STRONG_LAYER_CONFLUENCE"
+
+    if layer_count == 2:
+        return "MODERATE_LAYER_CONFLUENCE"
+
+    return "WEAK_LAYER_CONFLUENCE"
+
+
+def _safe_number(value):
+    if value is None:
+        return None
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if math.isnan(number):
+        return None
+
+    return number
+
+
+def _is_active_label(value):
+    if value is None:
+        return False
+
+    if isinstance(value, bool):
+        return value
+
+    text = str(value).strip()
+
+    return text not in [
+        "",
+        "None",
+        "False",
+        "false",
+        "NO_PREVIOUS_REGIME",
+        "NO_REGIME_CHANGE",
+        "NO_EXTREME_EVENT",
+        "NO_TAIL_RISK",
+        "NORMAL",
+        "NORMAL_TAIL",
+        "NORMAL_VOLUME",
+        "NORMAL_VELOCITY",
+        "NORMAL_SPREAD",
+        "NORMAL_VOLATILITY",
+        "NORMAL_FLOW",
+        "NEUTRAL_PRESSURE",
+        "BALANCED_ORDERBOOK",
+        "STABLE_VELOCITY",
+        "STABLE_DELTA_SPEED",
+    ]
 
 
 price_distribution = deque(maxlen=DEFAULT_DISTRIBUTION_WINDOW)
@@ -1688,5 +2737,7 @@ def add_distribution_features(row):
     row["imbalance_state"] = detect_imbalance_state(
         row.get("imbalance", 0)
     )
+
+    row = add_statistical_dashboard_v2_features(row)
 
     return row

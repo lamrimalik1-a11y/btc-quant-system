@@ -71,6 +71,99 @@ FIELDNAMES = [
     "statistical_dashboard_state",
     "statistical_dashboard_score",
     "statistical_dashboard_conditions",
+    "dashboard_v2_active",
+    "dashboard_v2_state",
+    "dashboard_v2_layer_count",
+    "dashboard_v2_active_layers",
+    "dashboard_v2_max_severity",
+    "dashboard_v2_primary_context",
+    "dashboard_v2_conditions",
+    "dashboard_v2_display_context",
+    "observation_confidence",
+    "dashboard_v2_distribution_active",
+    "dashboard_v2_distribution_severity",
+    "dashboard_v2_distribution_primary_condition",
+    "dashboard_v2_distribution_supporting_conditions",
+    "dashboard_v2_multi_zscore_active",
+    "dashboard_v2_multi_zscore_severity",
+    "dashboard_v2_multi_zscore_primary_condition",
+    "dashboard_v2_multi_zscore_supporting_conditions",
+    "dashboard_v2_price_rarity_active",
+    "dashboard_v2_price_rarity_severity",
+    "dashboard_v2_price_rarity_primary_condition",
+    "dashboard_v2_price_rarity_supporting_conditions",
+    "dashboard_v2_volatility_active",
+    "dashboard_v2_volatility_severity",
+    "dashboard_v2_volatility_primary_condition",
+    "dashboard_v2_volatility_supporting_conditions",
+    "dashboard_v2_volume_active",
+    "dashboard_v2_volume_severity",
+    "dashboard_v2_volume_primary_condition",
+    "dashboard_v2_volume_supporting_conditions",
+    "dashboard_v2_velocity_active",
+    "dashboard_v2_velocity_severity",
+    "dashboard_v2_velocity_primary_condition",
+    "dashboard_v2_velocity_supporting_conditions",
+    "dashboard_v2_delta_active",
+    "dashboard_v2_delta_severity",
+    "dashboard_v2_delta_primary_condition",
+    "dashboard_v2_delta_supporting_conditions",
+    "dashboard_v2_spread_execution_active",
+    "dashboard_v2_spread_execution_severity",
+    "dashboard_v2_spread_execution_primary_condition",
+    "dashboard_v2_spread_execution_supporting_conditions",
+    "dashboard_v2_extreme_event_active",
+    "dashboard_v2_extreme_event_severity",
+    "dashboard_v2_extreme_event_primary_condition",
+    "dashboard_v2_extreme_event_supporting_conditions",
+]
+
+DASHBOARD_V2_ARCHIVE_FIELDS = [
+    "dashboard_v2_active",
+    "dashboard_v2_state",
+    "dashboard_v2_layer_count",
+    "dashboard_v2_active_layers",
+    "dashboard_v2_max_severity",
+    "dashboard_v2_primary_context",
+    "dashboard_v2_conditions",
+    "dashboard_v2_display_context",
+    "observation_confidence",
+    "dashboard_v2_distribution_active",
+    "dashboard_v2_distribution_severity",
+    "dashboard_v2_distribution_primary_condition",
+    "dashboard_v2_distribution_supporting_conditions",
+    "dashboard_v2_multi_zscore_active",
+    "dashboard_v2_multi_zscore_severity",
+    "dashboard_v2_multi_zscore_primary_condition",
+    "dashboard_v2_multi_zscore_supporting_conditions",
+    "dashboard_v2_price_rarity_active",
+    "dashboard_v2_price_rarity_severity",
+    "dashboard_v2_price_rarity_primary_condition",
+    "dashboard_v2_price_rarity_supporting_conditions",
+    "dashboard_v2_volatility_active",
+    "dashboard_v2_volatility_severity",
+    "dashboard_v2_volatility_primary_condition",
+    "dashboard_v2_volatility_supporting_conditions",
+    "dashboard_v2_volume_active",
+    "dashboard_v2_volume_severity",
+    "dashboard_v2_volume_primary_condition",
+    "dashboard_v2_volume_supporting_conditions",
+    "dashboard_v2_velocity_active",
+    "dashboard_v2_velocity_severity",
+    "dashboard_v2_velocity_primary_condition",
+    "dashboard_v2_velocity_supporting_conditions",
+    "dashboard_v2_delta_active",
+    "dashboard_v2_delta_severity",
+    "dashboard_v2_delta_primary_condition",
+    "dashboard_v2_delta_supporting_conditions",
+    "dashboard_v2_spread_execution_active",
+    "dashboard_v2_spread_execution_severity",
+    "dashboard_v2_spread_execution_primary_condition",
+    "dashboard_v2_spread_execution_supporting_conditions",
+    "dashboard_v2_extreme_event_active",
+    "dashboard_v2_extreme_event_severity",
+    "dashboard_v2_extreme_event_primary_condition",
+    "dashboard_v2_extreme_event_supporting_conditions",
 ]
 
 
@@ -86,8 +179,7 @@ def _archive_observation_row(row, statistics, row_id):
 
     with OBSERVATION_ROWS_FILE.open(mode="a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=FIELDNAMES)
-        writer.writerow(
-            {
+        archive_row = {
                 "row_id": row_id,
                 "market_timestamp": _get_market_timestamp(row),
                 "close": _get(row, "close"),
@@ -235,7 +327,18 @@ def _archive_observation_row(row, statistics, row_id):
                     )
                 ),
             }
-        )
+
+        for field in DASHBOARD_V2_ARCHIVE_FIELDS:
+            archive_row[field] = _format_conditions(
+                _get_observation_value(
+                    row,
+                    statistics,
+                    field,
+                    "",
+                )
+            )
+
+        writer.writerow(archive_row)
 
 
 def _ensure_csv_file():
@@ -314,3 +417,12 @@ def _get(source, key, default=None):
         return source.get(key, default)
 
     return getattr(source, key, default)
+
+
+def _get_observation_value(row, statistics, key, default=None):
+    value = _get(statistics, key, None)
+
+    if value is not None:
+        return value
+
+    return _get(row, key, default)

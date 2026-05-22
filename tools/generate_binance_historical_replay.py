@@ -34,7 +34,10 @@ from engines.statistics_engine import StatisticsEngine
 from tools.generate_replay_observation import (
     EPISODE_FIELDNAMES,
     EVENT_FIELDNAMES,
+    V2_EPISODE_FIELDNAMES,
+    V2_EVENT_FIELDNAMES,
     build_replay_observation,
+    build_replay_observation_v2,
     write_dict_rows,
 )
 
@@ -49,6 +52,12 @@ HISTORICAL_REPLAY_EVENTS_FILE = (
 )
 HISTORICAL_REPLAY_EPISODES_FILE = (
     OUTPUT_DIR / "historical_replay_dashboard_episodes.csv"
+)
+HISTORICAL_REPLAY_V2_EVENTS_FILE = (
+    OUTPUT_DIR / "historical_replay_observation_v2_events.csv"
+)
+HISTORICAL_REPLAY_V2_EPISODES_FILE = (
+    OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
 )
 HISTORICAL_RAW_AGGTRADES_FILE = OUTPUT_DIR / "historical_raw_aggtrades.csv"
 
@@ -124,6 +133,9 @@ def main():
     replay_events, replay_episodes = build_replay_observation(
         observation_dataframe
     )
+    replay_v2_events, replay_v2_episodes = build_replay_observation_v2(
+        observation_dataframe
+    )
 
     write_dict_rows(
         HISTORICAL_REPLAY_EVENTS_FILE,
@@ -134,6 +146,16 @@ def main():
         HISTORICAL_REPLAY_EPISODES_FILE,
         EPISODE_FIELDNAMES,
         replay_episodes,
+    )
+    write_dict_rows(
+        HISTORICAL_REPLAY_V2_EVENTS_FILE,
+        V2_EVENT_FIELDNAMES,
+        replay_v2_events,
+    )
+    write_dict_rows(
+        HISTORICAL_REPLAY_V2_EPISODES_FILE,
+        V2_EPISODE_FIELDNAMES,
+        replay_v2_episodes,
     )
 
     if args.save_raw:
@@ -147,10 +169,17 @@ def main():
     )
     print(f"Historical events found: {len(replay_events)}")
     print(f"Historical episodes found: {len(replay_episodes)}")
+    print(f"Historical V2 events found: {len(replay_v2_events)}")
+    print(f"Historical V2 episodes found: {len(replay_v2_episodes)}")
     print(f"Historical market rows: {HISTORICAL_MARKET_ROWS_FILE}")
     print(f"Historical observation rows: {HISTORICAL_OBSERVATION_ROWS_FILE}")
     print(f"Historical replay events: {HISTORICAL_REPLAY_EVENTS_FILE}")
     print(f"Historical replay episodes: {HISTORICAL_REPLAY_EPISODES_FILE}")
+    print(f"Historical replay V2 events: {HISTORICAL_REPLAY_V2_EVENTS_FILE}")
+    print(
+        "Historical replay V2 episodes: "
+        f"{HISTORICAL_REPLAY_V2_EPISODES_FILE}"
+    )
 
     if args.save_raw:
         print(f"Historical raw aggTrades: {HISTORICAL_RAW_AGGTRADES_FILE}")
@@ -474,6 +503,8 @@ def ensure_outputs_can_be_written(overwrite, save_raw):
         HISTORICAL_OBSERVATION_ROWS_FILE,
         HISTORICAL_REPLAY_EVENTS_FILE,
         HISTORICAL_REPLAY_EPISODES_FILE,
+        HISTORICAL_REPLAY_V2_EVENTS_FILE,
+        HISTORICAL_REPLAY_V2_EPISODES_FILE,
     ]
 
     if save_raw:

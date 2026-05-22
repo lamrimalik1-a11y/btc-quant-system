@@ -277,6 +277,16 @@ class OutputManager:
 
             print("=" * 40)
 
+        print("\n--- STATISTICAL DASHBOARD V2 ---")
+        print(f"State: {self._get(row, 'dashboard_v2_state')}")
+        print(f"Active Layers: {self._get(row, 'dashboard_v2_active_layers')}")
+        print(f"Layer Count: {self._get(row, 'dashboard_v2_layer_count')}")
+        print(f"Max Severity: {self._get(row, 'dashboard_v2_max_severity')}")
+        print(f"Primary Context: {self._get(row, 'dashboard_v2_primary_context')}")
+        print(f"Observation Confidence: {self._get(row, 'observation_confidence')}")
+        print(f"Conditions: {self._get(row, 'dashboard_v2_conditions')}")
+        print(f"Display Context: {self._get(row, 'dashboard_v2_display_context')}")
+
     def display(self, context):
         self.print_row_summary(context)
 

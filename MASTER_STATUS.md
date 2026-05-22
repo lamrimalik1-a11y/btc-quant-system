@@ -42,6 +42,71 @@ COMPLETED ITEMS
 - Replay Generator
 - Observation Row Archive
 - Observation Rows CSV
+- Binance Historical Replay V1
+- Archive V2 Field Extension
+- Dashboard Episode Filters
+
+
+==================================================
+PHASE 1B STABLE REPLAY CALIBRATION CHECKPOINT
+==================================================
+
+Replay dates:
+
+2026-05-18 -> 2026-05-21
+
+Rows:
+
+5744
+
+Events:
+
+1940
+
+Episodes:
+
+222
+
+Score distribution:
+
+2=137
+3=70
+4=14
+5=1
+
+score>=4:
+
+15
+
+Highest score:
+
+5
+
+Historical Replay:
+
+WORKING
+
+Archive V2:
+
+observation_rows.csv
+21 -> 65 fields
+
+Dashboard:
+
+WORKING
+
+Episode filters:
+
+WORKING
+
+DeepSeek fields:
+
+ARCHIVED ONLY
+NOT SCORED
+
+Dashboard V2:
+
+NEXT STEP
 
 Extreme Event Detection = statistical abnormality classifier.
 

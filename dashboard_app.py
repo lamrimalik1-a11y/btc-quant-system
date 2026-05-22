@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -60,6 +61,49 @@ IMPORTANT_EVENT_COLUMNS = [
     "velocity_exhaustion",
     "abnormal_spread",
     "delta_zscore_extreme",
+]
+
+ARCHIVE_V2_FIELDS = [
+    "price_zscore",
+    "volume_zscore",
+    "velocity_zscore",
+    "spread_zscore",
+    "price_percentile_zone",
+    "distribution_shift_state",
+    "distribution_shift_strength",
+    "gaussian_zone",
+    "gaussian_tail",
+    "gaussian_confidence",
+    "price_tail_risk",
+    "price_tail_persistence",
+    "price_tail_exhaustion",
+    "volatility_regime",
+    "volatility_transition",
+    "volatility_acceleration",
+    "volume_state",
+    "volume_expansion",
+    "abnormal_volume",
+    "velocity_state",
+    "velocity_acceleration_state",
+    "velocity_deceleration",
+    "velocity_exhaustion_state",
+    "exhaustion_strength",
+    "delta_pressure_state",
+    "delta_exhaustion",
+    "imbalance_state",
+    "aggressive_flow",
+    "delta_acceleration_state",
+    "spread_state",
+    "spread_expansion",
+    "execution_quality",
+    "price_extreme_event",
+    "volume_extreme_event",
+    "delta_extreme_event",
+    "velocity_extreme_event",
+    "spread_extreme_event",
+    "extreme_event_state",
+    "extreme_event_context",
+    "extreme_event_origin",
 ]
 
 
@@ -202,6 +246,214 @@ def get_timestamp_column(dataframe):
     return None
 
 
+def build_row_market_time_map(market_rows):
+    if (
+        market_rows.empty
+        or "row_id" not in market_rows.columns
+        or "market_timestamp" not in market_rows.columns
+    ):
+        return {}
+
+    row_time_map = {}
+
+    for _, row in market_rows.iterrows():
+        row_id = normalize_row_id(row.get("row_id"))
+
+        if row_id is None:
+            continue
+
+        row_time_map[row_id] = row.get("market_timestamp")
+
+    return row_time_map
+
+
+def add_market_time_to_events(observation_events, market_rows):
+    if observation_events.empty:
+        return observation_events
+
+    row_time_map = build_row_market_time_map(market_rows)
+    events = observation_events.copy()
+
+    events["market_time"] = events.apply(
+        lambda row: format_market_time(
+            get_event_market_timestamp(row, row_time_map)
+        ),
+        axis=1,
+    )
+
+    return events
+
+
+def add_market_time_to_episodes(dashboard_episodes, market_rows):
+    if dashboard_episodes.empty:
+        return dashboard_episodes
+
+    row_time_map = build_row_market_time_map(market_rows)
+    episodes = dashboard_episodes.copy()
+
+    episodes["start_market_time"] = episodes.apply(
+        lambda row: format_market_time(
+            get_episode_market_timestamp(
+                row,
+                row_time_map,
+                "start_row_id",
+                "episode_start_timestamp_utc",
+            )
+        ),
+        axis=1,
+    )
+    episodes["end_market_time"] = episodes.apply(
+        lambda row: format_market_time(
+            get_episode_market_timestamp(
+                row,
+                row_time_map,
+                "end_row_id",
+                "episode_end_timestamp_utc",
+            )
+        ),
+        axis=1,
+    )
+
+    return episodes
+
+
+def get_episode_date_options(dashboard_episodes, market_rows):
+    episodes = add_market_time_to_episodes(
+        dashboard_episodes,
+        market_rows,
+    )
+
+    if episodes.empty or "start_market_time" not in episodes.columns:
+        return ["All dates"]
+
+    dates = sorted(
+        {
+            str(value)[:10]
+            for value in episodes["start_market_time"].dropna()
+            if str(value).strip()
+        }
+    )
+
+    return ["All dates"] + dates
+
+
+def get_episode_id_options(dashboard_episodes):
+    if dashboard_episodes.empty or "episode_id" not in dashboard_episodes.columns:
+        return ["All episodes"]
+
+    episode_ids = sorted(
+        {
+            str(value)
+            for value in dashboard_episodes["episode_id"].dropna()
+            if str(value).strip()
+        },
+        key=lambda value: int(float(value))
+        if value.replace(".", "", 1).isdigit()
+        else value,
+    )
+
+    return ["All episodes"] + episode_ids
+
+
+def get_event_market_timestamp(row, row_time_map):
+    market_timestamp = row.get("market_timestamp")
+
+    if has_display_value(market_timestamp):
+        return market_timestamp
+
+    row_id = normalize_row_id(row.get("row_id"))
+
+    if row_id in row_time_map:
+        return row_time_map[row_id]
+
+    return row.get("event_timestamp_utc")
+
+
+def get_episode_market_timestamp(
+    row,
+    row_time_map,
+    row_id_column,
+    fallback_column,
+):
+    row_id = normalize_row_id(row.get(row_id_column))
+
+    if row_id in row_time_map:
+        return row_time_map[row_id]
+
+    return row.get(fallback_column)
+
+
+def normalize_row_id(value):
+    if not has_display_value(value):
+        return None
+
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def has_display_value(value):
+    if value is None:
+        return False
+
+    try:
+        if pd.isna(value):
+            return False
+    except (TypeError, ValueError):
+        return True
+
+    text = str(value).strip()
+
+    return text != ""
+
+
+def format_market_time(value):
+    if not has_display_value(value):
+        return ""
+
+    parsed_datetime = parse_market_datetime(value)
+
+    if parsed_datetime is None:
+        return str(value)
+
+    return parsed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def parse_market_datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        text = str(value).strip()
+
+        try:
+            timestamp = float(text)
+        except ValueError:
+            timestamp = None
+
+        if timestamp is not None:
+            if timestamp > 10_000_000_000:
+                timestamp = timestamp / 1000
+
+            try:
+                return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            except (OverflowError, OSError, ValueError):
+                return None
+
+        if text.endswith("Z"):
+            text = f"{text[:-1]}+00:00"
+
+        try:
+            parsed = datetime.fromisoformat(text)
+        except ValueError:
+            return None
+
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc)
+
+    return parsed
+
+
 def parse_conditions(value):
     if value is None:
         return []
@@ -223,6 +475,37 @@ def parse_conditions(value):
             ]
 
     return [value]
+
+
+def sanitize_dataframe_for_display(dataframe):
+    display_dataframe = dataframe.copy()
+
+    for column in display_dataframe.columns:
+        if display_dataframe[column].dtype == "object":
+            display_dataframe[column] = display_dataframe[column].map(
+                sanitize_display_value
+            )
+
+    return display_dataframe.fillna("")
+
+
+def sanitize_display_value(value):
+    if value is None:
+        return ""
+
+    if isinstance(value, float) and pd.isna(value):
+        return ""
+
+    if isinstance(value, (list, tuple, set)):
+        return "|".join(str(item) for item in value)
+
+    if isinstance(value, dict):
+        return "; ".join(
+            f"{key}={item}"
+            for key, item in value.items()
+        )
+
+    return str(value)
 
 
 def is_truthy(value):
@@ -554,14 +837,16 @@ def render_latest_row(latest_market_row):
         return
 
     st.dataframe(
-        pd.DataFrame(
-            {
-                "field": available_fields,
-                "value": [
-                    latest_market_row[field]
-                    for field in available_fields
-                ],
-            }
+        sanitize_dataframe_for_display(
+            pd.DataFrame(
+                {
+                    "field": available_fields,
+                    "value": [
+                        latest_market_row[field]
+                        for field in available_fields
+                    ],
+                }
+            )
         ),
         use_container_width=True,
         hide_index=True,
@@ -576,8 +861,7 @@ def render_latest_event(latest_event):
         return
 
     display_fields = [
-        "event_timestamp_utc",
-        "market_timestamp",
+        "market_time",
         "row_id",
         "event_type",
         "previous_dashboard_state",
@@ -597,14 +881,16 @@ def render_latest_event(latest_event):
     ]
 
     st.dataframe(
-        pd.DataFrame(
-            {
-                "field": available_fields,
-                "value": [
-                    latest_event[field]
-                    for field in available_fields
-                ],
-            }
+        sanitize_dataframe_for_display(
+            pd.DataFrame(
+                {
+                    "field": available_fields,
+                    "value": [
+                        latest_event[field]
+                        for field in available_fields
+                    ],
+                }
+            )
         ),
         use_container_width=True,
         hide_index=True,
@@ -660,14 +946,16 @@ def render_active_episode_panel(active_episode):
     ]
 
     st.dataframe(
-        pd.DataFrame(
-            {
-                "field": detail_fields,
-                "value": [
-                    active_episode[field]
-                    for field in detail_fields
-                ],
-            }
+        sanitize_dataframe_for_display(
+            pd.DataFrame(
+                {
+                    "field": detail_fields,
+                    "value": [
+                        active_episode[field]
+                        for field in detail_fields
+                    ],
+                }
+            )
         ),
         use_container_width=True,
         hide_index=True,
@@ -682,11 +970,9 @@ def render_event_history(observation_events):
         return
 
     display_columns = [
-        "event_timestamp_utc",
+        "market_time",
         "row_id",
         "event_type",
-        "previous_dashboard_state",
-        "new_dashboard_state",
         "dashboard_score",
         "dashboard_conditions",
         "price",
@@ -702,31 +988,57 @@ def render_event_history(observation_events):
     ]
 
     st.dataframe(
-        observation_events[columns].tail(100),
+        sanitize_dataframe_for_display(
+            observation_events[columns].tail(100)
+        ),
         use_container_width=True,
         hide_index=True,
     )
 
 
-def render_dashboard_episodes(dashboard_episodes):
+def render_dashboard_episodes(
+    dashboard_episodes,
+    episode_date_filter,
+    minimum_episode_score,
+    episode_score_at_least_4,
+    episode_id_filter,
+    show_all_episodes,
+    episode_sort_order,
+):
     st.subheader("Dashboard Episodes")
 
     if dashboard_episodes.empty:
         st.info("No completed dashboard episodes yet.")
         return
 
+    filtered_episodes = filter_dashboard_episodes(
+        dashboard_episodes,
+        episode_date_filter,
+        minimum_episode_score,
+        episode_score_at_least_4,
+        episode_id_filter,
+        episode_sort_order,
+    )
+
+    render_dashboard_episode_summary(
+        dashboard_episodes,
+        filtered_episodes,
+        episode_date_filter,
+    )
+
     display_columns = [
         "episode_id",
-        "episode_start_timestamp_utc",
-        "episode_end_timestamp_utc",
+        "start_market_time",
+        "end_market_time",
         "duration_seconds",
-        "start_row_id",
-        "end_row_id",
         "peak_dashboard_state",
         "peak_dashboard_score",
         "peak_conditions",
         "start_price",
         "end_price",
+        "peak_rvi",
+        "peak_velocity",
+        "peak_delta_zscore",
     ]
 
     columns = [
@@ -735,8 +1047,203 @@ def render_dashboard_episodes(dashboard_episodes):
         if column in dashboard_episodes.columns
     ]
 
+    if filtered_episodes.empty:
+        st.info("No dashboard episodes match the current filters.")
+        return
+
+    display_episodes = (
+        filtered_episodes
+        if show_all_episodes
+        else filtered_episodes.tail(100)
+    )
+
     st.dataframe(
-        dashboard_episodes[columns].tail(100),
+        sanitize_dataframe_for_display(
+            display_episodes[columns]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def filter_dashboard_episodes(
+    dashboard_episodes,
+    episode_date_filter,
+    minimum_episode_score,
+    episode_score_at_least_4,
+    episode_id_filter,
+    episode_sort_order,
+):
+    filtered = dashboard_episodes.copy()
+
+    effective_minimum_score = (
+        max(minimum_episode_score, 4)
+        if episode_score_at_least_4
+        else minimum_episode_score
+    )
+
+    if "peak_dashboard_score" in filtered.columns:
+        filtered["peak_dashboard_score"] = pd.to_numeric(
+            filtered["peak_dashboard_score"],
+            errors="coerce",
+        ).fillna(0)
+        filtered = filtered[
+            filtered["peak_dashboard_score"] >= effective_minimum_score
+        ]
+
+    if (
+        episode_date_filter != "All dates"
+        and "start_market_time" in filtered.columns
+    ):
+        filtered = filtered[
+            filtered["start_market_time"].astype(str).str[:10]
+            == episode_date_filter
+        ]
+
+    if (
+        episode_id_filter != "All episodes"
+        and "episode_id" in filtered.columns
+    ):
+        filtered = filtered[
+            filtered["episode_id"].astype(str) == str(episode_id_filter)
+        ]
+
+    if episode_sort_order == "Newest first":
+        return filtered.sort_values(
+            by="start_market_time",
+            ascending=False,
+            na_position="last",
+        )
+
+    if episode_sort_order == "Oldest first":
+        return filtered.sort_values(
+            by="start_market_time",
+            ascending=True,
+            na_position="last",
+        )
+
+    if episode_sort_order == "Highest score first":
+        return filtered.sort_values(
+            by=["peak_dashboard_score", "start_market_time"],
+            ascending=[False, False],
+            na_position="last",
+        )
+
+    return filtered
+
+
+def render_dashboard_episode_summary(
+    dashboard_episodes,
+    filtered_episodes,
+    episode_date_filter,
+):
+    score_column = (
+        pd.to_numeric(
+            dashboard_episodes["peak_dashboard_score"],
+            errors="coerce",
+        )
+        if "peak_dashboard_score" in dashboard_episodes.columns
+        else pd.Series(dtype="float64")
+    )
+    valid_scores = score_column.dropna()
+
+    available_dates = []
+
+    if "start_market_time" in dashboard_episodes.columns:
+        available_dates = sorted(
+            {
+                str(value)[:10]
+                for value in dashboard_episodes["start_market_time"].dropna()
+                if str(value).strip()
+            }
+        )
+
+    displayed_dates = []
+
+    if "start_market_time" in filtered_episodes.columns:
+        displayed_dates = sorted(
+            {
+                str(value)[:10]
+                for value in filtered_episodes["start_market_time"].dropna()
+                if str(value).strip()
+            }
+        )
+
+    date_range_displayed = (
+        f"{displayed_dates[0]} to {displayed_dates[-1]}"
+        if displayed_dates
+        else "N/A"
+    )
+
+    summary_columns = st.columns(4)
+    summary_columns[0].metric("Total Episodes", len(dashboard_episodes))
+    summary_columns[1].metric("Displayed Episodes", len(filtered_episodes))
+    summary_columns[2].metric(
+        "Max Episode Score",
+        int(valid_scores.max()) if not valid_scores.empty else "N/A",
+    )
+    summary_columns[3].metric("Available Dates", len(available_dates))
+
+    detail_columns = st.columns(2)
+    detail_columns[0].metric("Selected Date", episode_date_filter)
+    detail_columns[1].metric("Date Range Displayed", date_range_displayed)
+
+    st.write(
+        "Available dates: "
+        + (
+            ", ".join(available_dates)
+            if available_dates
+            else "N/A"
+        )
+    )
+
+    if not valid_scores.empty:
+        count_by_score = (
+            valid_scores
+            .value_counts()
+            .sort_index()
+            .astype(int)
+            .to_dict()
+        )
+        st.write(f"Count by score: {count_by_score}")
+
+
+def render_archive_v2_field_coverage(market_rows):
+    st.subheader("Archive V2 Field Coverage")
+
+    if market_rows.empty:
+        st.info("No loaded observation rows available.")
+        return
+
+    rows = []
+
+    for field in ARCHIVE_V2_FIELDS:
+        exists = field in market_rows.columns
+        non_empty_count = 0
+        samples = ""
+
+        if exists:
+            series = market_rows[field].dropna()
+            series = series[
+                series.astype(str).str.strip() != ""
+            ]
+            non_empty_count = len(series)
+            samples = " | ".join(
+                str(value)
+                for value in series.astype(str).drop_duplicates().head(5)
+            )
+
+        rows.append(
+            {
+                "field": field,
+                "exists": "yes" if exists else "no",
+                "non_empty_count": non_empty_count,
+                "sample_values": samples,
+            }
+        )
+
+    st.dataframe(
+        sanitize_dataframe_for_display(pd.DataFrame(rows)),
         use_container_width=True,
         hide_index=True,
     )
@@ -771,7 +1278,7 @@ def render_recent_events(observation_events):
         return
 
     st.dataframe(
-        recent_events,
+        sanitize_dataframe_for_display(recent_events),
         use_container_width=True,
         hide_index=True,
     )
@@ -785,6 +1292,13 @@ def render_live_observation_panels(
     latest_only,
     show_event_history,
     show_completed_episodes,
+    episode_date_filter,
+    minimum_episode_score,
+    episode_score_at_least_4,
+    episode_id_filter,
+    show_all_episodes,
+    episode_sort_order,
+    show_archive_field_coverage,
     force_refresh=False,
 ):
     market_rows, observation_events, dashboard_episodes = load_dashboard_data(
@@ -811,11 +1325,19 @@ def render_live_observation_panels(
         selected_states,
         latest_only,
     )
+    display_events = add_market_time_to_events(
+        filtered_events,
+        market_rows,
+    )
+    display_dashboard_episodes = add_market_time_to_episodes(
+        dashboard_episodes,
+        market_rows,
+    )
 
     latest_market_row, latest_event = render_metric_cards(
         market_rows,
-        filtered_events,
-        dashboard_episodes,
+        display_events,
+        display_dashboard_episodes,
     )
 
     active_episode = get_active_episode(
@@ -829,14 +1351,25 @@ def render_live_observation_panels(
         render_latest_row(latest_market_row)
         render_active_episode_panel(active_episode)
         render_latest_event(latest_event)
-        render_recent_events(filtered_events)
+        render_recent_events(display_events)
 
     with right_column:
         if show_event_history:
-            render_event_history(filtered_events)
+            render_event_history(display_events)
 
         if show_completed_episodes:
-            render_dashboard_episodes(dashboard_episodes)
+            render_dashboard_episodes(
+                display_dashboard_episodes,
+                episode_date_filter,
+                minimum_episode_score,
+                episode_score_at_least_4,
+                episode_id_filter,
+                show_all_episodes,
+                episode_sort_order,
+            )
+
+        if show_archive_field_coverage:
+            render_archive_v2_field_coverage(market_rows)
 
 
 def main():
@@ -873,6 +1406,34 @@ def main():
             ["LIVE", "RECORDED REPLAY", "HISTORICAL REPLAY"],
             key="observation_mode",
         )
+        file_sources = OBSERVATION_FILE_SOURCES[observation_mode]
+        sidebar_market_rows, _, sidebar_dashboard_episodes = load_dashboard_data(
+            file_sources,
+            force_refresh=False,
+        )
+        episode_date_options = get_episode_date_options(
+            sidebar_dashboard_episodes,
+            sidebar_market_rows,
+        )
+        sidebar_display_episodes = add_market_time_to_episodes(
+            sidebar_dashboard_episodes,
+            sidebar_market_rows,
+        )
+        episode_id_options = get_episode_id_options(
+            sidebar_display_episodes
+        )
+
+        if (
+            st.session_state.get("episode_date_filter")
+            not in episode_date_options
+        ):
+            st.session_state["episode_date_filter"] = "All dates"
+
+        if (
+            st.session_state.get("episode_id_filter")
+            not in episode_id_options
+        ):
+            st.session_state["episode_id_filter"] = "All episodes"
 
         st.header("Refresh")
         st.checkbox("Auto refresh", key="auto_refresh")
@@ -912,11 +1473,56 @@ def main():
             key="show_completed_episodes",
         )
 
+        st.header("Episode Filters")
+        st.markdown("**Episode Date Filter**")
+        episode_date_filter = st.selectbox(
+            "Select episode date",
+            episode_date_options,
+            key="episode_date_filter",
+        )
+        st.caption(
+            "Available dates: "
+            + (
+                ", ".join(episode_date_options[1:])
+                if len(episode_date_options) > 1
+                else "N/A"
+            )
+        )
+        minimum_episode_score = st.selectbox(
+            "Minimum episode score",
+            [2, 3, 4, 5],
+            key="minimum_episode_score",
+        )
+        episode_score_at_least_4 = st.checkbox(
+            "Show only score >= 4",
+            value=False,
+            key="episode_score_at_least_4",
+        )
+        episode_id_filter = st.selectbox(
+            "Jump to episode_id",
+            episode_id_options,
+            key="episode_id_filter",
+        )
+        show_all_episodes = st.checkbox(
+            "Show all episodes",
+            value=False,
+            key="show_all_episodes",
+        )
+        episode_sort_order = st.selectbox(
+            "Episode sort order",
+            ["Newest first", "Oldest first", "Highest score first"],
+            key="episode_sort_order",
+        )
+        show_archive_field_coverage = st.checkbox(
+            "Show Archive V2 Field Coverage",
+            value=False,
+            key="show_archive_field_coverage",
+        )
+
         if st.button("Refresh now", key="manual_refresh_button"):
             st.session_state["force_csv_refresh"] = True
             st.rerun()
 
-    file_sources = OBSERVATION_FILE_SOURCES[observation_mode]
     st.info(f"Current Observation Mode: {observation_mode}")
 
     force_refresh = bool(st.session_state.get("force_csv_refresh", False))
@@ -938,6 +1544,13 @@ def main():
                 latest_only,
                 show_event_history,
                 show_completed_episodes,
+                episode_date_filter,
+                minimum_episode_score,
+                episode_score_at_least_4,
+                episode_id_filter,
+                show_all_episodes,
+                episode_sort_order,
+                show_archive_field_coverage,
                 force_refresh=force_refresh,
             )
 
@@ -958,6 +1571,13 @@ def main():
         latest_only,
         show_event_history,
         show_completed_episodes,
+        episode_date_filter,
+        minimum_episode_score,
+        episode_score_at_least_4,
+        episode_id_filter,
+        show_all_episodes,
+        episode_sort_order,
+        show_archive_field_coverage,
         force_refresh=force_refresh,
     )
 

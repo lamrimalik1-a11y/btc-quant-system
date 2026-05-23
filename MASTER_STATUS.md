@@ -8,7 +8,7 @@ PHASE 1B STATUS
 
 Current Active Phase:
 
-PHASE 1B LOCKED V2.7
+PHASE 1B LOCKED V2 - DASHBOARD V2 STABLE
 
 Advanced Statistical Engine
 
@@ -45,6 +45,7 @@ COMPLETED ITEMS
 - Binance Historical Replay V1
 - Archive V2 Field Extension
 - Dashboard Episode Filters
+- Statistical Dashboard V2
 
 
 ==================================================
@@ -106,7 +107,7 @@ NOT SCORED
 
 Dashboard V2:
 
-NEXT STEP
+COMPLETED ✅
 
 Extreme Event Detection = statistical abnormality classifier.
 
@@ -115,6 +116,150 @@ NOT reversal signal.
 NOT execution logic.
 
 Calibration of weights and false positives will be reviewed later after live observation.
+
+
+==================================================
+DASHBOARD V2 STABLE REPLAY BENCHMARK
+==================================================
+
+Dashboard V2:
+
+COMPLETED ✅
+
+Replay window:
+
+2026-05-18 -> 2026-05-21
+
+Rows:
+
+5744
+
+--------------------------------------------------
+V1 REFERENCE
+--------------------------------------------------
+
+Events:
+
+1940
+
+Episodes:
+
+222
+
+--------------------------------------------------
+V2 RESULT
+--------------------------------------------------
+
+Events:
+
+1867
+
+Episodes:
+
+347
+
+Active rows:
+
+1045
+
+UNSTABLE_STATISTICAL_CONTEXT:
+
+652
+
+--------------------------------------------------
+CALIBRATION HISTORY
+--------------------------------------------------
+
+Dashboard V2 was calibrated through staged passes:
+
+- Step 10: removed always-on volatility, tightened price rarity, delta, distribution, and global activation
+- Step 11: reduced distribution dominance and tightened unstable context
+- Step 12: tightened price rarity and delta sensitivity
+- Step 13: added weak two-layer combination filtering
+
+Final review:
+
+Dashboard V2 LOCKED
+
+READY FOR STABLE CHECKPOINT
+
+--------------------------------------------------
+FINAL ACTIVE RULES
+--------------------------------------------------
+
+Dashboard V2 activates only when:
+
+- at least 2 counted layers are active
+- or one counted layer reaches EXTREME severity
+
+Counted statistical layers:
+
+- Distribution
+- Multi ZScore
+- Price Rarity
+- Volatility
+- Volume
+- Velocity
+- Delta
+
+Spread / Execution remains observation confidence context.
+
+Extreme Event remains escalation context.
+
+--------------------------------------------------
+FINAL SUPPRESSION RULES
+--------------------------------------------------
+
+Suppressed as display context unless strong confirmation exists:
+
+- weak Distribution + Volatility
+- weak Price Rarity + Volatility
+- weak Distribution + Price Rarity
+
+Strong confirmation means:
+
+- HIGH severity
+- EXTREME severity
+- confirmed UNSTABLE_STATISTICAL_CONTEXT
+- Extreme Event escalation
+
+--------------------------------------------------
+COMBINATION FILTERING RULES
+--------------------------------------------------
+
+Weak 2-layer combinations using only:
+
+- Distribution
+- Volatility
+- Price Rarity
+
+do not activate Dashboard V2 unless confirmed by stronger severity or unstable/extreme context.
+
+Preserved combinations:
+
+- Multi ZScore combinations
+- Volume combinations
+- Velocity combinations
+- Delta combinations
+- EXTREME layer activation
+
+--------------------------------------------------
+REPLAY HYGIENE REVIEW
+--------------------------------------------------
+
+Known deferred review:
+
+NO_CONFLUENCE peak episode issue.
+
+Status:
+
+Deferred
+
+Classification:
+
+Replay hygiene review later.
+
+NOT calibration.
 
 
 ==================================================
@@ -266,7 +411,13 @@ PHASE 1B OBSERVATION / CALIBRATION
 
 Current Focus:
 
-Observation Studio replay/archive calibration
+Observation
+
+Historical Validation
+
+Live Observation
+
+Replay Research
 
 Objectives:
 
@@ -282,6 +433,10 @@ Objectives:
 Status:
 
 ACTIVE OBSERVATION
+
+Dashboard V2:
+
+STABLE CHECKPOINT READY
 
 DO NOT ADVANCE PHASES
 

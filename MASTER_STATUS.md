@@ -8,11 +8,11 @@ PHASE 1B STATUS
 
 Current Active Phase:
 
-PHASE 1B LOCKED V2 - DASHBOARD V2 STABLE
+PHASE 1B OBSERVATION RESEARCH MODE
 
 Advanced Statistical Engine
 
-Observation / Calibration Checkpoint
+Observation / Research Checkpoint
 
 Status:
 
@@ -263,6 +263,93 @@ NOT calibration.
 
 
 ==================================================
+PHASE 1B OBSERVATION RESEARCH MODE
+==================================================
+
+Dashboard V2 completed ✅
+
+Replay operational ✅
+
+Dashboard V2 UI operational ✅
+
+Historical observation active ✅
+
+--------------------------------------------------
+REPLAY BENCHMARK
+--------------------------------------------------
+
+V1:
+
+Events = 1940
+
+Episodes = 222
+
+V2:
+
+Events = 1867
+
+Episodes = 347
+
+Active rows:
+
+1045
+
+UNSTABLE_STATISTICAL_CONTEXT:
+
+652
+
+--------------------------------------------------
+HYPOTHESIS_01
+--------------------------------------------------
+
+Score 4 may behave as:
+
+EARLY_MOVEMENT_PRECURSOR
+
+Score 5 may behave as:
+
+ACCELERATION_ZONE
+
+Score 6 may behave as:
+
+FULL_STATISTICAL_ENVIRONMENT
+
+Status:
+
+NOT PROVEN
+
+Observation only.
+
+No trading.
+
+--------------------------------------------------
+RESEARCH ENVIRONMENT PLANNED
+--------------------------------------------------
+
+RESEARCH_JOURNAL.md
+
+research/
+
+phase1b_episode_research_log.csv
+
+Target:
+
+30–50 manual episodes
+
+Need:
+
+- counterexamples
+- failed cases
+- future replay windows
+
+No Research Bot yet.
+
+No Phase 2.
+
+No execution.
+
+
+==================================================
 ZSCORE RULE
 ==================================================
 
@@ -411,7 +498,7 @@ PHASE 1B OBSERVATION / CALIBRATION
 
 Current Focus:
 
-Observation
+Observation Research Mode
 
 Historical Validation
 
@@ -432,12 +519,16 @@ Objectives:
 
 Status:
 
-ACTIVE OBSERVATION
+ACTIVE OBSERVATION RESEARCH
 
 Dashboard V2:
 
-STABLE CHECKPOINT READY
+COMPLETED / STABLE
 
 DO NOT ADVANCE PHASES
+
+NO PHASE 2
+
+NO EXECUTION
 
 User decides transition

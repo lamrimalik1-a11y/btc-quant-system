@@ -20,6 +20,12 @@ HISTORICAL_REPLAY_OBSERVATION_EVENTS_FILE = (
 HISTORICAL_REPLAY_DASHBOARD_EPISODES_FILE = (
     OUTPUT_DIR / "historical_replay_dashboard_episodes.csv"
 )
+HISTORICAL_REPLAY_OBSERVATION_V2_EVENTS_FILE = (
+    OUTPUT_DIR / "historical_replay_observation_v2_events.csv"
+)
+HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE = (
+    OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
+)
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
@@ -178,6 +184,19 @@ def load_dashboard_data(file_sources, force_refresh=False):
         read_csv_with_mtime_cache(file_sources["market_rows"], force_refresh),
         read_csv_with_mtime_cache(file_sources["observation_events"], force_refresh),
         read_csv_with_mtime_cache(file_sources["dashboard_episodes"], force_refresh),
+    )
+
+
+def load_historical_dashboard_v2_data(force_refresh=False):
+    return (
+        read_csv_with_mtime_cache(
+            HISTORICAL_REPLAY_OBSERVATION_V2_EVENTS_FILE,
+            force_refresh,
+        ),
+        read_csv_with_mtime_cache(
+            HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE,
+            force_refresh,
+        ),
     )
 
 
@@ -1066,6 +1085,152 @@ def render_dashboard_episodes(
     )
 
 
+def render_historical_dashboard_v2(
+    v2_events,
+    v2_episodes,
+):
+    st.subheader("Dashboard V2 Historical Replay")
+
+    metric_columns = st.columns(2)
+    metric_columns[0].metric("V2 Events", len(v2_events))
+    metric_columns[1].metric("V2 Episodes", len(v2_episodes))
+
+    if not HISTORICAL_REPLAY_OBSERVATION_V2_EVENTS_FILE.exists():
+        st.warning(
+            "Missing historical_replay_observation_v2_events.csv"
+        )
+
+    if not HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE.exists():
+        st.warning(
+            "Missing historical_replay_dashboard_v2_episodes.csv"
+        )
+
+    render_dashboard_v2_episodes(v2_episodes)
+    render_dashboard_v2_events(v2_events)
+
+
+def render_dashboard_v2_episodes(v2_episodes):
+    st.subheader("Dashboard V2 Episodes")
+    st.caption(
+        "Dashboard V2 episode = period where layer-based statistical "
+        "confluence is active."
+    )
+    st.caption(
+        "peak_state = strongest state inside episode | "
+        "peak_layer_count = number of active layers at peak | "
+        "peak_max_severity = strongest severity inside episode | "
+        "peak_primary_context = main context driver | "
+        "peak_active_layers = layers involved | "
+        "peak_observation_confidence = confidence / caution label"
+    )
+
+    if v2_episodes.empty:
+        st.info("No Dashboard V2 episodes available yet.")
+        return
+
+    display_episodes = v2_episodes.copy()
+
+    if "episode_start_timestamp_utc" in display_episodes.columns:
+        display_episodes["episode_start_time_utc"] = (
+            display_episodes["episode_start_timestamp_utc"].apply(
+                format_market_time
+            )
+        )
+
+    if "episode_end_timestamp_utc" in display_episodes.columns:
+        display_episodes["episode_end_time_utc"] = (
+            display_episodes["episode_end_timestamp_utc"].apply(
+                format_market_time
+            )
+        )
+
+    display_columns = [
+        "episode_id",
+        "episode_start_time_utc",
+        "episode_end_time_utc",
+        "duration_seconds",
+        "start_row_id",
+        "end_row_id",
+        "peak_state",
+        "peak_layer_count",
+        "peak_max_severity",
+        "peak_primary_context",
+        "peak_conditions",
+        "peak_active_layers",
+        "peak_observation_confidence",
+        "start_price",
+        "end_price",
+        "peak_rvi",
+        "peak_velocity",
+        "peak_delta_zscore",
+    ]
+    columns = [
+        column
+        for column in display_columns
+        if column in display_episodes.columns
+    ]
+
+    st.dataframe(
+        sanitize_dataframe_for_display(
+            display_episodes[columns].tail(100)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def render_dashboard_v2_events(v2_events):
+    st.subheader("Dashboard V2 Events")
+
+    if v2_events.empty:
+        st.info("No Dashboard V2 events available yet.")
+        return
+
+    display_events = v2_events.copy()
+
+    if "event_timestamp_utc" in display_events.columns:
+        display_events["event_time_utc"] = (
+            display_events["event_timestamp_utc"].apply(format_market_time)
+        )
+
+    if "market_timestamp" in display_events.columns:
+        display_events["market_time_utc"] = (
+            display_events["market_timestamp"].apply(format_market_time)
+        )
+
+    display_columns = [
+        "event_time_utc",
+        "market_time_utc",
+        "row_id",
+        "event_type",
+        "previous_dashboard_v2_state",
+        "new_dashboard_v2_state",
+        "dashboard_v2_layer_count",
+        "dashboard_v2_max_severity",
+        "dashboard_v2_primary_context",
+        "dashboard_v2_conditions",
+        "dashboard_v2_active_layers",
+        "observation_confidence",
+        "price",
+        "rvi",
+        "velocity",
+        "delta_zscore",
+    ]
+    columns = [
+        column
+        for column in display_columns
+        if column in display_events.columns
+    ]
+
+    st.dataframe(
+        sanitize_dataframe_for_display(
+            display_events[columns].tail(100)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
 def filter_dashboard_episodes(
     dashboard_episodes,
     episode_date_filter,
@@ -1305,6 +1470,13 @@ def render_live_observation_panels(
         file_sources,
         force_refresh=force_refresh,
     )
+    v2_events = pd.DataFrame()
+    v2_episodes = pd.DataFrame()
+
+    if observation_mode == "HISTORICAL REPLAY":
+        v2_events, v2_episodes = load_historical_dashboard_v2_data(
+            force_refresh=force_refresh,
+        )
 
     if (
         market_rows.empty
@@ -1318,6 +1490,13 @@ def render_live_observation_panels(
         else:
             st.info("Waiting for live data...")
         return
+
+    if observation_mode == "HISTORICAL REPLAY":
+        v2_metric_columns = st.columns(4)
+        v2_metric_columns[0].metric("V1 Episodes", len(dashboard_episodes))
+        v2_metric_columns[1].metric("V2 Episodes", len(v2_episodes))
+        v2_metric_columns[2].metric("V1 Events", len(observation_events))
+        v2_metric_columns[3].metric("V2 Events", len(v2_events))
 
     filtered_events = apply_event_filters(
         observation_events,
@@ -1370,6 +1549,12 @@ def render_live_observation_panels(
 
         if show_archive_field_coverage:
             render_archive_v2_field_coverage(market_rows)
+
+        if observation_mode == "HISTORICAL REPLAY":
+            render_historical_dashboard_v2(
+                v2_events,
+                v2_episodes,
+            )
 
 
 def main():

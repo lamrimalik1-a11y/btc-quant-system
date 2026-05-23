@@ -18,7 +18,10 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from core.adaptive_window import calculate_adaptive_window
-from core.observation_archive import FIELDNAMES as OBSERVATION_FIELDNAMES
+from core.observation_archive import (
+    DASHBOARD_V2_ARCHIVE_FIELDS,
+    FIELDNAMES as OBSERVATION_FIELDNAMES,
+)
 from core.renko import renko_state
 from core.row_builder import build_trade_row
 from core.state import (
@@ -307,7 +310,7 @@ def build_historical_observation_rows(historical_rows):
 
 
 def build_observation_row(row, statistics, row_id):
-    return {
+    observation_row = {
         "row_id": row_id,
         "market_timestamp": get_market_timestamp(row),
         "close": get_value(row, "close"),
@@ -431,6 +434,16 @@ def build_observation_row(row, statistics, row_id):
             )
         ),
     }
+
+    for field in DASHBOARD_V2_ARCHIVE_FIELDS:
+        value = get_value(row, field)
+
+        if value is None:
+            value = get_value(statistics, field, "")
+
+        observation_row[field] = format_conditions(value)
+
+    return observation_row
 
 
 def reset_observation_state():

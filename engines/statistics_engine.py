@@ -3,6 +3,7 @@
 # ==================================================
 
 from engines.base_engine import BaseEngine
+from core.observation_archive import DASHBOARD_V2_ARCHIVE_FIELDS
 from core.statistics import add_distribution_features
 
 
@@ -134,5 +135,8 @@ class StatisticsEngine(BaseEngine):
             "delta_exhaustion": row.get("delta_exhaustion"),
             "imbalance_state": row.get("imbalance_state"),
         }
+
+        for field in DASHBOARD_V2_ARCHIVE_FIELDS:
+            self.output[field] = row.get(field)
 
         return self.output

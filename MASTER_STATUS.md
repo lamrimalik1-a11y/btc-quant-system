@@ -350,6 +350,37 @@ No execution.
 
 
 ==================================================
+PHASE 1B RESEARCH AGENT V1 — STABLE ✅
+==================================================
+
+Included research components:
+
+- Research Assistant
+- Research Dashboard
+- Score>=4 observation mode
+- Hypothesis 02
+- Preparation Detector V1
+- Reversal Lab
+- Expansion Lab
+- Comparison Lab
+- Preparation Quality Lab
+- MASTER_RESEARCH_STATUS.md
+- research_cleanup_report.csv
+
+Research scope:
+
+- Research only
+- No live execution
+- No decision engine
+- No trading signals
+- No Phase 2
+
+Next step:
+
+Continue Phase 1B by distributing and organizing fields / dashboard outputs.
+
+
+==================================================
 ZSCORE RULE
 ==================================================
 

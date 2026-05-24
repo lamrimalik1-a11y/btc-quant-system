@@ -1144,6 +1144,8 @@ def render_dashboard_v2_episodes(v2_episodes):
             )
         )
 
+    filtered_episodes = filter_dashboard_v2_episodes(display_episodes)
+
     display_columns = [
         "episode_id",
         "episode_start_time_utc",
@@ -1170,13 +1172,196 @@ def render_dashboard_v2_episodes(v2_episodes):
         if column in display_episodes.columns
     ]
 
+    if filtered_episodes.empty:
+        st.info("No Dashboard V2 episodes match the current filters.")
+        return
+
     st.dataframe(
         sanitize_dataframe_for_display(
-            display_episodes[columns].tail(100)
+            filtered_episodes[columns].tail(100)
         ),
         use_container_width=True,
         hide_index=True,
     )
+
+
+def filter_dashboard_v2_episodes(display_episodes):
+    filter_row_one = st.columns(3)
+    filter_row_two = st.columns(3)
+
+    minimum_score = filter_row_one[0].selectbox(
+        "Dashboard score >=",
+        [2, 3, 4, 5, 6],
+        index=0,
+        key="dashboard_v2_minimum_score",
+    )
+    minimum_layer_count = filter_row_one[1].selectbox(
+        "peak_layer_count >=",
+        list(range(1, 11)),
+        index=0,
+        key="dashboard_v2_minimum_layer_count",
+    )
+    severity_filter = filter_row_one[2].selectbox(
+        "Severity",
+        ["ALL", "LOW", "MEDIUM", "HIGH", "EXTREME"],
+        index=0,
+        key="dashboard_v2_severity_filter",
+    )
+
+    context_filter = filter_row_two[0].selectbox(
+        "Context",
+        [
+            "ALL",
+            "DELTA_ZSCORE_EXTREME",
+            "GAUSSIAN_EXTREME",
+            "DISTRIBUTION_SHIFT",
+            "PRICE_ZSCORE",
+            "VELOCITY",
+            "VOLUME",
+            "UNSTABLE_STATISTICAL_CONTEXT",
+        ],
+        index=0,
+        key="dashboard_v2_context_filter",
+    )
+    date_options = get_dashboard_v2_date_options(display_episodes)
+    date_filter = filter_row_two[1].selectbox(
+        "Date",
+        date_options,
+        index=0,
+        key="dashboard_v2_date_filter",
+    )
+    research_candidates_only = filter_row_two[2].checkbox(
+        "Show only research candidates",
+        value=False,
+        key="dashboard_v2_research_candidates_only",
+    )
+
+    filtered = display_episodes.copy()
+    score_values = get_dashboard_v2_score_values(filtered)
+    layer_count_values = pd.to_numeric(
+        filtered.get("peak_layer_count", 0),
+        errors="coerce",
+    ).fillna(0)
+
+    filtered = filtered[score_values >= minimum_score]
+    score_values = score_values.loc[filtered.index]
+    layer_count_values = layer_count_values.loc[filtered.index]
+
+    filtered = filtered[layer_count_values >= minimum_layer_count]
+    score_values = score_values.loc[filtered.index]
+    layer_count_values = layer_count_values.loc[filtered.index]
+
+    if severity_filter != "ALL" and "peak_max_severity" in filtered.columns:
+        filtered = filtered[
+            filtered["peak_max_severity"].astype(str) == severity_filter
+        ]
+        score_values = score_values.loc[filtered.index]
+        layer_count_values = layer_count_values.loc[filtered.index]
+
+    if context_filter != "ALL":
+        context_mask = get_dashboard_v2_context_mask(
+            filtered,
+            context_filter,
+        )
+        filtered = filtered[context_mask]
+        score_values = score_values.loc[filtered.index]
+        layer_count_values = layer_count_values.loc[filtered.index]
+
+    if date_filter != "ALL" and "episode_start_time_utc" in filtered.columns:
+        filtered = filtered[
+            filtered["episode_start_time_utc"].astype(str).str[:10]
+            == date_filter
+        ]
+        score_values = score_values.loc[filtered.index]
+        layer_count_values = layer_count_values.loc[filtered.index]
+
+    if research_candidates_only:
+        severity_values = (
+            filtered["peak_max_severity"].astype(str)
+            if "peak_max_severity" in filtered.columns
+            else pd.Series("", index=filtered.index)
+        )
+        candidate_mask = (
+            (score_values >= 4)
+            | (layer_count_values >= 4)
+            | severity_values.isin(["HIGH", "EXTREME"])
+        )
+        filtered = filtered[candidate_mask]
+
+    st.caption(
+        f"Displayed Dashboard V2 episodes: {len(filtered)} / "
+        f"{len(display_episodes)}"
+    )
+
+    return filtered
+
+
+def get_dashboard_v2_score_values(display_episodes):
+    if "peak_dashboard_score" in display_episodes.columns:
+        return pd.to_numeric(
+            display_episodes["peak_dashboard_score"],
+            errors="coerce",
+        ).fillna(0)
+
+    if "dashboard_v2_score" in display_episodes.columns:
+        return pd.to_numeric(
+            display_episodes["dashboard_v2_score"],
+            errors="coerce",
+        ).fillna(0)
+
+    if "peak_layer_count" in display_episodes.columns:
+        return pd.to_numeric(
+            display_episodes["peak_layer_count"],
+            errors="coerce",
+        ).fillna(0)
+
+    return pd.Series(0, index=display_episodes.index)
+
+
+def get_dashboard_v2_context_mask(display_episodes, context_filter):
+    context_columns = [
+        "peak_state",
+        "peak_primary_context",
+        "peak_conditions",
+        "peak_active_layers",
+    ]
+    available_columns = [
+        column
+        for column in context_columns
+        if column in display_episodes.columns
+    ]
+
+    if not available_columns:
+        return pd.Series(False, index=display_episodes.index)
+
+    haystack = (
+        display_episodes[available_columns]
+        .fillna("")
+        .astype(str)
+        .agg("|".join, axis=1)
+        .str.upper()
+    )
+
+    return haystack.str.contains(
+        context_filter.upper(),
+        regex=False,
+        na=False,
+    )
+
+
+def get_dashboard_v2_date_options(display_episodes):
+    if "episode_start_time_utc" not in display_episodes.columns:
+        return ["ALL"]
+
+    dates = sorted(
+        {
+            str(value)[:10]
+            for value in display_episodes["episode_start_time_utc"].dropna()
+            if str(value).strip()
+        }
+    )
+
+    return ["ALL"] + dates
 
 
 def render_dashboard_v2_events(v2_events):

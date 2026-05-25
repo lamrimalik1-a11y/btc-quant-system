@@ -1029,7 +1029,7 @@ def render_dashboard_episodes(
     show_all_episodes,
     episode_sort_order,
 ):
-    st.subheader("Dashboard Episodes")
+    st.subheader("Dashboard V1 Episodes")
 
     if dashboard_episodes.empty:
         st.info("No completed dashboard episodes yet.")
@@ -1156,6 +1156,8 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None):
             )
         )
 
+    render_dashboard_v2_summary(display_episodes)
+
     filtered_episodes = filter_dashboard_v2_episodes(display_episodes)
 
     display_columns = [
@@ -1207,6 +1209,39 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None):
     )
     render_dashboard_v2_research_panel(filtered_episodes)
     render_dashboard_v2_research_case_lookup(filtered_episodes)
+
+
+def render_dashboard_v2_summary(display_episodes):
+    layer_count_values = pd.to_numeric(
+        display_episodes.get("peak_layer_count", 0),
+        errors="coerce",
+    ).fillna(0)
+    valid_layer_counts = layer_count_values.dropna()
+
+    metric_columns = st.columns(4)
+    metric_columns[0].metric("Total V2 Episodes", len(display_episodes))
+    metric_columns[1].metric(
+        "Max V2 Layer Count",
+        int(valid_layer_counts.max()) if not valid_layer_counts.empty else "N/A",
+    )
+    metric_columns[2].metric(
+        "Score 5 Episodes",
+        int((layer_count_values == 5).sum()),
+    )
+    metric_columns[3].metric(
+        "Score 6 Episodes",
+        int((layer_count_values == 6).sum()),
+    )
+
+    if not valid_layer_counts.empty:
+        count_by_layer_count = (
+            valid_layer_counts
+            .value_counts()
+            .sort_index()
+            .astype(int)
+            .to_dict()
+        )
+        st.write(f"V2 Count by Layer Count: {count_by_layer_count}")
 
 
 def render_dashboard_v2_research_panel(filtered_episodes):
@@ -1745,7 +1780,7 @@ def filter_dashboard_v2_episodes(display_episodes):
     filter_row_two = st.columns(3)
 
     minimum_score = filter_row_one[0].selectbox(
-        "Dashboard score >=",
+        "V2 Layer Count Proxy >=",
         [2, 3, 4, 5, 6],
         index=0,
         key="dashboard_v2_minimum_score",
@@ -2084,7 +2119,7 @@ def render_dashboard_episode_summary(
     summary_columns[0].metric("Total Episodes", len(dashboard_episodes))
     summary_columns[1].metric("Displayed Episodes", len(filtered_episodes))
     summary_columns[2].metric(
-        "Max Episode Score",
+        "Max V1 Episode Score",
         int(valid_scores.max()) if not valid_scores.empty else "N/A",
     )
     summary_columns[3].metric("Available Dates", len(available_dates))
@@ -2110,7 +2145,7 @@ def render_dashboard_episode_summary(
             .astype(int)
             .to_dict()
         )
-        st.write(f"Count by score: {count_by_score}")
+        st.write(f"V1 Count by Score: {count_by_score}")
 
 
 def render_archive_v2_field_coverage(market_rows):

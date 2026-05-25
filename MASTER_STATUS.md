@@ -381,6 +381,234 @@ Continue Phase 1B by distributing and organizing fields / dashboard outputs.
 
 
 ==================================================
+PHASE 1B+ RESEARCH EXTENSION — STABLE ✅
+==================================================
+
+Current mode:
+
+PHASE 1B+ Research Expansion
+
+Status:
+
+STABLE ✅
+
+Rules:
+
+- No Phase 2
+- No execution
+- No live signals
+- No scoring changes
+- No Dashboard V2 scoring changes
+
+--------------------------------------------------
+DASHBOARD V2 RESEARCH LAYER
+--------------------------------------------------
+
+Status:
+
+STABLE ✅
+
+Completed:
+
+- Research Mapping Layer
+- Episode Mapping
+- Research Panel
+- Episode -> Research Link
+- Case Summary
+- Observation Outcome
+- Visual Research Cards
+- Research Badges
+- Label Cleanup
+
+--------------------------------------------------
+MEMORY ARCHITECTURE
+--------------------------------------------------
+
+Status:
+
+STABLE ✅
+
+Step 1:
+
+50k Context Layer ✅
+
+Implemented:
+
+- MarketContextMemory
+- price_context
+- volume_context
+- delta_context
+- velocity_context
+- distribution_context
+- zone_context
+- preparation_context
+- expansion_context
+- reversal_context
+- research_context
+
+Step 2:
+
+Zone Lifecycle Memory ✅
+
+States:
+
+- zone_created
+- zone_active
+- zone_tested
+- zone_rejected
+- zone_broken
+- zone_reclaimed
+- zone_expired
+
+Step 3:
+
+Field Lifecycle Memory ✅
+
+States:
+
+- field_inactive
+- field_active
+- field_strengthening
+- field_weakening
+- field_exhausted
+- field_recovered
+- field_expired
+
+--------------------------------------------------
+LIFECYCLE EVENT PERSISTENCE
+--------------------------------------------------
+
+Status:
+
+ACTIVE ✅
+
+Files:
+
+- zone_lifecycle_events.jsonl
+- field_lifecycle_events.jsonl
+
+Linked fields:
+
+- episode_id
+- case_id
+- zone_id
+- field_id
+- row_index
+
+Purpose:
+
+Enable validation of HYPOTHESIS_05_LIFECYCLE_DECAY.
+
+--------------------------------------------------
+RESEARCH CYCLE 2
+--------------------------------------------------
+
+Status:
+
+COMPLETED ✅
+
+Score 4:
+
+10 cases
+
+Score 5:
+
+1 case
+
+Score 6:
+
+1 case
+
+Main result:
+
+Score 4 remains primary research pool.
+
+--------------------------------------------------
+HYPOTHESIS_03 — FAILED_RETURN_REVERSAL
+--------------------------------------------------
+
+Status:
+
+OBSERVATION ONLY
+
+Supported pattern:
+
+Preparation
+        ↓
+Return
+        ↓
+Failed Return
+        ↓
+Direct Reversal
+
+--------------------------------------------------
+HYPOTHESIS_04 — RETURN_REACTION_QUALITY
+--------------------------------------------------
+
+Status:
+
+OBSERVATION ONLY
+
+Successful Return:
+
+- strong expansion
+- no immediate reversal
+- good zone reaction
+
+Failed Return:
+
+- immediate reversal
+- weak zone reaction
+- reaction delay
+- delta extreme pressure
+
+New variable:
+
+return_reaction_quality
+
+--------------------------------------------------
+HYPOTHESIS_05 — LIFECYCLE_DECAY
+--------------------------------------------------
+
+Status:
+
+SUPPORTED IN CURRENT SMALL SAMPLE ✅
+
+NOT GLOBALLY PROVEN
+
+Failed Return:
+
+- zone_rejected
+- field_exhausted
+- SUPPORTED_DECAY_PATTERN
+
+Successful Return:
+
+- zone_reclaimed
+- field_recovered
+- RECOVERY_PATTERN
+
+--------------------------------------------------
+NEXT TARGET
+--------------------------------------------------
+
+PHASE 1B+ Research Expansion
+
+Objectives:
+
+- validate HYPOTHESIS_05 on larger replay windows
+- increase Score 5 / Score 6 samples
+- validate lifecycle decay statistically
+- confirm or reject return_reaction_quality
+
+No Phase 2.
+
+No execution.
+
+No live signals.
+
+
+==================================================
 ZSCORE RULE
 ==================================================
 

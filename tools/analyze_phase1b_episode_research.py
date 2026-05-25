@@ -1,11 +1,18 @@
 import argparse
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
+import sys
 
 import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from context_memory import FieldLifecycleMemory, ZoneLifecycleMemory
+
 OUTPUT_DIR = ROOT_DIR / "outputs"
 RESEARCH_DIR = ROOT_DIR / "research"
 
@@ -16,6 +23,8 @@ RESEARCH_LOG_FILE = RESEARCH_DIR / "phase1b_episode_research_log.csv"
 RESEARCH_SUMMARY_FILE = RESEARCH_DIR / "phase1b_research_summary.csv"
 RESEARCH_JOURNAL_FILE = RESEARCH_DIR / "RESEARCH_JOURNAL.md"
 PREPARATION_ZONES_FILE = RESEARCH_DIR / "phase1b_preparation_zones.csv"
+ZONE_LIFECYCLE_EVENTS_FILE = RESEARCH_DIR / "zone_lifecycle_events.jsonl"
+FIELD_LIFECYCLE_EVENTS_FILE = RESEARCH_DIR / "field_lifecycle_events.jsonl"
 
 BACKWARD_WINDOW = 100
 OPTIONAL_TEST_WINDOW = 200
@@ -95,12 +104,27 @@ def main():
 
     research_log = pd.DataFrame(analyzed_rows)
     preparation_zones = build_preparation_zones_log(research_log)
+    zone_lifecycle_memory, field_lifecycle_memory = build_lifecycle_memories(
+        research_log
+    )
     output_log = research_log.copy()
     output_preparation_zones = preparation_zones.copy()
 
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
     output_log.to_csv(RESEARCH_LOG_FILE, index=False)
     output_preparation_zones.to_csv(PREPARATION_ZONES_FILE, index=False)
+    write_lifecycle_events_jsonl(
+        zone_lifecycle_memory.get_recent_zone_events(
+            limit=zone_lifecycle_memory.get_zone_stats().total_events
+        ),
+        ZONE_LIFECYCLE_EVENTS_FILE,
+    )
+    write_lifecycle_events_jsonl(
+        field_lifecycle_memory.get_recent_field_events(
+            limit=field_lifecycle_memory.get_field_stats().total_events
+        ),
+        FIELD_LIFECYCLE_EVENTS_FILE,
+    )
 
     summary = build_summary(
         research_log=research_log,
@@ -125,6 +149,8 @@ def main():
     print(f"- {relative_path(PREPARATION_ZONES_FILE)}")
     print(f"- {relative_path(RESEARCH_SUMMARY_FILE)}")
     print(f"- {relative_path(RESEARCH_JOURNAL_FILE)}")
+    print(f"- {relative_path(ZONE_LIFECYCLE_EVENTS_FILE)}")
+    print(f"- {relative_path(FIELD_LIFECYCLE_EVENTS_FILE)}")
     print(f"Episodes analyzed: {len(output_log)}")
     print(f"Score >= 4 episodes: {len(score4plus_episodes)}")
     print(f"Research candidates: {int(output_log['is_research_candidate'].sum())}")
@@ -1457,6 +1483,285 @@ def build_preparation_zones_log(research_log):
 
     existing_columns = [column for column in zone_columns if column in zones.columns]
     return zones[existing_columns].copy()
+
+
+def build_lifecycle_memories(research_log):
+    zone_memory = ZoneLifecycleMemory()
+    field_memory = FieldLifecycleMemory()
+
+    if research_log.empty:
+        return zone_memory, field_memory
+
+    for _, row in research_log.iterrows():
+        add_zone_lifecycle_events(zone_memory, row)
+        add_field_lifecycle_events(field_memory, row)
+
+    return zone_memory, field_memory
+
+
+def add_zone_lifecycle_events(zone_memory, row):
+    if not truthy_value(row.get("preparation_candidate")):
+        return
+
+    case_id = row.get("case_id")
+    episode_id = row.get("episode_id")
+    row_index = row.get("start_row_id")
+    event_timestamp = row.get("episode_start_time_utc")
+    zone_id = research_zone_id(row)
+
+    zone_memory.add_zone_event(
+        zone_id=zone_id,
+        lifecycle_state="zone_created",
+        zone_type="preparation",
+        zone_price=row.get("preparation_mid_price"),
+        zone_strength=row.get("preparation_strength"),
+        zone_source="phase1b_research_preparation_detector",
+        reaction_quality="PENDING_RETURN_REACTION",
+        research_notes="Preparation zone detected by research-only detector.",
+        event_timestamp=event_timestamp,
+        lifecycle_age=row.get("preparation_duration_rows"),
+        related_case_id=case_id,
+        related_episode_id=episode_id,
+        row_index=row_index,
+    )
+
+    if truthy_value(row.get("return_to_preparation")):
+        zone_memory.add_zone_event(
+            zone_id=zone_id,
+            lifecycle_state="zone_tested",
+            zone_type="preparation",
+            zone_price=row.get("return_price") or row.get("preparation_mid_price"),
+            zone_strength=row.get("preparation_strength"),
+            zone_source="phase1b_research_return_detection",
+            reaction_quality=zone_reaction_quality(row),
+            research_notes="Preparation zone revisited after Dashboard V2 episode.",
+            event_timestamp=row.get("return_timestamp") or event_timestamp,
+            lifecycle_age=row.get("preparation_duration_rows"),
+            related_case_id=case_id,
+            related_episode_id=episode_id,
+            row_index=row.get("return_row") or row_index,
+        )
+
+    if truthy_value(row.get("failed_after_return")):
+        zone_memory.add_zone_event(
+            zone_id=zone_id,
+            lifecycle_state="zone_rejected",
+            zone_type="preparation",
+            zone_price=row.get("return_price") or row.get("preparation_mid_price"),
+            zone_strength=row.get("preparation_strength"),
+            zone_source="phase1b_research_failed_return",
+            reaction_quality="FAILED_RETURN_REVERSAL",
+            research_notes="Return to preparation failed and reversal context appeared.",
+            event_timestamp=row.get("return_timestamp") or event_timestamp,
+            lifecycle_age=row.get("preparation_duration_rows"),
+            related_case_id=case_id,
+            related_episode_id=episode_id,
+            row_index=row.get("return_row") or row_index,
+        )
+    elif truthy_value(row.get("return_to_preparation")) and not is_direct_reversal(row):
+        zone_memory.add_zone_event(
+            zone_id=zone_id,
+            lifecycle_state="zone_reclaimed",
+            zone_type="preparation",
+            zone_price=row.get("return_price") or row.get("preparation_mid_price"),
+            zone_strength=row.get("preparation_strength"),
+            zone_source="phase1b_research_successful_return",
+            reaction_quality="RETURN_EXPANSION_OBSERVED",
+            research_notes="Return to preparation produced non-failed reaction.",
+            event_timestamp=row.get("return_timestamp") or event_timestamp,
+            lifecycle_age=row.get("preparation_duration_rows"),
+            related_case_id=case_id,
+            related_episode_id=episode_id,
+            row_index=row.get("return_row") or row_index,
+        )
+
+
+def add_field_lifecycle_events(field_memory, row):
+    case_id = row.get("case_id")
+    episode_id = row.get("episode_id")
+    row_index = row.get("start_row_id")
+    event_timestamp = row.get("episode_start_time_utc")
+
+    add_delta_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp)
+    add_preparation_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp)
+    add_expansion_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp)
+    add_reversal_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp)
+    add_hypothesis02_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp)
+
+
+def add_delta_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp):
+    delta_value = to_float(row.get("peak_delta_zscore"))
+    if delta_value is None:
+        return
+
+    state = "field_active"
+    strength = "LOW"
+    if abs(delta_value) >= 3:
+        state = "field_strengthening"
+        strength = "EXTREME"
+    elif abs(delta_value) >= 2.75:
+        state = "field_strengthening"
+        strength = "HIGH"
+    elif abs(delta_value) >= 2:
+        strength = "MEDIUM"
+
+    field_memory.add_field_event(
+        field_id=research_field_id(row, "delta_zscore"),
+        field_type="delta_zscore",
+        lifecycle_state=state,
+        field_value=delta_value,
+        field_strength=strength,
+        related_episode_id=episode_id,
+        related_case_id=case_id,
+        row_index=row_index,
+        event_timestamp=event_timestamp,
+        research_notes="Peak delta zscore captured for research lifecycle context.",
+    )
+
+
+def add_preparation_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp):
+    if not truthy_value(row.get("preparation_candidate")):
+        return
+
+    strength = value_or_unknown(row.get("preparation_strength"))
+    state = "field_strengthening" if strength in {"HIGH", "EXTREME"} else "field_active"
+    field_memory.add_field_event(
+        field_id=research_field_id(row, "preparation_candidate"),
+        field_type="preparation_candidate",
+        lifecycle_state=state,
+        field_value=True,
+        field_strength=strength,
+        related_episode_id=episode_id,
+        related_case_id=case_id,
+        row_index=row_index,
+        event_timestamp=event_timestamp,
+        research_notes="Preparation candidate captured by research detector.",
+    )
+
+
+def add_expansion_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp):
+    expansion_type = str(row.get("expansion_type") or "")
+    if not expansion_type:
+        return
+
+    if expansion_type == "PURE_EXPANSION":
+        state = "field_strengthening"
+    elif expansion_type == "EXPANSION_THEN_REVERSAL":
+        state = "field_weakening"
+    elif expansion_type in {"FAILED_EXPANSION", "DIRECT_REVERSAL", "NO_EXPANSION"}:
+        state = "field_exhausted"
+    else:
+        state = "field_active"
+
+    field_memory.add_field_event(
+        field_id=research_field_id(row, "expansion_state"),
+        field_type="expansion_state",
+        lifecycle_state=state,
+        field_value=expansion_type,
+        field_strength=row.get("expansion_strength"),
+        related_episode_id=episode_id,
+        related_case_id=case_id,
+        row_index=row_index,
+        event_timestamp=event_timestamp,
+        research_notes="Expansion state captured for research lifecycle context.",
+    )
+
+
+def add_reversal_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp):
+    reversal_type = str(row.get("reversal_type") or "")
+    if not reversal_type:
+        return
+
+    if reversal_type in {"DIRECT_REVERSAL", "FAILED_RETURN_REVERSAL"}:
+        state = "field_strengthening"
+    elif reversal_type == "NO_REVERSAL":
+        state = "field_inactive"
+    else:
+        state = "field_active"
+
+    field_memory.add_field_event(
+        field_id=research_field_id(row, "reversal_state"),
+        field_type="reversal_state",
+        lifecycle_state=state,
+        field_value=reversal_type,
+        field_strength=row.get("reversal_strength"),
+        related_episode_id=episode_id,
+        related_case_id=case_id,
+        row_index=row_index,
+        event_timestamp=event_timestamp,
+        research_notes="Reversal state captured for research lifecycle context.",
+    )
+
+
+def add_hypothesis02_field_events(field_memory, row, case_id, episode_id, row_index, event_timestamp):
+    state_value = hypothesis02_state(row)
+    if state_value == "NO_RESEARCH_CONTEXT":
+        lifecycle_state = "field_inactive"
+    elif state_value == "RETURN_EXPANSION_OBSERVED":
+        lifecycle_state = "field_recovered"
+    elif state_value == "RETURN_FAILURE":
+        lifecycle_state = "field_exhausted"
+    else:
+        lifecycle_state = "field_active"
+
+    field_memory.add_field_event(
+        field_id=research_field_id(row, "hypothesis02_state"),
+        field_type="hypothesis02_state",
+        lifecycle_state=lifecycle_state,
+        field_value=state_value,
+        field_strength=row.get("expansion_strength") or row.get("reversal_strength"),
+        related_episode_id=episode_id,
+        related_case_id=case_id,
+        row_index=row.get("return_row") or row_index,
+        event_timestamp=row.get("return_timestamp") or event_timestamp,
+        research_notes="HYPOTHESIS_02 return/revisit state captured for research lifecycle context.",
+    )
+
+
+def write_lifecycle_events_jsonl(events, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as file:
+        for event in events:
+            file.write(json.dumps(event, ensure_ascii=True, sort_keys=True))
+            file.write("\n")
+
+
+def research_zone_id(row):
+    return f"PREP_ZONE_{row.get('case_id')}_{row.get('episode_id')}"
+
+
+def research_field_id(row, field_type):
+    return f"{field_type}_{row.get('case_id')}_{row.get('episode_id')}"
+
+
+def zone_reaction_quality(row):
+    if truthy_value(row.get("failed_after_return")):
+        return "FAILED_RETURN_REVERSAL"
+    if str(row.get("expansion_type") or "") == "PURE_EXPANSION":
+        return "SUCCESSFUL_RETURN_EXPANSION"
+    if str(row.get("expansion_type") or "") == "EXPANSION_THEN_REVERSAL":
+        return "MIXED_RETURN_REACTION"
+    return "RETURN_REACTION_UNCLEAR"
+
+
+def is_direct_reversal(row):
+    return truthy_value(row.get("direct_reversal_flag")) or str(
+        row.get("reversal_type") or ""
+    ) in {"DIRECT_REVERSAL", "FAILED_RETURN_REVERSAL"}
+
+
+def hypothesis02_state(row):
+    if truthy_value(row.get("failed_after_return")):
+        return "RETURN_FAILURE"
+    if truthy_value(row.get("return_to_preparation")) and truthy_value(
+        row.get("expansion_after_return")
+    ):
+        return "RETURN_EXPANSION_OBSERVED"
+    if truthy_value(row.get("return_to_preparation")):
+        return "RETURN_OBSERVED"
+    if truthy_value(row.get("preparation_candidate")):
+        return "PREPARATION_NO_RETURN"
+    return "NO_RESEARCH_CONTEXT"
 
 
 def is_research_candidate(episode):

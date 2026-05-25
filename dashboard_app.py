@@ -4,6 +4,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from dashboard.research_mapping import (
+    load_dashboard_research_mapping,
+    map_research_to_dashboard_episodes,
+)
+
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "outputs"
@@ -1105,11 +1110,12 @@ def render_historical_dashboard_v2(
             "Missing historical_replay_dashboard_v2_episodes.csv"
         )
 
-    render_dashboard_v2_episodes(v2_episodes)
+    research_mapping = load_dashboard_research_mapping(BASE_DIR)
+    render_dashboard_v2_episodes(v2_episodes, research_mapping)
     render_dashboard_v2_events(v2_events)
 
 
-def render_dashboard_v2_episodes(v2_episodes):
+def render_dashboard_v2_episodes(v2_episodes, research_mapping=None):
     st.subheader("Dashboard V2 Episodes")
     st.caption(
         "Dashboard V2 episode = period where layer-based statistical "
@@ -1129,6 +1135,12 @@ def render_dashboard_v2_episodes(v2_episodes):
         return
 
     display_episodes = v2_episodes.copy()
+
+    if research_mapping is not None and not research_mapping.empty:
+        display_episodes = map_research_to_dashboard_episodes(
+            display_episodes,
+            research_mapping,
+        )
 
     if "episode_start_timestamp_utc" in display_episodes.columns:
         display_episodes["episode_start_time_utc"] = (
@@ -1165,6 +1177,16 @@ def render_dashboard_v2_episodes(v2_episodes):
         "peak_rvi",
         "peak_velocity",
         "peak_delta_zscore",
+        "preparation_candidate",
+        "preparation_strength",
+        "return_to_preparation",
+        "expansion_type",
+        "expansion_strength",
+        "reversal_type",
+        "reversal_strength",
+        "comparison_group",
+        "preparation_result",
+        "hypothesis02_state",
     ]
     columns = [
         column
@@ -1183,6 +1205,539 @@ def render_dashboard_v2_episodes(v2_episodes):
         use_container_width=True,
         hide_index=True,
     )
+    render_dashboard_v2_research_panel(filtered_episodes)
+    render_dashboard_v2_research_case_lookup(filtered_episodes)
+
+
+def render_dashboard_v2_research_panel(filtered_episodes):
+    st.subheader("Dashboard V2 Research Mapping")
+    st.caption(
+        "Research labels are observation-only context. They do not change "
+        "Dashboard V2 scoring, execution, or decision logic."
+    )
+
+    if filtered_episodes.empty:
+        st.info("No mapped research rows available for the current filters.")
+        return
+
+    research_fields = [
+        "preparation_candidate",
+        "preparation_strength",
+        "return_to_preparation",
+        "expansion_type",
+        "expansion_strength",
+        "reversal_type",
+        "reversal_strength",
+        "comparison_group",
+        "preparation_result",
+        "hypothesis02_state",
+    ]
+    available_fields = [
+        field for field in research_fields if field in filtered_episodes.columns
+    ]
+
+    if not available_fields:
+        st.info("No Research Agent V1 fields are mapped for these episodes yet.")
+        return
+
+    panel_columns = st.columns(5)
+    panel_columns[0].markdown("**PREPARATION**")
+    panel_columns[0].dataframe(
+        sanitize_dataframe_for_display(
+            filtered_episodes[
+                [
+                    field
+                    for field in [
+                        "episode_id",
+                        "preparation_candidate",
+                        "preparation_strength",
+                        "return_to_preparation",
+                    ]
+                    if field in filtered_episodes.columns
+                ]
+            ].tail(20)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    panel_columns[1].markdown("**EXPANSION**")
+    panel_columns[1].dataframe(
+        sanitize_dataframe_for_display(
+            filtered_episodes[
+                [
+                    field
+                    for field in [
+                        "episode_id",
+                        "expansion_type",
+                        "expansion_strength",
+                    ]
+                    if field in filtered_episodes.columns
+                ]
+            ].tail(20)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    panel_columns[2].markdown("**REVERSAL**")
+    panel_columns[2].dataframe(
+        sanitize_dataframe_for_display(
+            filtered_episodes[
+                [
+                    field
+                    for field in [
+                        "episode_id",
+                        "reversal_type",
+                        "reversal_strength",
+                    ]
+                    if field in filtered_episodes.columns
+                ]
+            ].tail(20)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    panel_columns[3].markdown("**COMPARISON**")
+    panel_columns[3].dataframe(
+        sanitize_dataframe_for_display(
+            filtered_episodes[
+                [
+                    field
+                    for field in [
+                        "episode_id",
+                        "comparison_group",
+                        "preparation_result",
+                    ]
+                    if field in filtered_episodes.columns
+                ]
+            ].tail(20)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    panel_columns[4].markdown("**HYPOTHESIS**")
+    panel_columns[4].dataframe(
+        sanitize_dataframe_for_display(
+            filtered_episodes[
+                [
+                    field
+                    for field in [
+                        "episode_id",
+                        "hypothesis02_state",
+                    ]
+                    if field in filtered_episodes.columns
+                ]
+            ].tail(20)
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def render_dashboard_v2_research_case_lookup(filtered_episodes):
+    st.subheader("Dashboard V2 Episode Research Case")
+    st.caption(
+        "Dashboard Episode -> Research Case -> Preparation -> Expansion -> "
+        "Reversal -> Outcome. Observation-only mapping."
+    )
+
+    if filtered_episodes.empty or "episode_id" not in filtered_episodes.columns:
+        st.info("No Dashboard V2 episode is available for research lookup.")
+        return
+
+    episode_options = [
+        str(value)
+        for value in filtered_episodes["episode_id"].dropna().unique()
+        if str(value).strip()
+    ]
+
+    if not episode_options:
+        st.info("No episode_id values are available for research lookup.")
+        return
+
+    selected_episode_id = st.selectbox(
+        "Select Dashboard V2 episode_id",
+        episode_options,
+        key="dashboard_v2_research_case_episode_id",
+    )
+    open_case = st.button(
+        "Open Research Case",
+        key="dashboard_v2_open_research_case",
+    )
+
+    if open_case:
+        st.session_state["dashboard_v2_open_research_episode_id"] = (
+            selected_episode_id
+        )
+
+    active_episode_id = st.session_state.get(
+        "dashboard_v2_open_research_episode_id",
+        selected_episode_id,
+    )
+
+    if active_episode_id not in episode_options:
+        active_episode_id = selected_episode_id
+        st.session_state["dashboard_v2_open_research_episode_id"] = (
+            active_episode_id
+        )
+
+    selected_rows = filtered_episodes[
+        filtered_episodes["episode_id"].astype(str) == active_episode_id
+    ]
+
+    if selected_rows.empty:
+        st.info("Selected episode is no longer available after filters.")
+        return
+
+    selected = selected_rows.iloc[0]
+
+    if not has_research_case_data(selected):
+        st.info(
+            "No Research Agent V1 case is mapped to this Dashboard V2 episode yet."
+        )
+        return
+
+    st.caption(f"Open Research Case: episode_id={active_episode_id}")
+    render_dashboard_v2_selected_research_panel(selected)
+    render_dashboard_v2_case_summary(selected)
+    render_research_case_section(
+        "Dashboard Episode",
+        selected,
+        [
+            "episode_id",
+            "episode_start_time_utc",
+            "episode_end_time_utc",
+            "peak_state",
+            "peak_layer_count",
+            "peak_max_severity",
+            "peak_primary_context",
+            "peak_observation_confidence",
+        ],
+    )
+    render_research_case_section(
+        "Research Case",
+        selected,
+        [
+            "case_id",
+            "classification",
+            "classification_reason",
+        ],
+    )
+    render_research_case_section(
+        "Preparation",
+        selected,
+        [
+            "preparation_candidate",
+            "preparation_strength",
+            "return_to_preparation",
+            "pre_quiet_score",
+            "pre_range_ratio",
+            "preparation_result",
+        ],
+    )
+    render_research_case_section(
+        "Expansion",
+        selected,
+        [
+            "expansion_type",
+            "expansion_strength",
+            "time_to_expansion_minutes",
+            "expansion_survived",
+            "expansion_failed",
+        ],
+    )
+    render_research_case_section(
+        "Reversal",
+        selected,
+        [
+            "reversal_type",
+            "reversal_strength",
+            "time_to_reversal_minutes",
+            "direct_reversal_flag",
+            "late_reversal_flag",
+            "reversal_after_return",
+        ],
+    )
+    render_research_case_section(
+        "Outcome",
+        selected,
+        [
+            "comparison_group",
+            "hypothesis02_state",
+        ],
+    )
+    render_dashboard_v2_observation_outcome(selected)
+
+
+def render_dashboard_v2_case_summary(row):
+    st.subheader("Case Summary")
+    summary_fields = [
+        ("Research Case", "case_id"),
+        ("Episode", "episode_id"),
+        ("Primary Context", "peak_primary_context"),
+        ("Layer Count", "peak_layer_count"),
+        ("Severity", "peak_max_severity"),
+        ("Preparation", "preparation_strength"),
+        ("Expansion", "expansion_type"),
+        ("Reversal", "reversal_type"),
+        ("Outcome", "hypothesis02_state"),
+    ]
+    summary_columns = st.columns(3)
+
+    for index, (label, field) in enumerate(summary_fields):
+        summary_columns[index % 3].metric(
+            label,
+            safe_research_panel_value(row, field),
+        )
+
+
+def render_dashboard_v2_observation_outcome(row):
+    st.subheader("Observation Outcome")
+    st.caption(
+        "Outcome labels are research observations only. They are not trading "
+        "signals or decision instructions."
+    )
+    outcome_fields = [
+        "classification",
+        "classification_reason",
+        "comparison_group",
+        "preparation_result",
+        "hypothesis02_state",
+        "expansion_type",
+        "reversal_type",
+        "peak_observation_confidence",
+    ]
+    render_research_case_section("Observation Outcome Details", row, outcome_fields)
+
+
+def render_dashboard_v2_selected_research_panel(row):
+    st.subheader("Dashboard V2 Research Panel")
+    st.caption(
+        "Selected episode research context. Observation-only; does not affect "
+        "Dashboard V2 scoring or live logic."
+    )
+    card_columns = st.columns(4)
+    render_research_card(
+        card_columns[0],
+        "Preparation",
+        [
+            ("Candidate", "preparation_candidate", "status"),
+            ("Strength", "preparation_strength", "severity"),
+            ("Return", "return_to_preparation", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Expansion",
+        [
+            ("Type", "expansion_type", "outcome"),
+            ("Strength", "expansion_strength", "severity"),
+            ("Survived", "expansion_survived", "status"),
+            ("Failed", "expansion_failed", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Reversal",
+        [
+            ("Type", "reversal_type", "outcome"),
+            ("Strength", "reversal_strength", "severity"),
+            ("Direct", "direct_reversal_flag", "status"),
+            ("Late", "late_reversal_flag", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[3],
+        "Outcome",
+        [
+            ("Classification", "classification", "outcome"),
+            ("Confidence", "peak_observation_confidence", "confidence"),
+            ("Result", "preparation_result", "outcome"),
+            ("Hypothesis", "hypothesis02_state", "outcome"),
+        ],
+        row,
+    )
+
+
+def render_research_card(container, title, fields, row):
+    with container:
+        st.markdown(f"**{title}**")
+
+        for label, field, badge_type in fields:
+            value = safe_research_panel_value(row, field)
+            display_value = format_research_label(value)
+            badge = research_badge(display_value, badge_type)
+            st.markdown(f"{label}: {badge}", unsafe_allow_html=True)
+
+
+def research_badge(label, badge_type):
+    color = research_badge_color(label, badge_type)
+    return (
+        "<span style='"
+        f"background:{color};"
+        "color:#111;"
+        "padding:0.15rem 0.45rem;"
+        "border-radius:0.45rem;"
+        "font-size:0.82rem;"
+        "font-weight:600;"
+        "white-space:nowrap;"
+        "'>"
+        f"{label}"
+        "</span>"
+    )
+
+
+def research_badge_color(label, badge_type):
+    normalized = str(label).upper()
+
+    if label == "N/A":
+        return "#E5E7EB"
+
+    if badge_type == "confidence":
+        if "HIGH" in normalized:
+            return "#BBF7D0"
+        if "LOW" in normalized or "UNSTABLE" in normalized:
+            return "#FECACA"
+        return "#BFDBFE"
+
+    if badge_type == "severity":
+        if "EXTREME" in normalized:
+            return "#FCA5A5"
+        if "HIGH" in normalized:
+            return "#FDBA74"
+        if "MEDIUM" in normalized:
+            return "#FDE68A"
+        if "LOW" in normalized:
+            return "#BFDBFE"
+        return "#E5E7EB"
+
+    if badge_type == "status":
+        if normalized in {"TRUE", "YES"}:
+            return "#BBF7D0"
+        if normalized in {"FALSE", "NO"}:
+            return "#E5E7EB"
+        return "#DBEAFE"
+
+    if "FALSE PREPARATION" in normalized or "FAILED" in normalized:
+        return "#FECACA"
+    if "DIRECT REVERSAL" in normalized or "REVERSAL" in normalized:
+        return "#FDBA74"
+    if "PURE EXPANSION" in normalized or "SUCCESS" in normalized:
+        return "#BBF7D0"
+    if "CONTEXT ONLY" in normalized:
+        return "#E5E7EB"
+    return "#DBEAFE"
+
+
+def safe_research_panel_value(row, field):
+    if field not in row.index:
+        return "N/A"
+
+    value = row.get(field)
+
+    try:
+        if pd.isna(value):
+            return "N/A"
+    except (TypeError, ValueError):
+        pass
+
+    text = str(value).strip()
+    return text if text else "N/A"
+
+
+def format_research_label(value):
+    replacements = {
+        "FALSE_PREPARATION": "False Preparation",
+        "NO_RESEARCH_CONTEXT": "Context Only",
+        "DIRECT_REVERSAL": "Direct Reversal",
+        "HIGH_CONFIDENCE": "High Confidence",
+        "DELTA_ZSCORE_EXTREME": "Delta ZScore Extreme",
+        "PURE_EXPANSION": "Pure Expansion",
+        "EXPANSION_THEN_REVERSAL": "Expansion Then Reversal",
+        "FAILED_EXPANSION": "Failed Expansion",
+        "RETURN_EXPANSION_OBSERVED": "Return Expansion Observed",
+        "RETURN_OBSERVED": "Return Observed",
+        "PREPARATION_NO_RETURN": "Preparation No Return",
+        "RETURN_FAILURE": "Return Failure",
+        "STRONG_SUCCESS": "Strong Success",
+        "WEAK_SUCCESS": "Weak Success",
+        "UNSTABLE_PREPARATION": "Unstable Preparation",
+        "EXTREME": "Extreme",
+        "HIGH": "High",
+        "MEDIUM": "Medium",
+        "LOW": "Low",
+        "NONE": "None",
+        "TRUE": "True",
+        "FALSE": "False",
+    }
+    text = str(value).strip()
+
+    if text.upper() in replacements:
+        return replacements[text.upper()]
+
+    if "_" in text:
+        return text.replace("_", " ").title()
+
+    return text
+
+
+def render_research_case_section(title, row, fields):
+    st.markdown(f"**{title}**")
+    values = []
+
+    for field in fields:
+        if field not in row.index:
+            continue
+
+        value = row.get(field)
+        if pd.isna(value):
+            value = ""
+
+        values.append(
+            {
+                "field": field,
+                "value": value,
+            }
+        )
+
+    if not values:
+        st.info(f"No {title.lower()} fields are available.")
+        return
+
+    st.dataframe(
+        sanitize_dataframe_for_display(pd.DataFrame(values)),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def has_research_case_data(row):
+    for field in [
+        "case_id",
+        "preparation_candidate",
+        "expansion_type",
+        "reversal_type",
+        "comparison_group",
+        "preparation_result",
+        "hypothesis02_state",
+    ]:
+        if field not in row.index:
+            continue
+
+        value = row.get(field)
+        if pd.isna(value):
+            continue
+
+        if str(value).strip():
+            return True
+
+    return False
 
 
 def filter_dashboard_v2_episodes(display_episodes):

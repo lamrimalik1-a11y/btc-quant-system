@@ -47,6 +47,68 @@ RESEARCH_CASE_FIELDS = [
     "classification_reason",
 ]
 
+RDM_MECHANICS_FIELDS = [
+    "mechanical_family",
+    "mechanical_subtype",
+    "zone_mechanical_state",
+    "zone_fleche_state",
+    "zone_fleche_ratio",
+    "signed_moment_proxy",
+    "moment_stress_type",
+    "moment_absorption_flag",
+    "mechanical_load_score",
+    "fatigue_index",
+    "fatigue_state",
+    "zone_rigidity",
+    "zone_strength_decay",
+    "recovery_ratio",
+    "zone_recovery_state",
+    "moment_utilization_ratio",
+    "els_elu_state",
+    "reference_example_flag",
+]
+
+RDM_TIMELINE_FIELDS = [
+    "timeline_step",
+    "timeline_order",
+    "previous_state",
+    "next_state",
+    "state_duration",
+    "transition_reason",
+    "lifecycle_path",
+    "timeline_position",
+]
+
+RDM_CAPACITY_FIELDS = [
+    "zone_moment_capacity",
+    "zone_capacity_ratio",
+    "zone_capacity_state",
+    "zone_repair_strength",
+    "zone_material_recovery",
+    "zone_residual_strength",
+    "regime_adjusted_capacity",
+    "adaptive_capacity_threshold",
+    "volatility_capacity_multiplier",
+    "mechanical_regime_context",
+    "capacity_calibration_state",
+    "dynamic_elu_state",
+]
+
+RDM_SIGMA_FIELDS = [
+    "v_formation",
+    "delta_formation",
+    "t_formation",
+    "base_zone_resistance",
+    "volatility_modifier",
+    "fatigue_factor",
+    "sigma_barre_zone",
+    "sigma_market",
+    "stress_utilization",
+    "sigma_state",
+    "sigma_failure_risk",
+    "sigma_model_version",
+]
+
 
 def load_dashboard_research_mapping(base_dir):
     research_dir = Path(base_dir) / "research"
@@ -55,15 +117,39 @@ def load_dashboard_research_mapping(base_dir):
     preparation_quality = read_csv(
         research_dir / "phase1b_preparation_quality.csv"
     )
+    rdm_mechanics = read_csv(
+        research_dir / "zone_mechanics_cycle3_results.csv"
+    )
+    rdm_timeline = read_csv(
+        research_dir / "zone_mechanics_timeline.csv"
+    )
+    rdm_capacity = read_csv(
+        research_dir / "zone_mechanics_capacity.csv"
+    )
+    rdm_sigma = read_csv(
+        research_dir / "zone_mechanics_sigma.csv"
+    )
 
     return build_research_mapping(
         episode_log=episode_log,
         comparison_log=comparison_log,
         preparation_quality=preparation_quality,
+        rdm_mechanics=rdm_mechanics,
+        rdm_timeline=rdm_timeline,
+        rdm_capacity=rdm_capacity,
+        rdm_sigma=rdm_sigma,
     )
 
 
-def build_research_mapping(episode_log, comparison_log, preparation_quality):
+def build_research_mapping(
+    episode_log,
+    comparison_log,
+    preparation_quality,
+    rdm_mechanics=None,
+    rdm_timeline=None,
+    rdm_capacity=None,
+    rdm_sigma=None,
+):
     if episode_log.empty:
         return empty_mapping()
 
@@ -146,7 +232,66 @@ def build_research_mapping(episode_log, comparison_log, preparation_quality):
         axis=1,
     )
 
-    keep_fields = list(dict.fromkeys([*RESEARCH_CASE_FIELDS, *RESEARCH_FIELDS]))
+    mechanics_fields = rdm_mechanics_case_fields(
+        rdm_mechanics if rdm_mechanics is not None else pd.DataFrame()
+    )
+    if not mechanics_fields.empty:
+        mapping = mapping.merge(
+            mechanics_fields,
+            on="case_id",
+            how="left",
+        )
+    else:
+        ensure_columns(mapping, RDM_MECHANICS_FIELDS)
+
+    timeline_fields = rdm_timeline_case_fields(
+        rdm_timeline if rdm_timeline is not None else pd.DataFrame()
+    )
+    if not timeline_fields.empty:
+        mapping = mapping.merge(
+            timeline_fields,
+            on="case_id",
+            how="left",
+        )
+    else:
+        ensure_columns(mapping, RDM_TIMELINE_FIELDS)
+
+    capacity_fields = rdm_capacity_case_fields(
+        rdm_capacity if rdm_capacity is not None else pd.DataFrame()
+    )
+    if not capacity_fields.empty:
+        mapping = mapping.merge(
+            capacity_fields,
+            on="case_id",
+            how="left",
+        )
+    else:
+        ensure_columns(mapping, RDM_CAPACITY_FIELDS)
+
+    sigma_fields = rdm_sigma_case_fields(
+        rdm_sigma if rdm_sigma is not None else pd.DataFrame()
+    )
+    if not sigma_fields.empty:
+        mapping = mapping.merge(
+            sigma_fields,
+            on="case_id",
+            how="left",
+        )
+    else:
+        ensure_columns(mapping, RDM_SIGMA_FIELDS)
+
+    keep_fields = list(
+        dict.fromkeys(
+            [
+                *RESEARCH_CASE_FIELDS,
+                *RESEARCH_FIELDS,
+                *RDM_MECHANICS_FIELDS,
+                *RDM_TIMELINE_FIELDS,
+                *RDM_CAPACITY_FIELDS,
+                *RDM_SIGMA_FIELDS,
+            ]
+        )
+    )
     ensure_columns(mapping, keep_fields)
     return mapping[keep_fields].copy()
 
@@ -205,6 +350,42 @@ def preparation_quality_case_fields(preparation_quality):
     return rows[["case_id", "preparation_result"]].copy()
 
 
+def rdm_mechanics_case_fields(rdm_mechanics):
+    if rdm_mechanics.empty:
+        return pd.DataFrame(columns=["case_id", *RDM_MECHANICS_FIELDS])
+
+    rows = rdm_mechanics.copy()
+    ensure_columns(rows, ["case_id", *RDM_MECHANICS_FIELDS])
+    return rows[["case_id", *RDM_MECHANICS_FIELDS]].copy()
+
+
+def rdm_timeline_case_fields(rdm_timeline):
+    if rdm_timeline.empty:
+        return pd.DataFrame(columns=["case_id", *RDM_TIMELINE_FIELDS])
+
+    rows = rdm_timeline.copy()
+    ensure_columns(rows, ["case_id", *RDM_TIMELINE_FIELDS])
+    return rows[["case_id", *RDM_TIMELINE_FIELDS]].copy()
+
+
+def rdm_capacity_case_fields(rdm_capacity):
+    if rdm_capacity.empty:
+        return pd.DataFrame(columns=["case_id", *RDM_CAPACITY_FIELDS])
+
+    rows = rdm_capacity.copy()
+    ensure_columns(rows, ["case_id", *RDM_CAPACITY_FIELDS])
+    return rows[["case_id", *RDM_CAPACITY_FIELDS]].copy()
+
+
+def rdm_sigma_case_fields(rdm_sigma):
+    if rdm_sigma.empty:
+        return pd.DataFrame(columns=["case_id", *RDM_SIGMA_FIELDS])
+
+    rows = rdm_sigma.copy()
+    ensure_columns(rows, ["case_id", *RDM_SIGMA_FIELDS])
+    return rows[["case_id", *RDM_SIGMA_FIELDS]].copy()
+
+
 def derive_hypothesis02_state(row):
     if truthy_value(row.get("failed_after_return")):
         return "RETURN_FAILURE"
@@ -231,7 +412,17 @@ def ensure_columns(dataframe, columns):
 
 
 def empty_mapping():
-    return pd.DataFrame(columns=["case_id", "episode_id", *RESEARCH_FIELDS])
+    return pd.DataFrame(
+        columns=[
+            "case_id",
+            "episode_id",
+            *RESEARCH_FIELDS,
+            *RDM_MECHANICS_FIELDS,
+            *RDM_TIMELINE_FIELDS,
+            *RDM_CAPACITY_FIELDS,
+            *RDM_SIGMA_FIELDS,
+        ]
+    )
 
 
 def read_csv(path):

@@ -1598,6 +1598,233 @@ def render_dashboard_v2_selected_research_panel(row):
         ],
         row,
     )
+    render_rdm_market_mechanics_panel(row)
+    render_rdm_timeline_panel(row)
+    render_rdm_capacity_panel(row)
+    render_rdm_sigma_panel(row)
+
+
+def render_rdm_market_mechanics_panel(row):
+    st.subheader("RDM Market Mechanics")
+    st.caption(
+        "Research-only mechanics view. It does not affect Dashboard V2 scoring, "
+        "live signals, execution, or decision logic."
+    )
+
+    if safe_research_panel_value(row, "zone_mechanical_state") == "N/A":
+        st.info("No RDM Mechanics data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Mechanical Family",
+        [
+            ("Family", "mechanical_family", "mechanics"),
+            ("Subtype", "mechanical_subtype", "mechanics"),
+            ("State", "zone_mechanical_state", "mechanics"),
+            ("Reference", "reference_example_flag", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Flèche / Penetration",
+        [
+            ("Flèche State", "zone_fleche_state", "severity"),
+            ("Flèche Ratio", "zone_fleche_ratio", "metric"),
+            ("Penetration", "zone_penetration_depth", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Moment / Load",
+        [
+            ("Moment", "signed_moment_proxy", "metric"),
+            ("Stress Type", "moment_stress_type", "mechanics"),
+            ("Absorption", "moment_absorption_flag", "status"),
+            ("Load Score", "mechanical_load_score", "metric"),
+        ],
+        row,
+    )
+
+    detail_columns = st.columns(3)
+    render_research_card(
+        detail_columns[0],
+        "Fatigue / Rigidity",
+        [
+            ("Fatigue Index", "fatigue_index", "metric"),
+            ("Fatigue State", "fatigue_state", "mechanics"),
+            ("Rigidity", "zone_rigidity", "metric"),
+            ("Strength Decay", "zone_strength_decay", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        detail_columns[1],
+        "Recovery / Rupture",
+        [
+            ("Recovery Ratio", "recovery_ratio", "metric"),
+            ("Recovery State", "zone_recovery_state", "mechanics"),
+            ("Mechanical State", "zone_mechanical_state", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        detail_columns[2],
+        "ELS / ELU",
+        [
+            ("Utilization", "moment_utilization_ratio", "metric"),
+            ("ELS / ELU State", "els_elu_state", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_rdm_timeline_panel(row):
+    st.subheader("RDM Timeline")
+    st.caption(
+        "Research-only mechanical evolution path. It does not affect scoring, "
+        "live signals, execution, or decision logic."
+    )
+
+    if safe_research_panel_value(row, "timeline_step") == "N/A":
+        st.info("No timeline mechanics available yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Current Step",
+        [
+            ("Step", "timeline_step", "mechanics"),
+            ("Position", "timeline_position", "metric"),
+            ("Duration", "state_duration", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Transition",
+        [
+            ("Previous", "previous_state", "mechanics"),
+            ("Next", "next_state", "mechanics"),
+            ("Reason", "transition_reason", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Lifecycle Path",
+        [
+            ("Path", "lifecycle_path", "mechanics"),
+            ("Family", "mechanical_family", "mechanics"),
+            ("State", "zone_mechanical_state", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_rdm_capacity_panel(row):
+    st.subheader("Mechanical Capacity")
+    st.caption(
+        "Research-only capacity view. Capacity states do not affect Dashboard V2 "
+        "scoring, live signals, execution, or decision logic."
+    )
+
+    if safe_research_panel_value(row, "zone_capacity_state") == "N/A":
+        st.info("No mechanical capacity data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(4)
+    render_research_card(
+        card_columns[0],
+        "Capacity",
+        [
+            ("Capacity Ratio", "zone_capacity_ratio", "metric"),
+            ("Capacity State", "zone_capacity_state", "capacity"),
+            ("Moment Capacity", "zone_moment_capacity", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Residual / Repair",
+        [
+            ("Residual Strength", "zone_residual_strength", "metric"),
+            ("Repair Strength", "zone_repair_strength", "metric"),
+            ("Material Recovery", "zone_material_recovery", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Regime Calibration",
+        [
+            ("Regime Context", "mechanical_regime_context", "capacity"),
+            ("Adaptive Threshold", "adaptive_capacity_threshold", "metric"),
+            ("Regime Multiplier", "volatility_capacity_multiplier", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[3],
+        "Dynamic ELU",
+        [
+            ("Dynamic ELU", "dynamic_elu_state", "capacity"),
+            ("Calibration State", "capacity_calibration_state", "capacity"),
+            ("Fatigue", "fatigue_state", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_rdm_sigma_panel(row):
+    st.subheader("Adaptive Sigma Barre")
+    st.caption(
+        "Research-only allowable stress model per zone. Sigma states do not affect "
+        "Dashboard V2 scoring, live signals, execution, or decision logic."
+    )
+
+    if safe_research_panel_value(row, "sigma_state") == "N/A":
+        st.info("No adaptive sigma barre data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Zone Formation",
+        [
+            ("v Formation", "v_formation", "metric"),
+            ("Delta Formation", "delta_formation", "metric"),
+            ("t Formation", "t_formation", "metric"),
+            ("Base Resistance", "base_zone_resistance", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Sigma Stress",
+        [
+            ("Sigma Barre Zone", "sigma_barre_zone", "metric"),
+            ("Sigma Market", "sigma_market", "metric"),
+            ("Stress Utilization", "stress_utilization", "metric"),
+            ("Sigma State", "sigma_state", "capacity"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Adaptive Modifiers",
+        [
+            ("Volatility Modifier", "volatility_modifier", "metric"),
+            ("Fatigue Factor", "fatigue_factor", "metric"),
+            ("Failure Risk", "sigma_failure_risk", "severity"),
+            ("Model", "sigma_model_version", "mechanics"),
+        ],
+        row,
+    )
 
 
 def render_research_card(container, title, fields, row):
@@ -1659,6 +1886,43 @@ def research_badge_color(label, badge_type):
             return "#E5E7EB"
         return "#DBEAFE"
 
+    if badge_type == "mechanics":
+        if "RUPTURE" in normalized:
+            return "#FCA5A5"
+        if "EXHAUST" in normalized or "FATIGUE" in normalized:
+            return "#FDBA74"
+        if "PLASTIC" in normalized:
+            return "#FDE68A"
+        if "RECOVER" in normalized:
+            return "#BBF7D0"
+        if "ELASTIC" in normalized or "RIGID" in normalized:
+            return "#BFDBFE"
+        if "ABSORPTION" in normalized:
+            return "#C4B5FD"
+        return "#DBEAFE"
+
+    if badge_type == "metric":
+        return "#E0F2FE"
+
+    if badge_type == "capacity":
+        if "FAILURE" in normalized or "ELU" in normalized:
+            return "#FCA5A5"
+        if "RUPTURE" in normalized or "CRITICAL" in normalized:
+            return "#FCA5A5"
+        if "RUPTURE" in normalized:
+            return "#FCA5A5"
+        if "PROTECTED" in normalized or "RECOVERY" in normalized:
+            return "#BBF7D0"
+        if "EXPANSION" in normalized or "HIGH VOLATILITY" in normalized:
+            return "#BFDBFE"
+        if "ELS" in normalized or "HIGH LOAD" in normalized:
+            return "#FDBA74"
+        if "WARNING" in normalized:
+            return "#FDE68A"
+        if "SAFE" in normalized:
+            return "#BBF7D0"
+        return "#DBEAFE"
+
     if "FALSE PREPARATION" in normalized or "FAILED" in normalized:
         return "#FECACA"
     if "DIRECT REVERSAL" in normalized or "REVERSAL" in normalized:
@@ -1703,6 +1967,60 @@ def format_research_label(value):
         "STRONG_SUCCESS": "Strong Success",
         "WEAK_SUCCESS": "Weak Success",
         "UNSTABLE_PREPARATION": "Unstable Preparation",
+        "RUPTURE_FAMILY": "Rupture Family",
+        "EXHAUSTION_FAMILY": "Exhaustion Family",
+        "RECOVERY_FAMILY": "Recovery Family",
+        "ELASTIC_FAMILY": "Elastic Family",
+        "FATIGUE_FAMILY": "Fatigue Family",
+        "PLASTIC_FAMILY": "Plastic Family",
+        "FAILED_RETURN_RUPTURE": "Failed Return Rupture",
+        "EXPANSION_EXHAUSTION": "Expansion Exhaustion",
+        "RECLAIM_RECOVERY": "Reclaim Recovery",
+        "RIGID_SUPPORT": "Rigid Support",
+        "STRONG_REACTION": "Strong Reaction",
+        "RUPTURE_ZONE": "Rupture Zone",
+        "EXHAUSTED_ZONE": "Exhausted Zone",
+        "RECOVERED_ZONE": "Recovered Zone",
+        "ELASTIC_ZONE": "Elastic Zone",
+        "RIGID_ZONE": "Rigid Zone",
+        "PLASTIC_ZONE": "Plastic Zone",
+        "FATIGUE_ZONE": "Fatigue Zone",
+        "STRESS": "Stress",
+        "ABSORPTION": "Absorption",
+        "LOW_FATIGUE": "Low Fatigue",
+        "MEDIUM_FATIGUE": "Medium Fatigue",
+        "HIGH_FATIGUE": "High Fatigue",
+        "CRITICAL_FATIGUE": "Critical Fatigue",
+        "NO_RECOVERY": "No Recovery",
+        "PARTIAL_RECOVERY": "Partial Recovery",
+        "STRONG_RECOVERY": "Strong Recovery",
+        "RECOVERED": "Recovered",
+        "ELS_ACCEPTABLE_RESEARCH_ZONE": "ELS Acceptable Research Zone",
+        "ELS_DEFORMATION_RESEARCH_ZONE": "ELS Deformation Research Zone",
+        "HIGH_UTILIZATION_RESEARCH_ZONE": "High Utilization Research Zone",
+        "ELU_RUPTURE_RESEARCH_ZONE": "ELU Rupture Research Zone",
+        "SAFE": "Safe",
+        "WARNING": "Warning",
+        "HIGH_LOAD": "High Load",
+        "ELS_LIMIT": "ELS Limit",
+        "ELU_LIMIT": "ELU Limit",
+        "CAPACITY_FAILURE": "Capacity Failure",
+        "SAFE_STRESS": "Safe Stress",
+        "ELS_STRESS_WARNING": "ELS Stress Warning",
+        "ELU_STRESS_CRITICAL": "ELU Stress Critical",
+        "SIGMA_RUPTURE_RISK": "Sigma Rupture Risk",
+        "SIGMA_BARRE_ZONE_V1": "Sigma Barre Zone V1",
+        "RECOVERY_CONTEXT": "Recovery Context",
+        "EXPANSION_EXHAUSTION_CONTEXT": "Expansion Exhaustion Context",
+        "RUPTURE_CONTEXT": "Rupture Context",
+        "HIGH_VOLATILITY_CONTEXT": "High Volatility Context",
+        "LOW_VOLATILITY_COMPRESSION_CONTEXT": "Low Volatility Compression Context",
+        "NORMAL_CONTEXT": "Normal Context",
+        "RECOVERY_PROTECTED": "Recovery Protected",
+        "EXPANSION_PROTECTED": "Expansion Protected",
+        "RUPTURE_CONFIRMED": "Rupture Confirmed",
+        "REGIME_PROTECTED": "Regime Protected",
+        "ADAPTIVE_NORMAL": "Adaptive Normal",
         "EXTREME": "Extreme",
         "HIGH": "High",
         "MEDIUM": "Medium",

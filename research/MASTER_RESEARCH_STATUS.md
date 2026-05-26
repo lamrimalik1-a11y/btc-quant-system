@@ -93,6 +93,41 @@ CURRENT EXTENSION DATA FILES
 - zone_lifecycle_events.jsonl
 - field_lifecycle_events.jsonl
 
+RDM MARKET MECHANICS V1.1
+-------------------------
+- Status = STABLE CHECKPOINT
+- Fleche Model = STABLE
+- Signed Moment = STABLE
+- Capacity Layer = STABLE
+- Adaptive Sigma Barre = STABLE
+- ELS / ELU = STABLE
+- Timeline = STABLE
+- Mechanical Families = STABLE
+- Recovery = STABLE
+- Fatigue = STABLE
+- Rigidity = STABLE
+- Dashboard RDM Panels = STABLE
+
+RDM OUTPUT FILES
+----------------
+- zone_mechanics_cycle3_results.csv
+- zone_mechanics_cycle3_summary.csv
+- zone_mechanics_cycle3_notes.md
+- zone_mechanics_timeline.csv
+- zone_mechanics_lifecycle.csv
+- zone_mechanics_timeline_notes.md
+- zone_mechanics_capacity.csv
+- zone_mechanics_capacity_notes.md
+- zone_mechanics_sigma.csv
+- zone_mechanics_sigma_notes.md
+
+RDM CLASSIFICATION RULE
+-----------------------
+- Mechanics-first classification
+- Variables -> Family -> Subtype -> State
+- Cases are reference-only
+- No hardcoded case-based classification rules
+
 RULES
 -----
 - Research only

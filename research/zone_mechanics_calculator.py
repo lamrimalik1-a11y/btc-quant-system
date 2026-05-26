@@ -36,6 +36,8 @@ CAPACITY_FILE = RESEARCH_DIR / "zone_mechanics_capacity.csv"
 CAPACITY_NOTES_FILE = RESEARCH_DIR / "zone_mechanics_capacity_notes.md"
 SIGMA_FILE = RESEARCH_DIR / "zone_mechanics_sigma.csv"
 SIGMA_NOTES_FILE = RESEARCH_DIR / "zone_mechanics_sigma_notes.md"
+SIGMA_EVOLUTION_FILE = RESEARCH_DIR / "zone_mechanics_sigma_evolution.csv"
+SIGMA_EVOLUTION_NOTES_FILE = RESEARCH_DIR / "zone_mechanics_sigma_evolution_notes.md"
 
 NOTABLE_CASES = [
     "CASE_00021",
@@ -73,6 +75,8 @@ def main() -> None:
     results_df = merge_capacity_into_results(results_df, capacity_df)
     sigma_df = build_mechanics_sigma(results_df, run_utc)
     results_df = merge_sigma_into_results(results_df, sigma_df)
+    sigma_evolution_df = build_sigma_evolution(results_df, run_utc)
+    results_df = merge_sigma_evolution_into_results(results_df, sigma_evolution_df)
     timeline_df = build_mechanics_timeline(results_df, run_utc)
     lifecycle_df = build_mechanics_lifecycle(timeline_df, run_utc)
     summary_df = build_summary(results_df, run_utc)
@@ -80,11 +84,13 @@ def main() -> None:
     timeline_notes_text = build_timeline_notes(timeline_df, lifecycle_df, run_utc)
     capacity_notes_text = build_capacity_notes(capacity_df, run_utc)
     sigma_notes_text = build_sigma_notes(sigma_df, run_utc)
+    sigma_evolution_notes_text = build_sigma_evolution_notes(sigma_evolution_df, run_utc)
 
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
     results_df.to_csv(RESULTS_FILE, index=False)
     capacity_df.to_csv(CAPACITY_FILE, index=False)
     sigma_df.to_csv(SIGMA_FILE, index=False)
+    sigma_evolution_df.to_csv(SIGMA_EVOLUTION_FILE, index=False)
     timeline_df.to_csv(TIMELINE_FILE, index=False)
     lifecycle_df.to_csv(LIFECYCLE_FILE, index=False)
     summary_df.to_csv(SUMMARY_FILE, index=False)
@@ -92,6 +98,7 @@ def main() -> None:
     TIMELINE_NOTES_FILE.write_text(timeline_notes_text, encoding="utf-8")
     CAPACITY_NOTES_FILE.write_text(capacity_notes_text, encoding="utf-8")
     SIGMA_NOTES_FILE.write_text(sigma_notes_text, encoding="utf-8")
+    SIGMA_EVOLUTION_NOTES_FILE.write_text(sigma_evolution_notes_text, encoding="utf-8")
 
     print("Zone mechanics calculator complete.")
     print(f"Results: {relative_path(RESULTS_FILE)}")
@@ -104,6 +111,8 @@ def main() -> None:
     print(f"Capacity notes: {relative_path(CAPACITY_NOTES_FILE)}")
     print(f"Sigma: {relative_path(SIGMA_FILE)}")
     print(f"Sigma notes: {relative_path(SIGMA_NOTES_FILE)}")
+    print(f"Sigma evolution: {relative_path(SIGMA_EVOLUTION_FILE)}")
+    print(f"Sigma evolution notes: {relative_path(SIGMA_EVOLUTION_NOTES_FILE)}")
     print(f"Rows generated: {len(results_df)}")
     print(f"Timeline rows generated: {len(timeline_df)}")
     print("Mechanical state counts:")
@@ -864,6 +873,200 @@ def merge_sigma_into_results(results: pd.DataFrame, sigma: pd.DataFrame) -> pd.D
     return results.merge(sigma[available_columns], on="case_id", how="left")
 
 
+def build_sigma_evolution(results: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in results.iterrows():
+        zone_age = calculate_zone_age(row)
+        zone_test_count = calculate_zone_test_count(row)
+        repair_cycles = calculate_repair_cycles(row)
+        reclaim_history = calculate_reclaim_history(row)
+        institutional_reinforcement = calculate_institutional_reinforcement(row)
+        mechanical_memory_score = calculate_mechanical_memory_score(
+            row=row,
+            zone_age=zone_age,
+            zone_test_count=zone_test_count,
+            repair_cycles=repair_cycles,
+            reclaim_history=reclaim_history,
+            institutional_reinforcement=institutional_reinforcement,
+        )
+        sigma_age_factor = calculate_sigma_age_factor(row, zone_age, zone_test_count)
+        sigma_repair_bonus = calculate_sigma_repair_bonus(
+            repair_cycles=repair_cycles,
+            reclaim_history=reclaim_history,
+            institutional_reinforcement=institutional_reinforcement,
+        )
+        memory_multiplier = 1.0 + min(mechanical_memory_score, 100.0) / 200.0
+        repair_multiplier = 1.0 + min(sigma_repair_bonus, 100.0) / 100.0
+        aging_penalty = max(sigma_age_factor, 0.50)
+        adaptive_sigma_barre_v2 = safe_divide(
+            (to_float(row.get("sigma_barre_zone")) or 0.0) * memory_multiplier * repair_multiplier,
+            aging_penalty,
+        )
+        sigma_memory_state = classify_sigma_memory_state(
+            row=row,
+            zone_age=zone_age,
+            zone_test_count=zone_test_count,
+            repair_cycles=repair_cycles,
+            institutional_reinforcement=institutional_reinforcement,
+            sigma_age_factor=sigma_age_factor,
+            adaptive_sigma_barre_v2=adaptive_sigma_barre_v2,
+        )
+
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "mechanical_family": row.get("mechanical_family"),
+                "mechanical_subtype": row.get("mechanical_subtype"),
+                "zone_mechanical_state": row.get("zone_mechanical_state"),
+                "zone_age": round_float(zone_age),
+                "zone_test_count": round_float(zone_test_count),
+                "repair_cycles": round_float(repair_cycles),
+                "reclaim_history": round_float(reclaim_history),
+                "institutional_reinforcement": round_float(institutional_reinforcement),
+                "mechanical_memory_score": round_float(mechanical_memory_score),
+                "sigma_age_factor": round_float(sigma_age_factor),
+                "sigma_repair_bonus": round_float(sigma_repair_bonus),
+                "adaptive_sigma_barre_v2": round_float(adaptive_sigma_barre_v2),
+                "sigma_memory_state": sigma_memory_state,
+                "sigma_model_version": "SIGMA_EVOLUTION_V1",
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def merge_sigma_evolution_into_results(results: pd.DataFrame, evolution: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or evolution.empty:
+        return results
+
+    evolution_columns = [
+        "case_id",
+        "zone_age",
+        "zone_test_count",
+        "repair_cycles",
+        "reclaim_history",
+        "institutional_reinforcement",
+        "mechanical_memory_score",
+        "sigma_age_factor",
+        "sigma_repair_bonus",
+        "adaptive_sigma_barre_v2",
+        "sigma_memory_state",
+    ]
+    available_columns = [column for column in evolution_columns if column in evolution.columns]
+    return results.merge(evolution[available_columns], on="case_id", how="left")
+
+
+def calculate_zone_age(row: pd.Series) -> float:
+    duration = to_float(row.get("duration_seconds")) or 0.0
+    revisit_count = to_float(row.get("zone_revisit_count")) or 0.0
+    event_count = to_float(row.get("zone_event_count")) or 0.0
+    return max(duration / 60.0, 0.0) + revisit_count * 5.0 + event_count * 2.0
+
+
+def calculate_zone_test_count(row: pd.Series) -> float:
+    revisit_count = to_float(row.get("zone_revisit_count")) or 0.0
+    zone_states = str(row.get("zone_lifecycle_states") or "")
+    tested_count = zone_states.split("|").count("zone_tested")
+    return max(revisit_count, tested_count)
+
+
+def calculate_repair_cycles(row: pd.Series) -> float:
+    zone_states = str(row.get("zone_lifecycle_states") or "")
+    field_states = str(row.get("field_lifecycle_states") or "")
+    return (
+        zone_states.split("|").count("zone_reclaimed")
+        + field_states.split("|").count("field_recovered")
+        + (1 if str(row.get("zone_recovery_state") or "") in {"RECOVERED", "STRONG_RECOVERY"} else 0)
+    )
+
+
+def calculate_reclaim_history(row: pd.Series) -> float:
+    zone_states = str(row.get("zone_lifecycle_states") or "")
+    field_states = str(row.get("field_lifecycle_states") or "")
+    history = zone_states.split("|").count("zone_reclaimed") * 1.0
+    history += field_states.split("|").count("field_recovered") * 0.75
+    if str(row.get("zone_mechanical_state") or "") == "RECOVERED_ZONE":
+        history += 1.0
+    return history
+
+
+def calculate_institutional_reinforcement(row: pd.Series) -> float:
+    formation_score = 0.0
+    formation_score += min(abs_number(row.get("v_formation")) / 2.0, 25.0)
+    formation_score += min(abs_number(row.get("delta_formation")) * 3.0, 25.0)
+    formation_score += min((to_float(row.get("t_formation")) or 0.0) * 30.0, 30.0)
+    formation_score += calculate_reclaim_history(row) * 10.0
+    return min(formation_score, 100.0)
+
+
+def calculate_mechanical_memory_score(
+    row: pd.Series,
+    zone_age: float,
+    zone_test_count: float,
+    repair_cycles: float,
+    reclaim_history: float,
+    institutional_reinforcement: float,
+) -> float:
+    score = institutional_reinforcement
+    score += repair_cycles * 15.0
+    score += reclaim_history * 10.0
+    score += min(zone_age, 120.0) * 0.10
+    score -= zone_test_count * 5.0
+    score -= min(to_float(row.get("zone_strength_decay")) or 0.0, 100.0) * 0.35
+    return max(min(score, 100.0), 0.0)
+
+
+def calculate_sigma_age_factor(row: pd.Series, zone_age: float, zone_test_count: float) -> float:
+    fatigue_index = to_float(row.get("fatigue_index")) or 0.0
+    strength_decay = to_float(row.get("zone_strength_decay")) or 0.0
+    factor = 1.0
+    factor += min(zone_age, 240.0) / 240.0
+    factor += min(zone_test_count, 10.0) * 0.08
+    factor += min(fatigue_index, 100.0) / 150.0
+    factor += min(strength_decay, 100.0) / 150.0
+    return max(min(factor, 3.0), 0.75)
+
+
+def calculate_sigma_repair_bonus(
+    repair_cycles: float,
+    reclaim_history: float,
+    institutional_reinforcement: float,
+) -> float:
+    bonus = repair_cycles * 15.0
+    bonus += reclaim_history * 10.0
+    bonus += institutional_reinforcement * 0.35
+    return max(min(bonus, 100.0), 0.0)
+
+
+def classify_sigma_memory_state(
+    row: pd.Series,
+    zone_age: float,
+    zone_test_count: float,
+    repair_cycles: float,
+    institutional_reinforcement: float,
+    sigma_age_factor: float,
+    adaptive_sigma_barre_v2: float,
+) -> str:
+    mechanical_state = str(row.get("zone_mechanical_state") or "")
+    fatigue_index = to_float(row.get("fatigue_index")) or 0.0
+
+    if mechanical_state == "RUPTURE_ZONE" or adaptive_sigma_barre_v2 <= 1.0:
+        return "CRITICAL_SIGMA"
+    if repair_cycles > 0 and mechanical_state == "RECOVERED_ZONE":
+        return "REPAIRED_SIGMA"
+    if institutional_reinforcement >= 55 and repair_cycles > 0:
+        return "INSTITUTIONAL_SIGMA"
+    if fatigue_index >= 70 or zone_test_count >= 3:
+        return "FATIGUED_SIGMA"
+    if zone_age >= 60 or sigma_age_factor >= 1.75:
+        return "AGED_SIGMA"
+    return "FRESH_SIGMA"
+
+
 def formation_velocity(row: pd.Series) -> float:
     value = abs_number(row.get("pre_velocity_abs_mean"))
     if value:
@@ -1473,6 +1676,42 @@ def build_sigma_notes(sigma: pd.DataFrame, run_utc: str) -> str:
             "- Fatigue factor lowers allowable stress as lifecycle decay accumulates.",
             "",
             "Research-only note: sigma states are not live signals and do not affect scoring.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def build_sigma_evolution_notes(evolution: pd.DataFrame, run_utc: str) -> str:
+    memory_counts = (
+        Counter(evolution["sigma_memory_state"]) if not evolution.empty else Counter()
+    )
+    lines = [
+        "# Zone Mechanics Sigma Evolution Notes",
+        "",
+        f"- Run UTC: {run_utc}",
+        "- Mode: Research only",
+        "- No live signals",
+        "- No execution",
+        "- No entries",
+        "- No Dashboard V2 scoring changes",
+        "- No Phase 2",
+        "",
+        "## Sigma Memory State Counts",
+    ]
+
+    for state, count in memory_counts.items():
+        lines.append(f"- {state}: {count}")
+
+    lines.extend(
+        [
+            "",
+            "## Interpretation",
+            "- Sigma evolution extends sigma_barre_zone with age, tests, repair cycles, and memory.",
+            "- adaptive_sigma_barre_v2 = sigma_barre_zone * memory_multiplier * repair_multiplier / aging_penalty.",
+            "- Recovered and reclaimed zones can gain repair bonus.",
+            "- Old, repeatedly tested, or fatigued zones lose allowable stress through sigma_age_factor.",
+            "",
+            "Research-only note: sigma memory states are not live signals and do not affect scoring.",
         ]
     )
     return "\n".join(lines) + "\n"

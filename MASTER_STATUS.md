@@ -750,6 +750,58 @@ These are optional future architecture paths, not current implementation require
 
 
 ==================================================
+PHASE 1B+ RDM MARKET MECHANICS V1.1
+==================================================
+
+Status:
+
+STABLE CHECKPOINT
+
+Scope:
+
+Research-only market mechanics layer.
+
+Included:
+
+- Fleche Model
+- Signed Moment
+- Capacity Layer
+- Adaptive Sigma Barre
+- ELS / ELU
+- Timeline
+- Mechanical Families
+- Recovery
+- Fatigue
+- Rigidity
+- Dashboard RDM Panels
+
+Dashboard Panels:
+
+- RDM Market Mechanics
+- RDM Timeline
+- Mechanical Capacity
+- Adaptive Sigma Barre
+
+Classification:
+
+- Mechanics-first classification
+- Variables -> Family -> Subtype -> State
+- Cases are reference-only
+- No hardcoded case-based classification rules
+
+Rules:
+
+- Research only
+- Observation only
+- No Phase 2
+- No execution
+- No live signals
+- No entries
+- No scoring changes
+- No Dashboard V2 scoring changes
+
+
+==================================================
 NEXT STEP
 ==================================================
 

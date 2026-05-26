@@ -1602,13 +1602,14 @@ def render_dashboard_v2_selected_research_panel(row):
     render_rdm_timeline_panel(row)
     render_rdm_capacity_panel(row)
     render_rdm_sigma_panel(row)
+    render_rdm_sigma_evolution_panel(row)
 
 
 def render_rdm_market_mechanics_panel(row):
-    st.subheader("RDM Market Mechanics")
+    st.subheader("RDM Market Mechanics - Research Only")
     st.caption(
-        "Research-only mechanics view. It does not affect Dashboard V2 scoring, "
-        "live signals, execution, or decision logic."
+        "Observation panel only. This is not a signal, not execution, and not "
+        "Dashboard V2 scoring. It summarizes mechanical context for research review."
     )
 
     if safe_research_panel_value(row, "zone_mechanical_state") == "N/A":
@@ -1683,10 +1684,10 @@ def render_rdm_market_mechanics_panel(row):
 
 
 def render_rdm_timeline_panel(row):
-    st.subheader("RDM Timeline")
+    st.subheader("RDM Timeline - Research Only")
     st.caption(
-        "Research-only mechanical evolution path. It does not affect scoring, "
-        "live signals, execution, or decision logic."
+        "Mechanical evolution path for observation research only. It is not a "
+        "signal, not execution, and does not affect Dashboard V2 scoring."
     )
 
     if safe_research_panel_value(row, "timeline_step") == "N/A":
@@ -1727,10 +1728,10 @@ def render_rdm_timeline_panel(row):
 
 
 def render_rdm_capacity_panel(row):
-    st.subheader("Mechanical Capacity")
+    st.subheader("Mechanical Capacity - Research Only")
     st.caption(
-        "Research-only capacity view. Capacity states do not affect Dashboard V2 "
-        "scoring, live signals, execution, or decision logic."
+        "Capacity context only. Capacity states are not signals, not execution, "
+        "and do not change Dashboard V2 scoring."
     )
 
     if safe_research_panel_value(row, "zone_capacity_state") == "N/A":
@@ -1781,10 +1782,10 @@ def render_rdm_capacity_panel(row):
 
 
 def render_rdm_sigma_panel(row):
-    st.subheader("Adaptive Sigma Barre")
+    st.subheader("Adaptive Sigma Barre - Research Only")
     st.caption(
-        "Research-only allowable stress model per zone. Sigma states do not affect "
-        "Dashboard V2 scoring, live signals, execution, or decision logic."
+        "Per-zone allowable stress model for research review only. Sigma states "
+        "are not signals, not entries, and do not change Dashboard V2 scoring."
     )
 
     if safe_research_panel_value(row, "sigma_state") == "N/A":
@@ -1822,6 +1823,53 @@ def render_rdm_sigma_panel(row):
             ("Fatigue Factor", "fatigue_factor", "metric"),
             ("Failure Risk", "sigma_failure_risk", "severity"),
             ("Model", "sigma_model_version", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_rdm_sigma_evolution_panel(row):
+    st.subheader("Sigma Evolution - Research Only")
+    st.caption(
+        "Mechanical memory view for zone aging, repair, and reinforcement. "
+        "This is not a signal, not an entry model, and not Dashboard V2 scoring."
+    )
+
+    if safe_research_panel_value(row, "sigma_memory_state") == "N/A":
+        st.info("No sigma evolution data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Zone Memory",
+        [
+            ("Zone Age", "zone_age", "metric"),
+            ("Tests", "zone_test_count", "metric"),
+            ("Repair Cycles", "repair_cycles", "metric"),
+            ("Reclaim History", "reclaim_history", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Mechanical Memory",
+        [
+            ("Institutional Reinforcement", "institutional_reinforcement", "metric"),
+            ("Mechanical Memory", "mechanical_memory_score", "metric"),
+            ("Sigma Aging", "sigma_age_factor", "metric"),
+            ("Repair Bonus", "sigma_repair_bonus", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Evolved Sigma",
+        [
+            ("Adaptive Sigma V2", "adaptive_sigma_barre_v2", "metric"),
+            ("Sigma State", "sigma_memory_state", "capacity"),
+            ("Base Sigma", "sigma_barre_zone", "metric"),
+            ("Stress Utilization", "stress_utilization", "metric"),
         ],
         row,
     )
@@ -2010,6 +2058,13 @@ def format_research_label(value):
         "ELU_STRESS_CRITICAL": "ELU Stress Critical",
         "SIGMA_RUPTURE_RISK": "Sigma Rupture Risk",
         "SIGMA_BARRE_ZONE_V1": "Sigma Barre Zone V1",
+        "FRESH_SIGMA": "Fresh Sigma",
+        "AGED_SIGMA": "Aged Sigma",
+        "FATIGUED_SIGMA": "Fatigued Sigma",
+        "REPAIRED_SIGMA": "Repaired Sigma",
+        "INSTITUTIONAL_SIGMA": "Institutional Sigma",
+        "CRITICAL_SIGMA": "Critical Sigma",
+        "SIGMA_EVOLUTION_V1": "Sigma Evolution V1",
         "RECOVERY_CONTEXT": "Recovery Context",
         "EXPANSION_EXHAUSTION_CONTEXT": "Expansion Exhaustion Context",
         "RUPTURE_CONTEXT": "Rupture Context",

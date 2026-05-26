@@ -109,6 +109,19 @@ RDM_SIGMA_FIELDS = [
     "sigma_model_version",
 ]
 
+RDM_SIGMA_EVOLUTION_FIELDS = [
+    "zone_age",
+    "zone_test_count",
+    "repair_cycles",
+    "reclaim_history",
+    "institutional_reinforcement",
+    "mechanical_memory_score",
+    "sigma_age_factor",
+    "sigma_repair_bonus",
+    "adaptive_sigma_barre_v2",
+    "sigma_memory_state",
+]
+
 
 def load_dashboard_research_mapping(base_dir):
     research_dir = Path(base_dir) / "research"
@@ -129,6 +142,9 @@ def load_dashboard_research_mapping(base_dir):
     rdm_sigma = read_csv(
         research_dir / "zone_mechanics_sigma.csv"
     )
+    rdm_sigma_evolution = read_csv(
+        research_dir / "zone_mechanics_sigma_evolution.csv"
+    )
 
     return build_research_mapping(
         episode_log=episode_log,
@@ -138,6 +154,7 @@ def load_dashboard_research_mapping(base_dir):
         rdm_timeline=rdm_timeline,
         rdm_capacity=rdm_capacity,
         rdm_sigma=rdm_sigma,
+        rdm_sigma_evolution=rdm_sigma_evolution,
     )
 
 
@@ -149,6 +166,7 @@ def build_research_mapping(
     rdm_timeline=None,
     rdm_capacity=None,
     rdm_sigma=None,
+    rdm_sigma_evolution=None,
 ):
     if episode_log.empty:
         return empty_mapping()
@@ -280,6 +298,18 @@ def build_research_mapping(
     else:
         ensure_columns(mapping, RDM_SIGMA_FIELDS)
 
+    sigma_evolution_fields = rdm_sigma_evolution_case_fields(
+        rdm_sigma_evolution if rdm_sigma_evolution is not None else pd.DataFrame()
+    )
+    if not sigma_evolution_fields.empty:
+        mapping = mapping.merge(
+            sigma_evolution_fields,
+            on="case_id",
+            how="left",
+        )
+    else:
+        ensure_columns(mapping, RDM_SIGMA_EVOLUTION_FIELDS)
+
     keep_fields = list(
         dict.fromkeys(
             [
@@ -289,6 +319,7 @@ def build_research_mapping(
                 *RDM_TIMELINE_FIELDS,
                 *RDM_CAPACITY_FIELDS,
                 *RDM_SIGMA_FIELDS,
+                *RDM_SIGMA_EVOLUTION_FIELDS,
             ]
         )
     )
@@ -386,6 +417,15 @@ def rdm_sigma_case_fields(rdm_sigma):
     return rows[["case_id", *RDM_SIGMA_FIELDS]].copy()
 
 
+def rdm_sigma_evolution_case_fields(rdm_sigma_evolution):
+    if rdm_sigma_evolution.empty:
+        return pd.DataFrame(columns=["case_id", *RDM_SIGMA_EVOLUTION_FIELDS])
+
+    rows = rdm_sigma_evolution.copy()
+    ensure_columns(rows, ["case_id", *RDM_SIGMA_EVOLUTION_FIELDS])
+    return rows[["case_id", *RDM_SIGMA_EVOLUTION_FIELDS]].copy()
+
+
 def derive_hypothesis02_state(row):
     if truthy_value(row.get("failed_after_return")):
         return "RETURN_FAILURE"
@@ -421,6 +461,7 @@ def empty_mapping():
             *RDM_TIMELINE_FIELDS,
             *RDM_CAPACITY_FIELDS,
             *RDM_SIGMA_FIELDS,
+            *RDM_SIGMA_EVOLUTION_FIELDS,
         ]
     )
 

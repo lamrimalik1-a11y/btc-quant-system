@@ -1,6 +1,6 @@
 # Zone Mechanics Sigma Barre Notes
 
-- Run UTC: 2026-05-26T22:10:18+00:00
+- Run UTC: 2026-05-27T10:48:55+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -8,14 +8,14 @@
 - No Phase 2
 
 ## Sigma State Counts
-- SAFE_STRESS: 9
-- SIGMA_RUPTURE_RISK: 1
-- ELU_STRESS_CRITICAL: 2
+- SAFE_STRESS: 12
+- ELU_STRESS_CRITICAL: 4
+- SIGMA_RUPTURE_RISK: 11
 
 ## Sigma Failure Risk Counts
-- NONE: 9
-- HIGH: 1
-- MEDIUM: 2
+- NONE: 12
+- MEDIUM: 4
+- HIGH: 11
 
 ## Interpretation
 - sigma_barre_zone is the per-zone allowable stress proxy.

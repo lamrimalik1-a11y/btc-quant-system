@@ -1,5 +1,6 @@
 import argparse
 import json
+import socket
 import sys
 import time
 from datetime import datetime, timezone
@@ -63,10 +64,18 @@ HISTORICAL_REPLAY_V2_EPISODES_FILE = (
     OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
 )
 HISTORICAL_RAW_AGGTRADES_FILE = OUTPUT_DIR / "historical_raw_aggtrades.csv"
+HISTORICAL_DOWNLOAD_CHECKPOINT_FILE = (
+    OUTPUT_DIR / "historical_download_checkpoint.json"
+)
+HISTORICAL_DOWNLOAD_PARTIAL_FILE = (
+    OUTPUT_DIR / "historical_download_partial_aggtrades.jsonl"
+)
 
 REQUEST_LIMIT = 1000
-REQUEST_SLEEP_SECONDS = 0.25
-MAX_RETRIES = 3
+REQUEST_SLEEP_SECONDS = 0.5
+REQUEST_TIMEOUT_SECONDS = 120
+MAX_RETRIES = 10
+RETRY_BACKOFF_SECONDS = [5, 10, 20, 40, 60]
 
 
 def parse_args():
@@ -97,18 +106,44 @@ def main():
     if start_ms >= end_ms:
         raise SystemExit("--start must be before --end")
 
-    ensure_outputs_can_be_written(args.overwrite, args.save_raw)
+    if args.overwrite:
+        clear_download_checkpoint()
+
+    resume_checkpoint = load_matching_checkpoint(
+        symbol=args.symbol,
+        start_date=args.start,
+        end_date=args.end,
+    )
+
+    ensure_outputs_can_be_written(
+        overwrite=args.overwrite,
+        save_raw=args.save_raw,
+        resume_active=resume_checkpoint is not None,
+    )
 
     print(f"Symbol: {args.symbol}")
     print(f"Start: {args.start}")
     print(f"End: {args.end}")
     print(f"Row size: {args.row_size}")
+    if resume_checkpoint:
+        print(
+            "Resume checkpoint found: "
+            f"last timestamp={resume_checkpoint.get('last_success_timestamp')} | "
+            f"last aggTrade id={resume_checkpoint.get('last_success_agg_trade_id')} | "
+            f"downloaded={resume_checkpoint.get('downloaded_count')}"
+        )
 
     agg_trades = download_agg_trades(
         symbol=args.symbol,
         start_ms=start_ms,
         end_ms=end_ms,
+        start_date=args.start,
+        end_date=args.end,
+        checkpoint=resume_checkpoint,
     )
+
+    if agg_trades is None:
+        return
 
     historical_rows = build_historical_rows(
         agg_trades=agg_trades,
@@ -164,6 +199,8 @@ def main():
     if args.save_raw:
         write_raw_agg_trades(agg_trades)
 
+    clear_download_checkpoint()
+
     print(f"Trades downloaded: {len(agg_trades)}")
     print(f"Rows built: {len(historical_rows)}")
     print(
@@ -188,23 +225,55 @@ def main():
         print(f"Historical raw aggTrades: {HISTORICAL_RAW_AGGTRADES_FILE}")
 
 
-def download_agg_trades(symbol, start_ms, end_ms):
-    trades = []
+def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoint):
+    trades = load_partial_agg_trades() if checkpoint else []
     current_start_ms = start_ms
 
+    if checkpoint:
+        last_success_timestamp = checkpoint.get("last_success_timestamp")
+        if last_success_timestamp is not None:
+            current_start_ms = int(last_success_timestamp) + 1
+            print(f"Resuming from timestamp: {current_start_ms}")
+
     while current_start_ms <= end_ms:
-        batch = fetch_agg_trades_batch(
+        batch = fetch_agg_trades_batch_with_retries(
             symbol=symbol,
             start_ms=current_start_ms,
             end_ms=end_ms,
         )
 
+        if batch is None:
+            last_success_timestamp = current_start_ms - 1
+            last_success_agg_trade_id = (
+                get_agg_trade_id(trades[-1]) if trades else None
+            )
+            save_download_checkpoint(
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                last_success_timestamp=last_success_timestamp,
+                last_success_agg_trade_id=last_success_agg_trade_id,
+                downloaded_count=len(trades),
+            )
+            print("Download paused. Re-run the same command to resume.")
+            return None
+
         if not batch:
             break
 
         trades.extend(batch)
+        append_partial_agg_trades(batch)
 
         last_timestamp = int(batch[-1]["T"])
+        last_trade_id = get_agg_trade_id(batch[-1])
+        save_download_checkpoint(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            last_success_timestamp=last_timestamp,
+            last_success_agg_trade_id=last_trade_id,
+            downloaded_count=len(trades),
+        )
 
         if last_timestamp >= end_ms:
             break
@@ -218,14 +287,15 @@ def download_agg_trades(symbol, start_ms, end_ms):
 
         print(
             "Trades downloaded: "
-            f"{len(trades)} | current timestamp: {current_start_ms}"
+            f"{len(trades)} | current timestamp: {current_start_ms} | "
+            f"last aggTrade id: {last_trade_id}"
         )
         time.sleep(REQUEST_SLEEP_SECONDS)
 
     return trades
 
 
-def fetch_agg_trades_batch(symbol, start_ms, end_ms):
+def fetch_agg_trades_batch_with_retries(symbol, start_ms, end_ms):
     params = {
         "symbol": symbol.upper(),
         "startTime": int(start_ms),
@@ -242,17 +312,17 @@ def fetch_agg_trades_batch(symbol, start_ms, end_ms):
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            with urlopen(request, timeout=30) as response:
+            with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             if error.code in [429, 500, 502, 503, 504]:
-                sleep_before_retry(attempt)
+                sleep_before_retry(attempt, error)
                 continue
             raise
-        except URLError:
-            sleep_before_retry(attempt)
+        except (TimeoutError, socket.timeout, URLError) as error:
+            sleep_before_retry(attempt, error)
 
-    raise RuntimeError("Failed to download aggTrades after retries")
+    return None
 
 
 def build_historical_rows(agg_trades, row_size):
@@ -510,7 +580,93 @@ def parse_datetime_to_ms(value):
     return int(parsed.timestamp() * 1000)
 
 
-def ensure_outputs_can_be_written(overwrite, save_raw):
+def load_matching_checkpoint(symbol, start_date, end_date):
+    if not HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.exists():
+        return None
+
+    try:
+        checkpoint = json.loads(
+            HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.read_text(encoding="utf-8")
+        )
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    if (
+        str(checkpoint.get("symbol", "")).upper() == symbol.upper()
+        and checkpoint.get("start_date") == start_date
+        and checkpoint.get("end_date") == end_date
+    ):
+        if (
+            int(checkpoint.get("downloaded_count") or 0) > 0
+            and not HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists()
+        ):
+            print(
+                "Checkpoint found but partial download file is missing. "
+                "Starting from the beginning."
+            )
+            return None
+        return checkpoint
+
+    return None
+
+
+def save_download_checkpoint(
+    symbol,
+    start_date,
+    end_date,
+    last_success_timestamp,
+    last_success_agg_trade_id,
+    downloaded_count,
+):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint = {
+        "symbol": symbol.upper(),
+        "start_date": start_date,
+        "end_date": end_date,
+        "last_success_timestamp": last_success_timestamp,
+        "last_success_agg_trade_id": last_success_agg_trade_id,
+        "downloaded_count": downloaded_count,
+    }
+    HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.write_text(
+        json.dumps(checkpoint, indent=2),
+        encoding="utf-8",
+    )
+
+
+def clear_download_checkpoint():
+    for path in [
+        HISTORICAL_DOWNLOAD_CHECKPOINT_FILE,
+        HISTORICAL_DOWNLOAD_PARTIAL_FILE,
+    ]:
+        if path.exists():
+            path.unlink()
+
+
+def append_partial_agg_trades(batch):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    with HISTORICAL_DOWNLOAD_PARTIAL_FILE.open("a", encoding="utf-8") as handle:
+        for trade in batch:
+            handle.write(json.dumps(trade, separators=(",", ":")) + "\n")
+
+
+def load_partial_agg_trades():
+    if not HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists():
+        return []
+
+    trades = []
+    with HISTORICAL_DOWNLOAD_PARTIAL_FILE.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                trades.append(json.loads(line))
+    return trades
+
+
+def get_agg_trade_id(trade):
+    return trade.get("a") or trade.get("aggTradeId") or trade.get("id")
+
+
+def ensure_outputs_can_be_written(overwrite, save_raw, resume_active=False):
     output_files = [
         HISTORICAL_MARKET_ROWS_FILE,
         HISTORICAL_OBSERVATION_ROWS_FILE,
@@ -529,7 +685,7 @@ def ensure_outputs_can_be_written(overwrite, save_raw):
         if path.exists()
     ]
 
-    if existing_files and not overwrite:
+    if existing_files and not overwrite and not resume_active:
         existing = "\n".join(str(path) for path in existing_files)
         raise SystemExit(
             "Historical output files already exist. "
@@ -558,8 +714,16 @@ def get_union_fieldnames(rows):
     return fieldnames
 
 
-def sleep_before_retry(attempt):
-    time.sleep(REQUEST_SLEEP_SECONDS * attempt)
+def sleep_before_retry(attempt, error):
+    sleep_seconds = RETRY_BACKOFF_SECONDS[
+        min(attempt - 1, len(RETRY_BACKOFF_SECONDS) - 1)
+    ]
+    print(
+        "Download retry: "
+        f"attempt {attempt}/{MAX_RETRIES} | "
+        f"sleep {sleep_seconds}s | error: {type(error).__name__}: {error}"
+    )
+    time.sleep(sleep_seconds)
 
 
 def get_market_timestamp(row):

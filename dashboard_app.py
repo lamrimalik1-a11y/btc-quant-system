@@ -1599,10 +1599,16 @@ def render_dashboard_v2_selected_research_panel(row):
         row,
     )
     render_rdm_market_mechanics_panel(row)
+    render_zone_birth_panel(row)
+    render_zone_life_tracking_panel(row)
+    render_zone_evolution_panel(row)
+    render_rdm_verestchaguine_panel(row)
     render_rdm_timeline_panel(row)
     render_rdm_capacity_panel(row)
     render_rdm_sigma_panel(row)
     render_rdm_sigma_evolution_panel(row)
+    render_zone_mechanical_memory_panel(row)
+    render_zone_death_panel(row)
 
 
 def render_rdm_market_mechanics_panel(row):
@@ -1727,6 +1733,209 @@ def render_rdm_timeline_panel(row):
     )
 
 
+def render_zone_birth_panel(row):
+    st.subheader("Zone Birth Certificate - Research Only")
+    st.caption(
+        "Research registry for zone identity and formation quality. This is not "
+        "a signal, not execution, and not Dashboard V2 scoring."
+    )
+
+    if safe_research_panel_value(row, "zone_id") == "N/A":
+        st.info("No birth data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Identity",
+        [
+            ("Zone ID", "zone_id", "mechanics"),
+            ("Zone Type", "zone_type", "mechanics"),
+            ("Birth Time", "birth_time", "metric"),
+            ("Birth State", "mechanical_birth_state", "capacity"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Price Range",
+        [
+            ("Birth Range", "birth_price_range", "metric"),
+            ("Upper Edge", "upper_edge", "metric"),
+            ("Lower Edge", "lower_edge", "metric"),
+            ("Zone Width", "zone_width", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Formation",
+        [
+            ("Formation Volume", "formation_volume", "metric"),
+            ("Formation Delta", "formation_delta", "metric"),
+            ("Formation Velocity", "formation_velocity", "metric"),
+            ("Formation Quality", "formation_quality", "metric"),
+        ],
+        row,
+    )
+    confidence_columns = st.columns(2)
+    render_research_card(
+        confidence_columns[0],
+        "Birth Confidence",
+        [
+            ("Confidence", "birth_confidence_score", "metric"),
+            ("Candidates", "birth_candidate_count", "metric"),
+            ("Source", "birth_classification_source", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        confidence_columns[1],
+        "Birth Reason",
+        [
+            ("Reason", "birth_reason", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_zone_life_tracking_panel(row):
+    st.subheader("Zone Life Tracking - Research Only")
+    st.caption(
+        "Observation-only lifecycle tracking for age, tests, decay, and survival."
+    )
+
+    if safe_research_panel_value(row, "zone_birth_time") == "N/A":
+        st.info("No life tracking data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Life Window",
+        [
+            ("Birth Time", "zone_birth_time", "metric"),
+            ("Last Test", "zone_last_test_time", "metric"),
+            ("Active Duration", "zone_active_duration", "metric"),
+            ("Lifetime", "zone_lifetime", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Testing",
+        [
+            ("Age", "zone_age", "metric"),
+            ("Tests", "zone_test_count", "metric"),
+            ("Decay Rate", "zone_decay_rate", "metric"),
+            ("Survival Ratio", "zone_survival_ratio", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Birth Resistance",
+        [
+            ("Base Resistance", "base_resistance", "metric"),
+            ("Initial Sigma", "initial_sigma_barre", "metric"),
+            ("Initial Rigidity", "initial_rigidity", "metric"),
+            ("Initial Capacity", "initial_capacity", "metric"),
+        ],
+        row,
+    )
+
+
+def render_zone_evolution_panel(row):
+    st.subheader("Zone Evolution Chart - Research Only")
+    st.caption(
+        "Complete mechanical life path for the selected zone. This is observation "
+        "research only and does not affect scoring, entries, or execution."
+    )
+
+    if safe_research_panel_value(row, "current_state") == "N/A":
+        st.info("No evolution data available yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Life Stage",
+        [
+            ("Birth State", "birth_state", "capacity"),
+            ("Current Stage", "current_state", "mechanics"),
+            ("Previous Stage", "previous_state_evolution", "mechanics"),
+            ("Next Candidate", "next_candidate_state", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Transition",
+        [
+            ("Path", "evolution_timeline", "mechanics"),
+            ("Transition Reason", "state_transition_reason", "mechanics"),
+            ("Transition Count", "transition_count", "metric"),
+            ("Transition Strength", "transition_strength", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Progress",
+        [
+            ("Fatigue Progress", "fatigue_progress", "metric"),
+            ("Recovery Progress", "recovery_progress", "metric"),
+            ("Sigma Progress", "sigma_progress", "metric"),
+            ("Capacity Progress", "capacity_progress", "metric"),
+        ],
+        row,
+    )
+
+
+def render_rdm_verestchaguine_panel(row):
+    st.subheader("Verestchaguine Dynamic Fleche - Research Only")
+    st.caption(
+        "Parallel dynamic fleche model for accumulated deformation. It does not "
+        "replace static fleche and does not affect Dashboard V2 scoring."
+    )
+
+    if safe_research_panel_value(row, "fleche_dynamic_state") == "N/A":
+        st.info("No Verestchaguine dynamic fleche data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Stress Area",
+        [
+            ("Omega Stress Area", "omega_stress_area", "metric"),
+            ("Stress Center of Gravity", "stress_center_of_gravity", "metric"),
+            ("Virtual Moment at G", "virtual_moment_at_g", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Dynamic Fleche",
+        [
+            ("EI Adaptive", "ei_adaptive", "metric"),
+            ("Dynamic Fleche", "fleche_verestchaguine", "metric"),
+            ("Dynamic State", "fleche_dynamic_state", "capacity"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Combined View",
+        [
+            ("Static Fleche", "zone_fleche_ratio", "metric"),
+            ("Combined Fleche Score", "fleche_combined_score", "metric"),
+            ("Model", "fleche_model_version", "mechanics"),
+        ],
+        row,
+    )
+
+
 def render_rdm_capacity_panel(row):
     st.subheader("Mechanical Capacity - Research Only")
     st.caption(
@@ -1776,6 +1985,36 @@ def render_rdm_capacity_panel(row):
             ("Dynamic ELU", "dynamic_elu_state", "capacity"),
             ("Calibration State", "capacity_calibration_state", "capacity"),
             ("Fatigue", "fatigue_state", "mechanics"),
+        ],
+        row,
+    )
+    guard_columns = st.columns(3)
+    render_research_card(
+        guard_columns[0],
+        "Zero Stress Protection",
+        [
+            ("Active Load", "active_load_flag", "status"),
+            ("Zero Stress", "zero_stress_flag", "status"),
+            ("Market Silence", "market_silence_flag", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        guard_columns[1],
+        "Dormant Preparation",
+        [
+            ("Dormant Preparation", "dormant_preparation_flag", "status"),
+            ("Preparation State", "preparation_activation_state", "capacity"),
+            ("Capacity Guard", "capacity_guard_applied", "status"),
+        ],
+        row,
+    )
+    render_research_card(
+        guard_columns[2],
+        "Reaction Candidate",
+        [
+            ("Reaction Candidate", "research_reaction_candidate", "capacity"),
+            ("No Active Load Reason", "no_active_load_reason", "mechanics"),
         ],
         row,
     )
@@ -1870,6 +2109,100 @@ def render_rdm_sigma_evolution_panel(row):
             ("Sigma State", "sigma_memory_state", "capacity"),
             ("Base Sigma", "sigma_barre_zone", "metric"),
             ("Stress Utilization", "stress_utilization", "metric"),
+        ],
+        row,
+    )
+
+
+def render_zone_mechanical_memory_panel(row):
+    st.subheader("Zone Mechanical Memory - Research Only")
+    st.caption(
+        "Per-zone memory object summarized for research. It does not feed live "
+        "logic, scoring, entries, or execution."
+    )
+
+    if safe_research_panel_value(row, "memory_previous_stress_states") == "N/A":
+        st.info("No memory data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Stress Memory",
+        [
+            ("Stress States", "memory_previous_stress_states", "mechanics"),
+            ("Max Utilization", "memory_max_stress_utilization", "metric"),
+            ("Max Sigma Market", "memory_max_sigma_market", "metric"),
+            ("Max Fatigue", "memory_max_fatigue_index", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Deformation Memory",
+        [
+            ("Cumulative Fleche", "memory_cumulative_fleche", "metric"),
+            ("Dynamic Fleche", "memory_cumulative_dynamic_fleche", "metric"),
+            ("Permanent Deformation", "memory_permanent_deformation", "metric"),
+            ("Repair Count", "memory_repair_count", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Cycle Memory",
+        [
+            ("Rupture Count", "memory_rupture_count", "metric"),
+            ("Exhaustion Count", "memory_exhaustion_count", "metric"),
+            ("Recovery Count", "memory_recovery_count", "metric"),
+            ("Timeline", "memory_timeline_history", "mechanics"),
+        ],
+        row,
+    )
+
+
+def render_zone_death_panel(row):
+    st.subheader("Zone Death Certificate - Research Only")
+    st.caption(
+        "Final observed outcome registry for research review only. This is not "
+        "a signal and does not change Dashboard V2 scoring."
+    )
+
+    if safe_research_panel_value(row, "death_cause") == "N/A":
+        st.info("No death data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Outcome",
+        [
+            ("Death Time", "death_time", "metric"),
+            ("Death Cause", "death_cause", "capacity"),
+            ("Final State", "final_state", "mechanics"),
+            ("Total Tests", "total_tests", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Final Stress",
+        [
+            ("Age at Death", "zone_age_at_death", "metric"),
+            ("Max Utilization", "max_stress_utilization", "metric"),
+            ("Final Fleche", "final_fleche", "metric"),
+            ("Final Dynamic Fleche", "final_dynamic_fleche", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Final Mechanics",
+        [
+            ("Final Sigma", "final_sigma_state", "capacity"),
+            ("Final Capacity", "final_capacity_state", "capacity"),
+            ("Repair Count", "final_repair_count", "metric"),
+            ("Fatigue Cycles", "final_fatigue_cycles", "metric"),
         ],
         row,
     )
@@ -2053,6 +2386,20 @@ def format_research_label(value):
         "ELS_LIMIT": "ELS Limit",
         "ELU_LIMIT": "ELU Limit",
         "CAPACITY_FAILURE": "Capacity Failure",
+        "ELS_SAFE": "ELS Safe",
+        "NO_ACTIVE_LOAD_PROTECTED": "No Active Load Protected",
+        "DORMANT_OR_UNTESTED_ZONE": "Dormant Or Untested Zone",
+        "ACTIVE_REACTION_REVIEW": "Active Reaction Review",
+        "ACTIVE_PREPARATION": "Active Preparation",
+        "DORMANT_PREPARATION": "Dormant Preparation",
+        "FAILED_PREPARATION": "Failed Preparation",
+        "EXPLOSIVE_PREPARATION": "Explosive Preparation",
+        "UNTESTED_ZONE": "Untested Zone",
+        "NO_PENETRATION": "No Penetration",
+        "NO_SIGNED_MOMENT": "No Signed Moment",
+        "NO_SIGMA_MARKET": "No Sigma Market",
+        "NO_MECHANICAL_LOAD": "No Mechanical Load",
+        "MECHANICAL_LOAD_SCORE_IGNORED_NO_STRESS": "Mechanical Load Score Ignored No Stress",
         "SAFE_STRESS": "Safe Stress",
         "ELS_STRESS_WARNING": "ELS Stress Warning",
         "ELU_STRESS_CRITICAL": "ELU Stress Critical",
@@ -2065,6 +2412,40 @@ def format_research_label(value):
         "INSTITUTIONAL_SIGMA": "Institutional Sigma",
         "CRITICAL_SIGMA": "Critical Sigma",
         "SIGMA_EVOLUTION_V1": "Sigma Evolution V1",
+        "DYNAMIC_LOW": "Dynamic Low",
+        "DYNAMIC_MEDIUM": "Dynamic Medium",
+        "DYNAMIC_HIGH": "Dynamic High",
+        "DYNAMIC_CRITICAL": "Dynamic Critical",
+        "VERESTCHAGUINE_FLECHE_V1": "Verestchaguine Fleche V1",
+        "ELASTIC_BIRTH": "Elastic Birth",
+        "RIGID_BIRTH": "Rigid Birth",
+        "INSTITUTIONAL_BIRTH": "Institutional Birth",
+        "PREPARATION_BIRTH": "Preparation Birth",
+        "EXPANSION_BIRTH": "Expansion Birth",
+        "UNKNOWN_BIRTH": "Unknown Birth",
+        "PREPARATION_RULE": "Preparation Rule",
+        "INSTITUTIONAL_RULE": "Institutional Rule",
+        "RIGIDITY_RULE": "Rigidity Rule",
+        "EXPANSION_RULE": "Expansion Rule",
+        "ELASTIC_RULE": "Elastic Rule",
+        "FALLBACK": "Fallback",
+        "PREPARATION_ZONE": "Preparation Zone",
+        "RECOVERY_ZONE": "Recovery Zone",
+        "RUPTURE_RESEARCH_ZONE": "Rupture Research Zone",
+        "RDM_RESEARCH_ZONE": "RDM Research Zone",
+        "RECOVERY_COMPLETE": "Recovery Complete",
+        "TIME_DECAY": "Time Decay",
+        "DORMANT_EXPIRED": "Dormant Expired",
+        "UNKNOWN_DEATH": "Unknown Death",
+        "ZONE_BIRTH": "Zone Birth",
+        "ELASTIC_STAGE": "Elastic Stage",
+        "PLASTIC_STAGE": "Plastic Stage",
+        "FATIGUE_STAGE": "Fatigue Stage",
+        "RECOVERY_STAGE": "Recovery Stage",
+        "EXHAUSTION_STAGE": "Exhaustion Stage",
+        "RUPTURE_STAGE": "Rupture Stage",
+        "DORMANT_STAGE": "Dormant Stage",
+        "ZONE_DEATH": "Zone Death",
         "RECOVERY_CONTEXT": "Recovery Context",
         "EXPANSION_EXHAUSTION_CONTEXT": "Expansion Exhaustion Context",
         "RUPTURE_CONTEXT": "Rupture Context",

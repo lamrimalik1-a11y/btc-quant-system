@@ -128,6 +128,66 @@ RDM CLASSIFICATION RULE
 - Cases are reference-only
 - No hardcoded case-based classification rules
 
+RDM MARKET MECHANICS V1.3
+-------------------------
+- Status = VALIDATED CHECKPOINT
+- Adaptive Sigma = VALIDATED
+- Sigma Aging = VALIDATED
+- Mechanical Capacity = VALIDATED
+- Verestchaguine Dynamic Fleche = VALIDATED
+- Zero Stress Protection = VALIDATED
+- Dormant Preparation = VALIDATED
+- Birth Registry = VALIDATED
+- Death Registry = VALIDATED
+- Mechanical Memory = VALIDATED
+- Birth Calibration = VALIDATED
+- Zone Evolution Chart = VALIDATED
+- Binance historical downloader robustness = VALIDATED
+
+RDM V1.3 VALIDATION SUMMARY
+---------------------------
+- ELASTIC_FAMILY = 11
+- FATIGUE_FAMILY = 10
+- EXHAUSTION_FAMILY = 3
+- RUPTURE_FAMILY = 2
+- RECOVERY_FAMILY = 1
+- RIGID_ZONE = 11
+- FATIGUE_ZONE = 10
+- EXHAUSTED_ZONE = 3
+- RUPTURE_ZONE = 2
+- RECOVERED_ZONE = 1
+- SAFE = 12
+- WARNING = 7
+- ELU_LIMIT = 3
+- CAPACITY_FAILURE = 2
+- HIGH_LOAD = 2
+- ELS_LIMIT = 1
+- RIGID_BIRTH = 8
+- ELASTIC_BIRTH = 7
+- EXPANSION_BIRTH = 5
+- INSTITUTIONAL_BIRTH = 3
+- UNKNOWN_BIRTH = 4
+- DORMANT_EXPIRED = 11
+- RUPTURE = 11
+- EXHAUSTION = 3
+- RECOVERY_COMPLETE = 1
+- FATIGUE = 1
+- Birth rows = 27
+- Death rows = 27
+- Memory zones = 27
+- Evolution rows = 27
+- Evolution history = 139
+- Lifecycle rows = 89
+
+DOWNLOADER ROBUSTNESS
+---------------------
+- timeout = 120 seconds
+- retry = 10
+- exponential backoff = ACTIVE
+- checkpoint = ACTIVE
+- resume = ACTIVE
+- partial aggTrades persistence = ACTIVE
+
 RULES
 -----
 - Research only

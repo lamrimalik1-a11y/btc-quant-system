@@ -802,6 +802,108 @@ Rules:
 
 
 ==================================================
+PHASE 1B+ RDM MARKET MECHANICS V1.3
+==================================================
+
+Status:
+
+VALIDATED CHECKPOINT
+
+Includes:
+
+- Adaptive Sigma
+- Sigma Aging
+- Mechanical Capacity
+- Verestchaguine Dynamic Fleche
+- Zero Stress Protection
+- Dormant Preparation
+- Birth Registry
+- Death Registry
+- Mechanical Memory
+- Birth Calibration
+- Zone Evolution Chart
+- Binance historical downloader robustness
+
+Validation Summary:
+
+Mechanical families:
+
+- ELASTIC_FAMILY = 11
+- FATIGUE_FAMILY = 10
+- EXHAUSTION_FAMILY = 3
+- RUPTURE_FAMILY = 2
+- RECOVERY_FAMILY = 1
+
+Mechanical states:
+
+- RIGID_ZONE = 11
+- FATIGUE_ZONE = 10
+- EXHAUSTED_ZONE = 3
+- RUPTURE_ZONE = 2
+- RECOVERED_ZONE = 1
+
+Capacity:
+
+- SAFE = 12
+- WARNING = 7
+- ELU_LIMIT = 3
+- CAPACITY_FAILURE = 2
+- HIGH_LOAD = 2
+- ELS_LIMIT = 1
+
+Birth:
+
+- RIGID_BIRTH = 8
+- ELASTIC_BIRTH = 7
+- EXPANSION_BIRTH = 5
+- INSTITUTIONAL_BIRTH = 3
+- UNKNOWN_BIRTH = 4
+
+Death:
+
+- DORMANT_EXPIRED = 11
+- RUPTURE = 11
+- EXHAUSTION = 3
+- RECOVERY_COMPLETE = 1
+- FATIGUE = 1
+
+Artifacts:
+
+- Birth rows = 27
+- Death rows = 27
+- Memory zones = 27
+- Evolution rows = 27
+- Evolution history = 139
+- Lifecycle rows = 89
+
+Downloader upgrade:
+
+- timeout = 120 seconds
+- retry = 10
+- exponential backoff
+- checkpoint
+- resume
+- partial aggTrades persistence
+
+Classification:
+
+- Mechanics-first classification
+- Variables -> Family -> Subtype -> State
+- Cases are reference-only
+
+Rules:
+
+- Research only
+- Observation only
+- No Phase 2
+- No execution
+- No live signals
+- No entries
+- No scoring changes
+- No Dashboard V2 scoring changes
+
+
+==================================================
 NEXT STEP
 ==================================================
 

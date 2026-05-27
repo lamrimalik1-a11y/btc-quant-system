@@ -904,6 +904,91 @@ Rules:
 
 
 ==================================================
+PHASE 1B+ RDM MARKET MECHANICS V1.4
+==================================================
+
+Status:
+
+VALIDATED CHECKPOINT
+
+Added after V1.3:
+
+- RDM Result Layer
+- Final Dashboard Result Block
+- Zone Status Interpretation
+- Health Score
+- Risk Level
+- Confidence Layer
+- Short Reason
+- Watch Action
+- Section Result Summaries
+
+New fields:
+
+- rdm_zone_status
+- rdm_health_score
+- rdm_risk_level
+- rdm_confidence
+- rdm_short_reason
+- rdm_watch_action
+
+Current counts:
+
+- DORMANT = 11
+- FATIGUED = 10
+- EXHAUSTED = 3
+- RUPTURED = 2
+- RECOVERING = 1
+
+Dashboard structure:
+
+LAYER 1 - FINAL RESULT
+
+- Alive
+- Recovering
+- Fatigued
+- Critical
+- Exhausted
+- Ruptured
+- Dead
+- Dormant
+
+LAYER 2 - Deep Mechanics
+
+- Family
+- Subtype
+- Fleche
+- Moment
+- Sigma
+- Capacity
+- Memory
+- Evolution
+- Death
+
+Rules:
+
+- Research only
+- Observation only
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+- No scoring changes
+- No Dashboard V2 scoring changes
+- Mechanics-first
+- Cases reference-only
+
+Next step:
+
+- Observation / Calibration
+- Replay validation
+- Historical validation
+- False positive review
+- Live observation
+- DO NOT ADVANCE PHASES
+
+
+==================================================
 NEXT STEP
 ==================================================
 

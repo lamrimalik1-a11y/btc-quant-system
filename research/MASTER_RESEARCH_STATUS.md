@@ -188,14 +188,63 @@ DOWNLOADER ROBUSTNESS
 - resume = ACTIVE
 - partial aggTrades persistence = ACTIVE
 
+RDM MARKET MECHANICS V1.4
+-------------------------
+- Status = VALIDATED CHECKPOINT
+- RDM Result Layer = VALIDATED
+- Final Dashboard Result Block = VALIDATED
+- Zone Status Interpretation = VALIDATED
+- Health Score = VALIDATED
+- Risk Level = VALIDATED
+- Confidence Layer = VALIDATED
+- Short Reason = VALIDATED
+- Watch Action = VALIDATED
+- Section Result Summaries = VALIDATED
+
+RDM V1.4 RESULT FIELDS
+----------------------
+- rdm_zone_status
+- rdm_health_score
+- rdm_risk_level
+- rdm_confidence
+- rdm_short_reason
+- rdm_watch_action
+
+RDM V1.4 STATUS COUNTS
+----------------------
+- DORMANT = 11
+- FATIGUED = 10
+- EXHAUSTED = 3
+- RUPTURED = 2
+- RECOVERING = 1
+
+RDM V1.4 DASHBOARD STRUCTURE
+----------------------------
+- Layer 1 = Final Result
+- Layer 2 = Deep Mechanics
+- Final result states = Alive, Recovering, Fatigued, Critical, Exhausted, Ruptured, Dead, Dormant
+- Deep mechanics = Family, Subtype, Fleche, Moment, Sigma, Capacity, Memory, Evolution, Death
+
+RDM V1.4 NEXT STEP
+------------------
+- Observation / Calibration
+- Replay validation
+- Historical validation
+- False positive review
+- Live observation
+- Do not advance phases
+
 RULES
 -----
 - Research only
+- Observation only
 - No live execution
 - No decision engine
 - No trading signals
 - No scoring changes
 - No Phase 2
+- Mechanics-first
+- Cases reference-only
 
 STATUS
 ------

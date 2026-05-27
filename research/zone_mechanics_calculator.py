@@ -88,6 +88,7 @@ def main() -> None:
     results_df = merge_sigma_evolution_into_results(results_df, sigma_evolution_df)
     verestchaguine_df = build_verestchaguine_fleche(results_df, run_utc)
     results_df = merge_verestchaguine_into_results(results_df, verestchaguine_df)
+    results_df = add_rdm_result_summaries(results_df)
     timeline_df = build_mechanics_timeline(results_df, run_utc)
     lifecycle_df = build_mechanics_lifecycle(timeline_df, run_utc)
     birth_df = build_zone_birth_registry(results_df, run_utc)
@@ -1135,6 +1136,139 @@ def merge_verestchaguine_into_results(results: pd.DataFrame, verestchaguine: pd.
     ]
     available_columns = [column for column in verestchaguine_columns if column in verestchaguine.columns]
     return results.merge(verestchaguine[available_columns], on="case_id", how="left")
+
+
+def add_rdm_result_summaries(results: pd.DataFrame) -> pd.DataFrame:
+    if results.empty:
+        return results
+
+    rows = []
+    for _, row in results.iterrows():
+        summary = rdm_result_summary(row)
+        enriched = row.to_dict()
+        enriched.update(summary)
+        rows.append(enriched)
+
+    return pd.DataFrame(rows)
+
+
+def rdm_result_summary(row: pd.Series) -> Dict[str, Any]:
+    status = rdm_zone_status(row)
+    risk = rdm_risk_level(row, status)
+    health = rdm_health_score(row, status, risk)
+    confidence = rdm_confidence(row, status)
+    reason = rdm_short_reason(row, status, risk)
+    watch_action = rdm_watch_action(status, risk)
+    return {
+        "rdm_zone_status": status,
+        "rdm_health_score": round_float(health),
+        "rdm_risk_level": risk,
+        "rdm_confidence": confidence,
+        "rdm_short_reason": reason,
+        "rdm_watch_action": watch_action,
+    }
+
+
+def rdm_zone_status(row: pd.Series) -> str:
+    state = str(row.get("zone_mechanical_state") or "")
+    capacity = str(row.get("zone_capacity_state") or "")
+    sigma = str(row.get("sigma_state") or "")
+    memory = str(row.get("sigma_memory_state") or "")
+
+    if truthy(row.get("zero_stress_flag")):
+        return "DORMANT"
+    if state == "RUPTURE_ZONE":
+        return "RUPTURED"
+    if capacity == "CAPACITY_FAILURE" and sigma == "SIGMA_RUPTURE_RISK":
+        return "CRITICAL"
+    if state == "EXHAUSTED_ZONE":
+        return "EXHAUSTED"
+    if state == "FATIGUE_ZONE" or memory == "FATIGUED_SIGMA":
+        return "FATIGUED"
+    if state == "RECOVERED_ZONE" or memory == "REPAIRED_SIGMA":
+        return "RECOVERING"
+    if str(row.get("current_state") or "") == "ZONE_DEATH":
+        return "DEAD"
+    return "ALIVE"
+
+
+def rdm_risk_level(row: pd.Series, status: str) -> str:
+    if status in {"RUPTURED", "DEAD", "CRITICAL"}:
+        return "CRITICAL"
+    if status in {"EXHAUSTED", "FATIGUED"}:
+        return "HIGH"
+    if str(row.get("sigma_state") or "") == "ELU_STRESS_CRITICAL":
+        return "HIGH"
+    if str(row.get("zone_capacity_state") or "") in {"ELU_LIMIT", "ELS_LIMIT", "HIGH_LOAD"}:
+        return "MEDIUM"
+    if status == "DORMANT":
+        return "LOW"
+    return "LOW"
+
+
+def rdm_health_score(row: pd.Series, status: str, risk: str) -> float:
+    base = {
+        "ALIVE": 82.0,
+        "RECOVERING": 76.0,
+        "DORMANT": 68.0,
+        "FATIGUED": 46.0,
+        "EXHAUSTED": 34.0,
+        "CRITICAL": 22.0,
+        "RUPTURED": 12.0,
+        "DEAD": 8.0,
+    }.get(status, 50.0)
+    fatigue_penalty = min(to_float(row.get("fatigue_index")) or 0.0, 100.0) * 0.12
+    decay_penalty = min(to_float(row.get("zone_strength_decay")) or 0.0, 100.0) * 0.10
+    recovery_bonus = min(to_float(row.get("recovery_ratio")) or 0.0, 2.0) * 8.0
+    risk_penalty = {
+        "CRITICAL": 12.0,
+        "HIGH": 7.0,
+        "MEDIUM": 3.0,
+        "LOW": 0.0,
+    }.get(risk, 0.0)
+    return max(min(base - fatigue_penalty - decay_penalty - risk_penalty + recovery_bonus, 100.0), 0.0)
+
+
+def rdm_confidence(row: pd.Series, status: str) -> str:
+    if str(row.get("mechanical_birth_state") or "") == "UNKNOWN_BIRTH":
+        return "MEDIUM"
+    if status == "DORMANT":
+        return "MEDIUM"
+    if str(row.get("source_status") or "") == "NOT_FOUND":
+        return "LOW"
+    return "HIGH"
+
+
+def rdm_short_reason(row: pd.Series, status: str, risk: str) -> str:
+    if status == "DORMANT":
+        return "No active load; zero stress guard protected the zone."
+    if status == "RUPTURED":
+        return "Mechanical state reached rupture context."
+    if status == "CRITICAL":
+        return "Capacity and sigma both show critical stress context."
+    if status == "EXHAUSTED":
+        return "Expansion/exhaustion branch dominates the zone outcome."
+    if status == "FATIGUED":
+        return "Fatigue lifecycle and memory dominate current state."
+    if status == "RECOVERING":
+        return "Recovery/reclaim memory is active."
+    return f"Zone remains observable with {risk.lower()} research risk."
+
+
+def rdm_watch_action(status: str, risk: str) -> str:
+    if status in {"RUPTURED", "CRITICAL"}:
+        return "REVIEW_RUPTURE_CONTEXT"
+    if status == "EXHAUSTED":
+        return "WATCH_EXHAUSTION_BRANCH"
+    if status == "FATIGUED":
+        return "WATCH_FATIGUE_DECAY"
+    if status == "RECOVERING":
+        return "REVIEW_RECOVERY_BEHAVIOR"
+    if status == "DORMANT":
+        return "WAIT_FOR_ACTIVE_LOAD"
+    if risk == "MEDIUM":
+        return "MONITOR_MECHANICAL_CONTEXT"
+    return "OBSERVE_ONLY"
 
 
 def build_zone_stress_history(row: pd.Series) -> List[Dict[str, float]]:

@@ -67,6 +67,12 @@ RDM_MECHANICS_FIELDS = [
     "moment_utilization_ratio",
     "els_elu_state",
     "reference_example_flag",
+    "rdm_zone_status",
+    "rdm_health_score",
+    "rdm_risk_level",
+    "rdm_confidence",
+    "rdm_short_reason",
+    "rdm_watch_action",
 ]
 
 RDM_TIMELINE_FIELDS = [

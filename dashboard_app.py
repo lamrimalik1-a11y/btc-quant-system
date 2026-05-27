@@ -1609,6 +1609,7 @@ def render_dashboard_v2_selected_research_panel(row):
     render_rdm_sigma_evolution_panel(row)
     render_zone_mechanical_memory_panel(row)
     render_zone_death_panel(row)
+    render_final_rdm_result(row)
 
 
 def render_rdm_market_mechanics_panel(row):
@@ -1687,6 +1688,7 @@ def render_rdm_market_mechanics_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "RDM Market Mechanics")
 
 
 def render_rdm_timeline_panel(row):
@@ -1731,6 +1733,7 @@ def render_rdm_timeline_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "RDM Timeline")
 
 
 def render_zone_birth_panel(row):
@@ -1797,6 +1800,7 @@ def render_zone_birth_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Zone Birth Certificate")
 
 
 def render_zone_life_tracking_panel(row):
@@ -1843,6 +1847,7 @@ def render_zone_life_tracking_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Zone Life Tracking")
 
 
 def render_zone_evolution_panel(row):
@@ -1890,6 +1895,7 @@ def render_zone_evolution_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Zone Evolution Chart")
 
 
 def render_rdm_verestchaguine_panel(row):
@@ -1934,6 +1940,7 @@ def render_rdm_verestchaguine_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Verestchaguine Dynamic Fleche")
 
 
 def render_rdm_capacity_panel(row):
@@ -2018,6 +2025,7 @@ def render_rdm_capacity_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Mechanical Capacity")
 
 
 def render_rdm_sigma_panel(row):
@@ -2065,6 +2073,7 @@ def render_rdm_sigma_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Adaptive Sigma Barre")
 
 
 def render_rdm_sigma_evolution_panel(row):
@@ -2112,6 +2121,7 @@ def render_rdm_sigma_evolution_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Sigma Evolution")
 
 
 def render_zone_mechanical_memory_panel(row):
@@ -2159,6 +2169,7 @@ def render_zone_mechanical_memory_panel(row):
         ],
         row,
     )
+    render_rdm_section_result(row, "Zone Mechanical Memory")
 
 
 def render_zone_death_panel(row):
@@ -2203,6 +2214,89 @@ def render_zone_death_panel(row):
             ("Final Capacity", "final_capacity_state", "capacity"),
             ("Repair Count", "final_repair_count", "metric"),
             ("Fatigue Cycles", "final_fatigue_cycles", "metric"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "Zone Death Certificate")
+
+
+def render_rdm_section_result(row, section_name):
+    st.markdown(f"**{section_name} Result**")
+    result_columns = st.columns(4)
+    render_research_card(
+        result_columns[0],
+        "Result",
+        [
+            ("Zone Status", "rdm_zone_status", "capacity"),
+            ("Health Score", "rdm_health_score", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        result_columns[1],
+        "Risk",
+        [
+            ("Risk Level", "rdm_risk_level", "severity"),
+            ("Confidence", "rdm_confidence", "confidence"),
+        ],
+        row,
+    )
+    render_research_card(
+        result_columns[2],
+        "Short Explanation",
+        [
+            ("Reason", "rdm_short_reason", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        result_columns[3],
+        "Research-only Notice",
+        [
+            ("Watch Action", "rdm_watch_action", "capacity"),
+        ],
+        row,
+    )
+    with result_columns[3]:
+        st.caption("Research only. No signal. No execution.")
+
+
+def render_final_rdm_result(row):
+    st.subheader("Final RDM Result - Research Only")
+    st.caption(
+        "Final mechanical summary for observation research. This is not a signal, "
+        "not an entry, not execution, and not Dashboard V2 scoring."
+    )
+
+    if safe_research_panel_value(row, "rdm_zone_status") == "N/A":
+        st.info("No final RDM result mapped for this case yet.")
+        return
+
+    columns = st.columns(3)
+    render_research_card(
+        columns[0],
+        "Zone Result",
+        [
+            ("ZONE STATUS", "rdm_zone_status", "capacity"),
+            ("HEALTH SCORE", "rdm_health_score", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[1],
+        "Risk / Confidence",
+        [
+            ("RISK LEVEL", "rdm_risk_level", "severity"),
+            ("CONFIDENCE", "rdm_confidence", "confidence"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[2],
+        "Reason / Watch",
+        [
+            ("SHORT REASON", "rdm_short_reason", "mechanics"),
+            ("WATCH ACTION", "rdm_watch_action", "capacity"),
         ],
         row,
     )
@@ -2288,12 +2382,14 @@ def research_badge_color(label, badge_type):
     if badge_type == "capacity":
         if "FAILURE" in normalized or "ELU" in normalized:
             return "#FCA5A5"
-        if "RUPTURE" in normalized or "CRITICAL" in normalized:
+        if "RUPTURE" in normalized or "CRITICAL" in normalized or "DEAD" in normalized:
             return "#FCA5A5"
-        if "RUPTURE" in normalized:
-            return "#FCA5A5"
-        if "PROTECTED" in normalized or "RECOVERY" in normalized:
+        if "EXHAUST" in normalized or "FATIGUE" in normalized:
+            return "#FDBA74"
+        if "PROTECTED" in normalized or "RECOVERY" in normalized or "RECOVERING" in normalized:
             return "#BBF7D0"
+        if "DORMANT" in normalized:
+            return "#E5E7EB"
         if "EXPANSION" in normalized or "HIGH VOLATILITY" in normalized:
             return "#BFDBFE"
         if "ELS" in normalized or "HIGH LOAD" in normalized:
@@ -2464,6 +2560,21 @@ def format_research_label(value):
         "NONE": "None",
         "TRUE": "True",
         "FALSE": "False",
+        "ALIVE": "Alive",
+        "RECOVERING": "Recovering",
+        "FATIGUED": "Fatigued",
+        "CRITICAL": "Critical",
+        "EXHAUSTED": "Exhausted",
+        "RUPTURED": "Ruptured",
+        "DEAD": "Dead",
+        "DORMANT": "Dormant",
+        "REVIEW_RUPTURE_CONTEXT": "Review Rupture Context",
+        "WATCH_EXHAUSTION_BRANCH": "Watch Exhaustion Branch",
+        "WATCH_FATIGUE_DECAY": "Watch Fatigue Decay",
+        "REVIEW_RECOVERY_BEHAVIOR": "Review Recovery Behavior",
+        "WAIT_FOR_ACTIVE_LOAD": "Wait For Active Load",
+        "MONITOR_MECHANICAL_CONTEXT": "Monitor Mechanical Context",
+        "OBSERVE_ONLY": "Observe Only",
     }
     text = str(value).strip()
 

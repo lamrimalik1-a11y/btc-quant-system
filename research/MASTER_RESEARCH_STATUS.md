@@ -384,3 +384,74 @@ RULES
 - No execution
 - No entries
 - No live signals
+
+PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
+------------------------------------
+Status = STABLE CHECKPOINT
+Base = PHASE1B_RDM_MARKET_MECHANICS_V1_5
+
+DATA INTEGRITY DIAGNOSTIC
+-------------------------
+- Episode 75 / CASE_00075 diagnostic = COMPLETED
+- Source data = VERIFIED
+- Timezone alignment = VERIFIED
+- Dashboard mapping = VERIFIED
+- Episode row alignment = VERIFIED
+- Stale artifacts = DETECTED / DOCUMENTED
+
+Reports / tools:
+- outputs/data_integrity_episode_75_report.md
+- outputs/data_integrity_episode_75.json
+- tools/diagnose_episode_75_integrity.py
+
+Diagnostic conclusions:
+- SOURCE_DATA_OK
+- TIMEZONE_OK
+- DASHBOARD_MAPPING_OK
+- EPISODE_ROW_ALIGNMENT_OK
+- STALE_ARTIFACTS_FOUND
+
+REPLAY CONSISTENCY LOCK + SOURCE ISOLATION
+------------------------------------------
+- Explicit source modes = LIVE_MODE / HISTORICAL_REPLAY_MODE
+- Historical replay source guards = ACTIVE
+- Dashboard blocks live/default files in HISTORICAL_REPLAY_MODE
+- No silent fallback to stale live/default files
+- Overlay loader accepts source_mode
+- Replay banner = ACTIVE
+- Episode source audit = ACTIVE
+- Dashboard footer = ACTIVE SOURCE: historical replay / live
+- Replay consistency validator = ACTIVE
+
+Validator / reports:
+- tools/validate_replay_consistency.py
+- outputs/replay_consistency_report.md
+- outputs/replay_consistency_report.json
+
+LATEST VALIDATOR RESULT
+-----------------------
+- MIXED_SOURCE_USAGE_DETECTED = False
+- STALE_LIVE_FILES_FOUND = True
+- TIMESTAMP_INCONSISTENCIES_FOUND = False
+- REPLAY_LIVE_OVERLAP_FOUND = False
+- HISTORICAL_REPLAY_SOURCES_PRESENT = True
+
+CONCLUSION
+----------
+- Historical replay mode is isolated.
+- Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode.
+- Replay / RDM / Dashboard / Overlay are traceable to explicit historical replay sources.
+
+CURRENT MODE
+------------
+- Research only
+- Historical replay validation
+- Observation
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+- No scoring changes
+- No Dashboard V2 scoring changes
+- Mechanics-first
+- Cases reference-only

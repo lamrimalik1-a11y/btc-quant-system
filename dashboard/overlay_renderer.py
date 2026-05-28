@@ -7,9 +7,11 @@ from typing import Any
 import pandas as pd
 
 
-def load_rdm_overlay_data(base_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def load_rdm_overlay_data(base_dir: Path, source_mode: str = "HISTORICAL_REPLAY_MODE") -> tuple[pd.DataFrame, pd.DataFrame]:
     output_dir = base_dir / "outputs"
     research_dir = base_dir / "research"
+    if source_mode != "HISTORICAL_REPLAY_MODE":
+        return pd.DataFrame(), pd.DataFrame()
     observation_rows = read_optional_csv(output_dir / "historical_observation_rows.csv")
     live_rows = read_optional_csv(research_dir / "zone_live_rdm_evolution.csv")
     return observation_rows, live_rows

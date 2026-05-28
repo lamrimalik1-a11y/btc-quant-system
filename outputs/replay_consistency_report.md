@@ -1,0 +1,73 @@
+# Replay Consistency Report
+
+Run UTC: 2026-05-28 16:03:00 UTC
+
+## Conclusions
+
+- MIXED_SOURCE_USAGE_DETECTED: False
+- STALE_LIVE_FILES_FOUND: True
+- TIMESTAMP_INCONSISTENCIES_FOUND: False
+- REPLAY_LIVE_OVERLAP_FOUND: False
+- HISTORICAL_REPLAY_SOURCES_PRESENT: True
+
+## Historical Sources
+
+- historical_market_rows: {'path': 'outputs\\historical_market_rows.csv', 'exists': True, 'size_bytes': 292515, 'modified': '2026-05-28 15:56:59', 'modified_epoch': 1779980219.604273, 'rows': 1562}
+- historical_observation_rows: {'path': 'outputs\\historical_observation_rows.csv', 'exists': True, 'size_bytes': 2065098, 'modified': '2026-05-28 15:56:59', 'modified_epoch': 1779980219.8480468, 'rows': 1562}
+- historical_v2_episodes: {'path': 'outputs\\historical_replay_dashboard_v2_episodes.csv', 'exists': True, 'size_bytes': 40176, 'modified': '2026-05-28 15:57:06', 'modified_epoch': 1779980226.082607, 'rows': 86}
+- historical_v2_events: {'path': 'outputs\\historical_replay_observation_v2_events.csv', 'exists': True, 'size_bytes': 219638, 'modified': '2026-05-28 15:57:06', 'modified_epoch': 1779980226.0742874, 'rows': 517}
+
+## Live Sources
+
+- market_rows: {'path': 'outputs\\market_rows.csv', 'exists': True, 'size_bytes': 19420720, 'modified': '2026-05-21 00:31:54', 'modified_epoch': 1779319914.293201, 'rows': 136721}
+- observation_events: {'path': 'outputs\\observation_events.csv', 'exists': True, 'size_bytes': 13726, 'modified': '2026-05-21 00:28:28', 'modified_epoch': 1779319708.585526, 'rows': 68}
+- dashboard_episodes: {'path': 'outputs\\dashboard_episodes.csv', 'exists': True, 'size_bytes': 693, 'modified': '2026-05-21 00:05:54', 'modified_epoch': 1779318354.4154792, 'rows': 2}
+
+## Research Sources
+
+- research_log: {'path': 'research\\phase1b_episode_research_log.csv', 'exists': True, 'size_bytes': 45996, 'modified': '2026-05-28 15:58:22', 'modified_epoch': 1779980302.3662994, 'rows': 27}
+- rdm_results: {'path': 'research\\zone_mechanics_cycle3_results.csv', 'exists': True, 'size_bytes': 90838, 'modified': '2026-05-28 15:58:42', 'modified_epoch': 1779980322.8483298, 'rows': 27}
+- live_evolution: {'path': 'research\\zone_live_rdm_evolution.csv', 'exists': True, 'size_bytes': 1527678, 'modified': '2026-05-28 15:58:44', 'modified_epoch': 1779980324.1221163, 'rows': 2739}
+- interaction_core: {'path': 'research\\zone_interaction_core_geometry.csv', 'exists': True, 'size_bytes': 11135, 'modified': '2026-05-28 15:58:44', 'modified_epoch': 1779980324.1372974, 'rows': 27}
+- density: {'path': 'research\\zone_interaction_density_map.csv', 'exists': True, 'size_bytes': 6143, 'modified': '2026-05-28 15:58:44', 'modified_epoch': 1779980324.2014759, 'rows': 27}
+- true_lifecycle: {'path': 'research\\zone_true_lifecycle_tracking.csv', 'exists': True, 'size_bytes': 9314, 'modified': '2026-05-28 15:58:44', 'modified_epoch': 1779980324.2179956, 'rows': 27}
+
+## Historical Windows
+
+- historical_market_rows: {'path': 'outputs\\historical_market_rows.csv', 'exists': True, 'rows': 1562, 'timestamp_column': 'market_timestamp', 'start': '2026-05-28 00:00:17 UTC', 'end': '2026-05-28 14:56:18 UTC'}
+- historical_observation_rows: {'path': 'outputs\\historical_observation_rows.csv', 'exists': True, 'rows': 1562, 'timestamp_column': 'market_timestamp', 'start': '2026-05-28 00:00:17 UTC', 'end': '2026-05-28 14:56:18 UTC'}
+- historical_v2_episodes: {'path': 'outputs\\historical_replay_dashboard_v2_episodes.csv', 'exists': True, 'rows': 86, 'timestamp_column': 'episode_start_timestamp_utc', 'start': '2026-05-28 00:11:41 UTC', 'end': '2026-05-28 14:54:19 UTC'}
+- historical_v2_events: {'path': 'outputs\\historical_replay_observation_v2_events.csv', 'exists': True, 'rows': 517, 'timestamp_column': 'market_timestamp', 'start': '2026-05-28 00:11:41 UTC', 'end': '2026-05-28 14:56:18 UTC'}
+
+## Live Windows
+
+- market_rows: {'path': 'outputs\\market_rows.csv', 'exists': True, 'rows': 136721, 'timestamp_column': ''}
+- observation_events: {'path': 'outputs\\observation_events.csv', 'exists': True, 'rows': 68, 'timestamp_column': 'market_timestamp', 'start': '2026-05-20 22:24:11 UTC', 'end': '2026-05-20 23:28:27 UTC'}
+- dashboard_episodes: {'path': 'outputs\\dashboard_episodes.csv', 'exists': True, 'rows': 2, 'timestamp_column': 'episode_start_timestamp_utc', 'start': '2026-05-20 23:01:22 UTC', 'end': '2026-05-20 23:05:33 UTC'}
+
+## Research Windows
+
+- research_log: {'path': 'research\\phase1b_episode_research_log.csv', 'exists': True, 'rows': 27, 'timestamp_column': ''}
+- rdm_results: {'path': 'research\\zone_mechanics_cycle3_results.csv', 'exists': True, 'rows': 27, 'timestamp_column': 'timestamp', 'start': '2026-05-28 01:18:03 UTC', 'end': '2026-05-28 14:20:39 UTC'}
+- live_evolution: {'path': 'research\\zone_live_rdm_evolution.csv', 'exists': True, 'rows': 2739, 'timestamp_column': 'timestamp', 'start': '2026-05-28 01:17:50 UTC', 'end': '2026-05-28 14:20:39 UTC'}
+- interaction_core: {'path': 'research\\zone_interaction_core_geometry.csv', 'exists': True, 'rows': 27, 'timestamp_column': ''}
+- density: {'path': 'research\\zone_interaction_density_map.csv', 'exists': True, 'rows': 27, 'timestamp_column': ''}
+- true_lifecycle: {'path': 'research\\zone_true_lifecycle_tracking.csv', 'exists': True, 'rows': 27, 'timestamp_column': ''}
+
+## Mixed Source Usage
+
+- None detected.
+
+## Stale Live File Contamination
+
+- market_rows is older than historical replay sources and must not be used in HISTORICAL_REPLAY_MODE.
+- observation_events is older than historical replay sources and must not be used in HISTORICAL_REPLAY_MODE.
+- dashboard_episodes is older than historical replay sources and must not be used in HISTORICAL_REPLAY_MODE.
+
+## Timestamp Inconsistencies
+
+- None detected.
+
+## Replay / Live Overlap
+
+- None detected.

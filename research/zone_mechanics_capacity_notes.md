@@ -1,6 +1,6 @@
 # Zone Mechanics Capacity Notes
 
-- Run UTC: 2026-05-28T11:10:25+00:00
+- Run UTC: 2026-05-28T14:58:29+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -8,27 +8,27 @@
 - No Phase 2
 
 ## Capacity State Counts
-- SAFE: 26
-- ELU_LIMIT: 16
-- WARNING: 10
-- HIGH_LOAD: 1
+- SAFE: 15
+- WARNING: 6
+- ELU_LIMIT: 4
+- HIGH_LOAD: 2
 
 ## Dynamic ELU State Counts
-- ELS_SAFE: 25
-- ELU_LIMIT: 16
-- WARNING: 10
-- SAFE: 1
-- HIGH_LOAD: 1
+- ELS_SAFE: 12
+- SAFE: 3
+- WARNING: 6
+- ELU_LIMIT: 4
+- HIGH_LOAD: 2
 
 ## Mechanical Regime Context Counts
-- NORMAL_CONTEXT: 31
-- EXPANSION_EXHAUSTION_CONTEXT: 20
-- RECOVERY_CONTEXT: 2
+- NORMAL_CONTEXT: 20
+- EXPANSION_EXHAUSTION_CONTEXT: 4
+- RECOVERY_CONTEXT: 3
 
 ## Capacity Calibration State Counts
-- NO_ACTIVE_LOAD_PROTECTED: 25
-- EXPANSION_PROTECTED: 16
-- RECOVERY_PROTECTED: 12
+- NO_ACTIVE_LOAD_PROTECTED: 12
+- RECOVERY_PROTECTED: 11
+- EXPANSION_PROTECTED: 4
 
 ## Interpretation
 - M_applied is represented by mechanical_load_score.

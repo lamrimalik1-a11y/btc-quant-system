@@ -16,6 +16,8 @@ from dashboard.research_mapping import (
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "outputs"
+LIVE_MODE = "LIVE_MODE"
+HISTORICAL_REPLAY_MODE = "HISTORICAL_REPLAY_MODE"
 MARKET_ROWS_FILE = OUTPUT_DIR / "market_rows.csv"
 OBSERVATION_EVENTS_FILE = OUTPUT_DIR / "observation_events.csv"
 DASHBOARD_EPISODES_FILE = OUTPUT_DIR / "dashboard_episodes.csv"
@@ -38,19 +40,25 @@ HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE = (
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
+        "mode": LIVE_MODE,
         "market_rows": MARKET_ROWS_FILE,
         "observation_events": OBSERVATION_EVENTS_FILE,
         "dashboard_episodes": DASHBOARD_EPISODES_FILE,
     },
     "RECORDED REPLAY": {
+        "mode": HISTORICAL_REPLAY_MODE,
         "market_rows": REPLAY_MARKET_ROWS_FILE,
         "observation_events": REPLAY_OBSERVATION_EVENTS_FILE,
         "dashboard_episodes": REPLAY_DASHBOARD_EPISODES_FILE,
     },
     "HISTORICAL REPLAY": {
+        "mode": HISTORICAL_REPLAY_MODE,
         "market_rows": HISTORICAL_OBSERVATION_ROWS_FILE,
+        "historical_market_rows": OUTPUT_DIR / "historical_market_rows.csv",
         "observation_events": HISTORICAL_REPLAY_OBSERVATION_EVENTS_FILE,
         "dashboard_episodes": HISTORICAL_REPLAY_DASHBOARD_EPISODES_FILE,
+        "v2_events": HISTORICAL_REPLAY_OBSERVATION_V2_EVENTS_FILE,
+        "v2_episodes": HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE,
     },
 }
 
@@ -188,12 +196,64 @@ def read_csv_with_mtime_cache(path, force_refresh=False):
     return dataframe
 
 
-def load_dashboard_data(file_sources, force_refresh=False):
+def source_mode_for_observation_mode(observation_mode):
+    if observation_mode == "LIVE":
+        return LIVE_MODE
+    return HISTORICAL_REPLAY_MODE
+
+
+def assert_source_mode(file_sources, expected_mode):
+    actual_mode = file_sources.get("mode")
+    if actual_mode != expected_mode:
+        st.error(
+            f"Source mode mismatch: expected {expected_mode}, got {actual_mode}."
+        )
+        return False
+
+    if expected_mode == HISTORICAL_REPLAY_MODE:
+        forbidden = {
+            MARKET_ROWS_FILE.resolve(),
+            OBSERVATION_EVENTS_FILE.resolve(),
+            DASHBOARD_EPISODES_FILE.resolve(),
+        }
+        requested = [
+            path.resolve()
+            for key, path in file_sources.items()
+            if key != "mode" and isinstance(path, Path)
+        ]
+        contaminated = [path for path in requested if path in forbidden]
+        if contaminated:
+            st.error(
+                "Historical replay mode blocked a live/default source request: "
+                + ", ".join(path.name for path in contaminated)
+            )
+            return False
+
+    return True
+
+
+def source_label_for_mode(source_mode):
     return (
-        read_csv_with_mtime_cache(file_sources["market_rows"], force_refresh),
-        read_csv_with_mtime_cache(file_sources["observation_events"], force_refresh),
-        read_csv_with_mtime_cache(file_sources["dashboard_episodes"], force_refresh),
+        "historical replay"
+        if source_mode == HISTORICAL_REPLAY_MODE
+        else "live"
     )
+
+
+def load_dashboard_data(file_sources, force_refresh=False):
+    source_mode = file_sources.get("mode", LIVE_MODE)
+    return (
+        read_source_csv(file_sources["market_rows"], source_mode, force_refresh),
+        read_source_csv(file_sources["observation_events"], source_mode, force_refresh),
+        read_source_csv(file_sources["dashboard_episodes"], source_mode, force_refresh),
+    )
+
+
+def read_source_csv(path, source_mode, force_refresh=False):
+    if source_mode == HISTORICAL_REPLAY_MODE and not path.exists():
+        st.warning(f"Historical replay source missing: {path.name}")
+        return pd.DataFrame()
+    return read_csv_with_mtime_cache(path, force_refresh)
 
 
 def load_historical_dashboard_v2_data(force_refresh=False):
@@ -207,6 +267,62 @@ def load_historical_dashboard_v2_data(force_refresh=False):
             force_refresh,
         ),
     )
+
+
+def render_replay_source_banner(market_rows, v2_episodes, file_sources):
+    st.info("REPLAY MODE ACTIVE")
+    replay_start, replay_end = dataframe_time_window(market_rows)
+    row_start, row_end = dataframe_row_range(market_rows)
+    episode_row_start, episode_row_end = episode_row_range(v2_episodes)
+
+    columns = st.columns(4)
+    columns[0].metric("Replay Source", "Historical Replay")
+    columns[1].metric("Replay Date", replay_start[:10] if replay_start else "N/A")
+    columns[2].metric("Row Range", format_range(row_start, row_end))
+    columns[3].metric("Episode Row Range", format_range(episode_row_start, episode_row_end))
+
+    st.caption(
+        "Replay UTC Window: "
+        f"{replay_start or 'N/A'} -> {replay_end or 'N/A'} | "
+        f"Source file: {file_sources.get('market_rows')}"
+    )
+
+
+def dataframe_time_window(dataframe):
+    if dataframe.empty or "market_timestamp" not in dataframe.columns:
+        return "", ""
+    parsed = dataframe["market_timestamp"].apply(format_market_time)
+    parsed = parsed[parsed.astype(str).str.len() > 0]
+    if parsed.empty:
+        return "", ""
+    return str(parsed.iloc[0]), str(parsed.iloc[-1])
+
+
+def dataframe_row_range(dataframe):
+    if dataframe.empty or "row_id" not in dataframe.columns:
+        return "", ""
+    values = pd.to_numeric(dataframe["row_id"], errors="coerce").dropna()
+    if values.empty:
+        return "", ""
+    return int(values.min()), int(values.max())
+
+
+def episode_row_range(episodes):
+    if episodes.empty:
+        return "", ""
+    values = []
+    for column in ["start_row_id", "end_row_id"]:
+        if column in episodes.columns:
+            values.extend(pd.to_numeric(episodes[column], errors="coerce").dropna().tolist())
+    if not values:
+        return "", ""
+    return int(min(values)), int(max(values))
+
+
+def format_range(start, end):
+    if start == "" or end == "":
+        return "N/A"
+    return f"{start} - {end}"
 
 
 def get_latest_row(dataframe):
@@ -1097,8 +1213,11 @@ def render_dashboard_episodes(
 def render_historical_dashboard_v2(
     v2_events,
     v2_episodes,
+    market_rows,
+    file_sources,
 ):
     st.subheader("Dashboard V2 Historical Replay")
+    render_replay_source_banner(market_rows, v2_episodes, file_sources)
 
     metric_columns = st.columns(2)
     metric_columns[0].metric("V2 Events", len(v2_events))
@@ -1115,11 +1234,11 @@ def render_historical_dashboard_v2(
         )
 
     research_mapping = load_dashboard_research_mapping(BASE_DIR)
-    render_dashboard_v2_episodes(v2_episodes, research_mapping)
+    render_dashboard_v2_episodes(v2_episodes, research_mapping, file_sources=file_sources)
     render_dashboard_v2_events(v2_events)
 
 
-def render_dashboard_v2_episodes(v2_episodes, research_mapping=None):
+def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_sources=None):
     st.subheader("Dashboard V2 Episodes")
     st.caption(
         "Dashboard V2 episode = period where layer-based statistical "
@@ -1211,8 +1330,51 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None):
         use_container_width=True,
         hide_index=True,
     )
+    render_dashboard_v2_source_audit(filtered_episodes, file_sources)
     render_dashboard_v2_research_panel(filtered_episodes)
     render_dashboard_v2_research_case_lookup(filtered_episodes)
+
+
+def render_dashboard_v2_source_audit(filtered_episodes, file_sources=None):
+    st.subheader("Replay Source Audit")
+    st.caption(
+        "Source isolation check for rendered Dashboard V2 episodes. "
+        "Historical replay mode must not use live/default CSV files."
+    )
+    if filtered_episodes.empty:
+        st.info("No episodes available for source audit.")
+        return
+
+    source_file = (
+        file_sources.get("v2_episodes")
+        if file_sources and "v2_episodes" in file_sources
+        else HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE
+    )
+    audit = filtered_episodes.copy().tail(100)
+    audit["source_file"] = str(source_file)
+    audit["replay_mode"] = HISTORICAL_REPLAY_MODE
+    audit["live_mode"] = False
+    audit["timestamp_range"] = (
+        audit.get("episode_start_time_utc", "").astype(str)
+        + " -> "
+        + audit.get("episode_end_time_utc", "").astype(str)
+    )
+    columns = [
+        "episode_id",
+        "source_file",
+        "start_row_id",
+        "end_row_id",
+        "timestamp_range",
+        "replay_mode",
+        "live_mode",
+    ]
+    st.dataframe(
+        sanitize_dataframe_for_display(
+            audit[[column for column in columns if column in audit.columns]]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def render_dashboard_v2_summary(display_episodes):
@@ -1602,7 +1764,10 @@ def render_dashboard_v2_selected_research_panel(row):
         ],
         row,
     )
-    observation_rows, live_rows = load_rdm_overlay_data(BASE_DIR)
+    observation_rows, live_rows = load_rdm_overlay_data(
+        BASE_DIR,
+        source_mode=HISTORICAL_REPLAY_MODE,
+    )
     render_rdm_visual_overlay(row, observation_rows, live_rows)
     render_rdm_market_mechanics_panel(row)
     render_rdm_real_zone_geometry_panel(row)
@@ -3656,6 +3821,10 @@ def render_live_observation_panels(
     show_archive_field_coverage,
     force_refresh=False,
 ):
+    expected_mode = source_mode_for_observation_mode(observation_mode)
+    if not assert_source_mode(file_sources, expected_mode):
+        return
+
     market_rows, observation_events, dashboard_episodes = load_dashboard_data(
         file_sources,
         force_refresh=force_refresh,
@@ -3744,7 +3913,15 @@ def render_live_observation_panels(
             render_historical_dashboard_v2(
                 v2_events,
                 v2_episodes,
+                market_rows,
+                file_sources,
             )
+
+    render_active_source_footer(expected_mode)
+
+
+def render_active_source_footer(source_mode):
+    st.caption(f"ACTIVE SOURCE: {source_label_for_mode(source_mode)}")
 
 
 def main():

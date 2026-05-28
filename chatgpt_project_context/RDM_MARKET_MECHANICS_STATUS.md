@@ -140,15 +140,15 @@ Known limitations:
 
 Checkpoint:
 
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+`PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
 
 Commit:
 
-`b04a781`
+See latest repository commit for the replay consistency checkpoint.
 
 Tag:
 
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+`PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
 
 ## Performance Diagnostic + Safe Optimization
 
@@ -209,3 +209,52 @@ Rules:
 - No Dashboard logic changes
 - No trading logic
 - No Phase 2
+
+## Replay Consistency Lock + Source Isolation
+
+Status:
+
+STABLE
+
+Base:
+
+`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+
+Completed:
+
+- Data Integrity Diagnostic for Episode 75 / CASE_00075
+- Source data verified
+- Timezone verified
+- Dashboard mapping verified
+- Episode row alignment verified
+- Stale artifacts detected
+- Explicit source modes: `LIVE_MODE` and `HISTORICAL_REPLAY_MODE`
+- Historical replay source guards
+- Dashboard blocks live/default files in historical replay mode
+- No silent fallback to stale live files
+- Overlay loader accepts `source_mode`
+- Replay banner
+- Per-episode source audit
+- Dashboard footer: `ACTIVE SOURCE: historical replay / live`
+- Replay consistency validator
+
+Reports / tools:
+
+- `tools/diagnose_episode_75_integrity.py`
+- `outputs/data_integrity_episode_75_report.md`
+- `outputs/data_integrity_episode_75.json`
+- `tools/validate_replay_consistency.py`
+- `outputs/replay_consistency_report.md`
+- `outputs/replay_consistency_report.json`
+
+Validator result:
+
+- `MIXED_SOURCE_USAGE_DETECTED: False`
+- `STALE_LIVE_FILES_FOUND: True`
+- `TIMESTAMP_INCONSISTENCIES_FOUND: False`
+- `REPLAY_LIVE_OVERLAP_FOUND: False`
+- `HISTORICAL_REPLAY_SOURCES_PRESENT: True`
+
+Conclusion:
+
+Historical replay mode is isolated. Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode. Replay, RDM, Dashboard, and Overlay rendering are traceable to explicit historical replay sources.

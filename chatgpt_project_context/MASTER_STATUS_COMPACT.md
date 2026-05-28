@@ -112,3 +112,61 @@ Do not:
 - Add live signals
 - Change Dashboard V2 scoring
 - Convert research labels into trade decisions
+
+## Performance Diagnostic + Safe Optimization Checkpoint
+
+Status:
+
+COMPLETED / READY TO SAVE
+
+Completed:
+
+- Performance profiling
+- `outputs/performance_profile_report.md`
+- `outputs/performance_profile.json`
+- `outputs/performance_optimization_plan.md`
+- Episode Research Index Cache
+- RDM Per-Case Cache
+- Shared Interaction Mask Cache
+- Live evolution row-window optimization
+- Profiling logs
+- Cache reuse metrics
+
+Measured results:
+
+- Episode research runtime: `24.55s -> 17.23s`
+- Research analysis: `23.89s -> 16.38s`
+- Latest research run after continued optimization: `16.41s total`, `15.83s cached analysis`
+- RDM runtime: `14.78s -> 14.66s`
+- Interaction core: `2.92s -> 1.96s`
+- Live evolution: `4.55s -> 4.36s`
+- Density: `~1.95s unchanged`
+
+Current conclusions:
+
+- Bottleneck mainly `CPU_PROCESSING + RDM_CALCULATOR`.
+- Repeated scans were partially reduced successfully.
+- Internet / Binance download is not the primary bottleneck for local research runs.
+- Density mapping remains computationally heavy.
+
+Future optimization targets:
+
+- Vectorization
+- Optional Parquet / DuckDB research cache
+- Batch write modes
+- Optional multiprocessing later after deterministic output checks
+
+Latest optimization state:
+
+- Episode research uses indexed row lookup.
+- RDM calculator caches live evolution rows by case.
+- Interaction masks are cached and reused.
+- Live evolution row-window extraction uses sorted row_id lookup.
+
+Rules remain:
+
+- No behavior changes
+- No scoring changes
+- No RDM logic changes
+- No Dashboard logic changes
+- No trading logic

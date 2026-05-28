@@ -325,3 +325,62 @@ RDM V1.5 NEXT STEP
 - False positive review
 - Live observation
 - Do not advance phases
+
+PERFORMANCE DIAGNOSTIC + SAFE OPTIMIZATION CHECKPOINT
+-----------------------------------------------------
+- Status = COMPLETED / READY TO SAVE
+- Performance profiling = ACTIVE
+- outputs/performance_profile_report.md = GENERATED
+- outputs/performance_profile.json = GENERATED
+- outputs/performance_optimization_plan.md = GENERATED
+- Episode Research Index Cache = IMPLEMENTED
+- RDM Per-Case Cache = IMPLEMENTED
+- Shared Interaction Mask Cache = IMPLEMENTED
+- Live evolution row-window optimization = IMPLEMENTED
+- Profiling logs = ACTIVE
+- Cache reuse metrics = ACTIVE
+
+PERFORMANCE RESULTS
+-------------------
+- Episode research runtime: 24.55s -> 17.23s
+- Research analysis: 23.89s -> 16.38s
+- Latest research run after continued optimization: 16.41s total, 15.83s cached analysis
+- RDM runtime: 14.78s -> 14.66s
+- Interaction core: 2.92s -> 1.96s
+- Live evolution: 4.55s -> 4.36s
+- Density: ~1.95s unchanged
+
+PERFORMANCE CONCLUSIONS
+-----------------------
+- Bottleneck mainly CPU_PROCESSING + RDM_CALCULATOR.
+- Repeated scans were partially reduced successfully.
+- Internet / Binance download is not the primary bottleneck for local research runs.
+- Density mapping remains computationally heavy.
+- RDM live evolution and interaction core remain next practical optimization areas.
+
+LATEST OPTIMIZATION STATE
+-------------------------
+- Episode research uses indexed lookup for repeated historical row access.
+- RDM calculator caches live evolution rows by case_id.
+- Interaction masks are shared and reused.
+- Live evolution row-window extraction uses sorted row_id lookup.
+- Outputs remain field-equivalent.
+
+FUTURE OPTIMIZATION TARGETS
+---------------------------
+- Vectorization where output-safe.
+- Optional Parquet / DuckDB cache.
+- Batch write modes for validation.
+- Optional multiprocessing later after deterministic output diff checks.
+
+RULES
+-----
+- No behavior changes
+- No scoring changes
+- No RDM logic changes
+- No Dashboard logic changes
+- No trading logic
+- No Phase 2
+- No execution
+- No entries
+- No live signals

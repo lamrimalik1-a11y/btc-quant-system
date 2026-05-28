@@ -12,6 +12,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from context_memory import FieldLifecycleMemory, ZoneLifecycleMemory
+from tools.performance_profile import PerfProfiler
 
 OUTPUT_DIR = ROOT_DIR / "outputs"
 RESEARCH_DIR = ROOT_DIR / "research"
@@ -79,85 +80,126 @@ def parse_args():
 
 
 def main():
+    profiler = PerfProfiler("phase1b_episode_research")
     args = parse_args()
     analysis_run_utc = utc_now_text()
 
-    episodes = load_csv(EPISODE_FILE)
-    rows = load_csv(ROWS_FILE)
+    try:
+        with profiler.step("csv_read_episodes"):
+            episodes = load_csv(EPISODE_FILE)
+        with profiler.step("csv_read_observation_rows"):
+            rows = load_csv(ROWS_FILE)
 
-    score4plus_episodes = filter_score4plus_episodes(episodes)
-    selected_episodes = (
-        episodes.copy() if args.mode == "all" else score4plus_episodes.copy()
-    )
-
-    prepared_rows = prepare_rows(rows)
-    analyzed_rows = []
-
-    for _, episode in selected_episodes.iterrows():
-        analyzed_rows.append(
-            analyze_episode(
-                episode=episode,
-                rows=prepared_rows,
-                analysis_run_utc=analysis_run_utc,
-            )
+        score4plus_episodes = filter_score4plus_episodes(episodes)
+        selected_episodes = (
+            episodes.copy() if args.mode == "all" else score4plus_episodes.copy()
         )
 
-    research_log = pd.DataFrame(analyzed_rows)
-    preparation_zones = build_preparation_zones_log(research_log)
-    zone_lifecycle_memory, field_lifecycle_memory = build_lifecycle_memories(
-        research_log
-    )
-    output_log = research_log.copy()
-    output_preparation_zones = preparation_zones.copy()
+        with profiler.step("research_prepare_rows"):
+            prepared_rows = prepare_rows(rows)
+        with profiler.step("index_build_time"):
+            row_index = ResearchRowIndex(prepared_rows)
+        profiler.add_metric("indexed_episode_count", len(selected_episodes))
+        profiler.add_metric(
+            "indexed_case_count",
+            int(selected_episodes["episode_id"].nunique())
+            if "episode_id" in selected_episodes.columns
+            else len(selected_episodes),
+        )
+        analyzed_rows = []
 
-    RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
-    output_log.to_csv(RESEARCH_LOG_FILE, index=False)
-    output_preparation_zones.to_csv(PREPARATION_ZONES_FILE, index=False)
-    write_lifecycle_events_jsonl(
-        zone_lifecycle_memory.get_recent_zone_events(
-            limit=zone_lifecycle_memory.get_zone_stats().total_events
-        ),
-        ZONE_LIFECYCLE_EVENTS_FILE,
-    )
-    write_lifecycle_events_jsonl(
-        field_lifecycle_memory.get_recent_field_events(
-            limit=field_lifecycle_memory.get_field_stats().total_events
-        ),
-        FIELD_LIFECYCLE_EVENTS_FILE,
-    )
+        with profiler.step("research_analysis_time_after_cache"):
+            for _, episode in selected_episodes.iterrows():
+                analyzed_rows.append(
+                    analyze_episode(
+                        episode=episode,
+                        rows=prepared_rows,
+                        row_index=row_index,
+                        analysis_run_utc=analysis_run_utc,
+                    )
+                )
 
-    summary = build_summary(
-        research_log=research_log,
-        output_log=output_log,
-        preparation_zones=output_preparation_zones,
-        episodes_total_loaded=len(episodes),
-        episodes_score4plus_count=len(score4plus_episodes),
-        mode=args.mode,
-        analysis_run_utc=analysis_run_utc,
-    )
-    pd.DataFrame([summary]).to_csv(RESEARCH_SUMMARY_FILE, index=False)
+        with profiler.step("pandas_dataframe_build"):
+            research_log = pd.DataFrame(analyzed_rows)
+        with profiler.step("research_preparation_zones"):
+            preparation_zones = build_preparation_zones_log(research_log)
+        with profiler.step("research_lifecycle_memory"):
+            zone_lifecycle_memory, field_lifecycle_memory = build_lifecycle_memories(
+                research_log
+            )
+        output_log = research_log.copy()
+        output_preparation_zones = preparation_zones.copy()
 
-    append_research_journal(
-        summary=summary,
-        research_log=output_log,
-        mode=args.mode,
-    )
+        RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
+        with profiler.step("csv_write_research_log"):
+            output_log.to_csv(RESEARCH_LOG_FILE, index=False)
+        with profiler.step("csv_write_preparation_zones"):
+            output_preparation_zones.to_csv(PREPARATION_ZONES_FILE, index=False)
+        with profiler.step("jsonl_write_lifecycle_events"):
+            write_lifecycle_events_jsonl(
+                zone_lifecycle_memory.get_recent_zone_events(
+                    limit=zone_lifecycle_memory.get_zone_stats().total_events
+                ),
+                ZONE_LIFECYCLE_EVENTS_FILE,
+            )
+            write_lifecycle_events_jsonl(
+                field_lifecycle_memory.get_recent_field_events(
+                    limit=field_lifecycle_memory.get_field_stats().total_events
+                ),
+                FIELD_LIFECYCLE_EVENTS_FILE,
+            )
 
-    print("Phase 1B episode research complete.")
-    print("Files created:")
-    print(f"- {relative_path(RESEARCH_LOG_FILE)}")
-    print(f"- {relative_path(PREPARATION_ZONES_FILE)}")
-    print(f"- {relative_path(RESEARCH_SUMMARY_FILE)}")
-    print(f"- {relative_path(RESEARCH_JOURNAL_FILE)}")
-    print(f"- {relative_path(ZONE_LIFECYCLE_EVENTS_FILE)}")
-    print(f"- {relative_path(FIELD_LIFECYCLE_EVENTS_FILE)}")
-    print(f"Episodes analyzed: {len(output_log)}")
-    print(f"Score >= 4 episodes: {len(score4plus_episodes)}")
-    print(f"Research candidates: {int(output_log['is_research_candidate'].sum())}")
-    print("Classification counts:")
-    for label, count in classification_counts(output_log).items():
-        print(f"- {label}: {count}")
-    print(f"Open results in: {relative_path(RESEARCH_DIR)}")
+        with profiler.step("research_summary_build"):
+            summary = build_summary(
+                research_log=research_log,
+                output_log=output_log,
+                preparation_zones=output_preparation_zones,
+                episodes_total_loaded=len(episodes),
+                episodes_score4plus_count=len(score4plus_episodes),
+                mode=args.mode,
+                analysis_run_utc=analysis_run_utc,
+            )
+        with profiler.step("csv_write_research_summary"):
+            pd.DataFrame([summary]).to_csv(RESEARCH_SUMMARY_FILE, index=False)
+
+        with profiler.step("research_journal_append"):
+            append_research_journal(
+                summary=summary,
+                research_log=output_log,
+                mode=args.mode,
+            )
+
+        profiler.add_metric("episodes_loaded", len(episodes))
+        profiler.add_metric("rows_loaded", len(rows))
+        profiler.add_metric("episodes_analyzed", len(output_log))
+        profiler.add_metric("score4plus_episodes", len(score4plus_episodes))
+        profiler.add_metric("research_candidates", int(output_log["is_research_candidate"].sum()))
+
+        print("Phase 1B episode research complete.")
+        print("Files created:")
+        print(f"- {relative_path(RESEARCH_LOG_FILE)}")
+        print(f"- {relative_path(PREPARATION_ZONES_FILE)}")
+        print(f"- {relative_path(RESEARCH_SUMMARY_FILE)}")
+        print(f"- {relative_path(RESEARCH_JOURNAL_FILE)}")
+        print(f"- {relative_path(ZONE_LIFECYCLE_EVENTS_FILE)}")
+        print(f"- {relative_path(FIELD_LIFECYCLE_EVENTS_FILE)}")
+        print(f"Episodes analyzed: {len(output_log)}")
+        print(f"Score >= 4 episodes: {len(score4plus_episodes)}")
+        print(f"Research candidates: {int(output_log['is_research_candidate'].sum())}")
+        print("Classification counts:")
+        for label, count in classification_counts(output_log).items():
+            print(f"- {label}: {count}")
+        print(f"Open results in: {relative_path(RESEARCH_DIR)}")
+    finally:
+        profiler.finish(
+            csv_files=[
+                EPISODE_FILE,
+                ROWS_FILE,
+                RESEARCH_LOG_FILE,
+                PREPARATION_ZONES_FILE,
+                RESEARCH_SUMMARY_FILE,
+            ]
+        )
 
 
 def load_csv(path):
@@ -193,7 +235,69 @@ def prepare_rows(rows):
     return prepared
 
 
-def analyze_episode(episode, rows, analysis_run_utc):
+class ResearchRowIndex:
+    def __init__(self, rows):
+        self.rows = rows
+        self.columns = rows.columns
+        self.datetimes = rows["market_datetime"].reset_index(drop=True)
+        self.row_ids = (
+            pd.to_numeric(rows["row_id"], errors="coerce").reset_index(drop=True)
+            if "row_id" in rows.columns
+            else pd.Series(dtype="float64")
+        )
+        self.day_positions = {}
+        if not rows.empty:
+            for day, positions in rows.groupby(rows["market_datetime"].dt.date).groups.items():
+                self.day_positions[day] = list(positions)
+
+    def at_or_after(self, target_dt):
+        if target_dt is None or self.rows.empty:
+            return None
+        position = self.datetimes.searchsorted(target_dt, side="left")
+        if position >= len(self.rows):
+            return None
+        return self.rows.iloc[int(position)]
+
+    def same_day(self, day):
+        positions = self.day_positions.get(day, [])
+        if not positions:
+            return self.rows.head(0).copy()
+        return self.rows.iloc[positions].copy()
+
+    def between(self, start_dt, end_dt, include_end=True):
+        if start_dt is None or end_dt is None or self.rows.empty:
+            return self.rows.head(0).copy()
+        start_position = self.datetimes.searchsorted(start_dt, side="left")
+        end_side = "right" if include_end else "left"
+        end_position = self.datetimes.searchsorted(end_dt, side=end_side)
+        return self.rows.iloc[int(start_position):int(end_position)].copy()
+
+    def before_time(self, target_dt, start_dt=None):
+        if target_dt is None or self.rows.empty:
+            return self.rows.head(0).copy()
+        if start_dt is None:
+            start_position = 0
+        else:
+            start_position = self.datetimes.searchsorted(start_dt, side="left")
+        end_position = self.datetimes.searchsorted(target_dt, side="left")
+        return self.rows.iloc[int(start_position):int(end_position)].copy()
+
+    def after_time(self, target_dt):
+        if target_dt is None or self.rows.empty:
+            return self.rows.head(0).copy()
+        position = self.datetimes.searchsorted(target_dt, side="right")
+        return self.rows.iloc[int(position):].copy()
+
+    def before_row_id(self, row_id, tail=None):
+        if row_id is None or self.rows.empty or self.row_ids.empty:
+            return self.rows.head(0).copy()
+        position = self.row_ids.searchsorted(float(row_id), side="left")
+        frame = self.rows.iloc[:int(position)].copy()
+        return frame.tail(tail).copy() if tail is not None else frame
+
+
+def analyze_episode(episode, rows, analysis_run_utc, row_index=None):
+    indexed_rows = row_index or rows
     start_dt = parse_datetime_value(episode.get("episode_start_timestamp_utc"))
     end_dt = parse_datetime_value(episode.get("episode_end_timestamp_utc"))
     end_price = to_float(episode.get("end_price"))
@@ -202,42 +306,42 @@ def analyze_episode(episode, rows, analysis_run_utc):
         end_dt = start_dt
 
     if end_price is None and end_dt is not None:
-        end_price = nearest_close_at_or_after(rows, end_dt)
+        end_price = nearest_close_at_or_after(indexed_rows, end_dt)
 
     future_prices = {}
     future_moves = {}
 
     for label, delta in HORIZONS.items():
-        future_price = nearest_close_at_or_after(rows, end_dt + delta)
+        future_price = nearest_close_at_or_after(indexed_rows, end_dt + delta)
         future_prices[f"price_at_{label}"] = future_price
         future_moves[f"move_{label}"] = subtract(future_price, end_price)
 
-    day_end_price = close_at_day_end(rows, end_dt)
+    day_end_price = close_at_day_end(indexed_rows, end_dt)
     future_prices["price_at_day_end"] = day_end_price
     future_moves["move_day_end"] = subtract(day_end_price, end_price)
 
     extremes_1h = calculate_window_extremes(
-        rows=rows,
+        rows=indexed_rows,
         start_dt=end_dt,
         end_dt=end_dt + timedelta(hours=1),
         base_price=end_price,
         suffix="1h",
     )
     extremes_4h = calculate_window_extremes(
-        rows=rows,
+        rows=indexed_rows,
         start_dt=end_dt,
         end_dt=end_dt + timedelta(hours=4),
         base_price=end_price,
         suffix="4h",
     )
     pre_state = calculate_pre_episode_state(
-        rows=rows,
+        rows=indexed_rows,
         start_dt=start_dt,
         start_row_id=to_float(episode.get("start_row_id")),
         base_price=end_price,
     )
     preparation_zone = find_preparation_zone(
-        rows=rows,
+        rows=indexed_rows,
         start_row_id=to_float(episode.get("start_row_id")),
     )
     episode_direction = episode_direction_proxy(episode)
@@ -246,12 +350,12 @@ def analyze_episode(episode, rows, analysis_run_utc):
         extremes_4h=extremes_4h,
     )
     return_context = detect_preparation_return(
-        rows=rows,
+        rows=indexed_rows,
         episode=episode,
         preparation_zone=preparation_zone,
     )
     reversal_context = analyze_reversal_context(
-        rows=rows,
+        rows=indexed_rows,
         end_dt=end_dt,
         end_price=end_price,
         episode_direction=episode_direction,
@@ -260,7 +364,7 @@ def analyze_episode(episode, rows, analysis_run_utc):
         return_context=return_context,
     )
     expansion_split = analyze_expansion_reversal_split(
-        rows=rows,
+        rows=indexed_rows,
         end_dt=end_dt,
         end_price=end_price,
         episode_direction=episode_direction,
@@ -400,7 +504,10 @@ def find_preparation_zone(rows, start_row_id):
     if start_row_id is None or "row_id" not in rows.columns:
         return defaults
 
-    historical_rows = rows[rows["row_id"] < start_row_id].copy()
+    if hasattr(rows, "before_row_id"):
+        historical_rows = rows.before_row_id(start_row_id)
+    else:
+        historical_rows = rows[rows["row_id"] < start_row_id].copy()
     previous_rows = historical_rows.tail(BACKWARD_WINDOW).copy()
 
     if previous_rows.empty:
@@ -878,7 +985,10 @@ def detect_preparation_return(rows, episode, preparation_zone):
     if zone_low > zone_high:
         zone_low, zone_high = zone_high, zone_low
 
-    future_rows = rows[rows["market_datetime"] > episode_end_dt].copy()
+    if hasattr(rows, "after_time"):
+        future_rows = rows.after_time(episode_end_dt)
+    else:
+        future_rows = rows[rows["market_datetime"] > episode_end_dt].copy()
 
     if future_rows.empty:
         return defaults
@@ -929,10 +1039,13 @@ def detect_preparation_return(rows, episode, preparation_zone):
 
 def calculate_after_return_expansion(rows, return_dt, return_price):
     window_end = return_dt + timedelta(hours=4)
-    window = rows[
-        (rows["market_datetime"] >= return_dt)
-        & (rows["market_datetime"] <= window_end)
-    ].copy()
+    if hasattr(rows, "between"):
+        window = rows.between(return_dt, window_end)
+    else:
+        window = rows[
+            (rows["market_datetime"] >= return_dt)
+            & (rows["market_datetime"] <= window_end)
+        ].copy()
 
     if window.empty or return_price is None:
         return {
@@ -1109,10 +1222,13 @@ def find_reversal_event(rows, end_dt, end_price, episode_direction):
     if end_dt is None or end_price is None:
         return defaults
 
-    window = rows[
-        (rows["market_datetime"] >= end_dt)
-        & (rows["market_datetime"] <= end_dt + timedelta(hours=4))
-    ].copy()
+    if hasattr(rows, "between"):
+        window = rows.between(end_dt, end_dt + timedelta(hours=4))
+    else:
+        window = rows[
+            (rows["market_datetime"] >= end_dt)
+            & (rows["market_datetime"] <= end_dt + timedelta(hours=4))
+        ].copy()
 
     if window.empty:
         return defaults
@@ -1298,10 +1414,13 @@ def find_expansion_event(rows, end_dt, end_price, episode_direction):
         "expansion_distance": 0,
     }
 
-    window = rows[
-        (rows["market_datetime"] >= end_dt)
-        & (rows["market_datetime"] <= end_dt + timedelta(hours=4))
-    ].copy()
+    if hasattr(rows, "between"):
+        window = rows.between(end_dt, end_dt + timedelta(hours=4))
+    else:
+        window = rows[
+            (rows["market_datetime"] >= end_dt)
+            & (rows["market_datetime"] <= end_dt + timedelta(hours=4))
+        ].copy()
 
     if window.empty:
         return defaults
@@ -1801,13 +1920,19 @@ def calculate_pre_episode_state(rows, start_dt, start_row_id, base_price):
         }
 
     window_start = start_dt - timedelta(minutes=30)
-    pre_rows = rows[
-        (rows["market_datetime"] >= window_start)
-        & (rows["market_datetime"] < start_dt)
-    ].copy()
+    if hasattr(rows, "before_time"):
+        pre_rows = rows.before_time(start_dt, start_dt=window_start)
+    else:
+        pre_rows = rows[
+            (rows["market_datetime"] >= window_start)
+            & (rows["market_datetime"] < start_dt)
+        ].copy()
 
     if pre_rows.empty and start_row_id is not None and "row_id" in rows.columns:
-        pre_rows = rows[rows["row_id"] < start_row_id].tail(50).copy()
+        if hasattr(rows, "before_row_id"):
+            pre_rows = rows.before_row_id(start_row_id, tail=50)
+        else:
+            pre_rows = rows[rows["row_id"] < start_row_id].tail(50).copy()
 
     if pre_rows.empty:
         return {
@@ -1869,10 +1994,13 @@ def calculate_window_extremes(rows, start_dt, end_dt, base_price, suffix):
             keys["time_abs"]: None,
         }
 
-    window = rows[
-        (rows["market_datetime"] >= start_dt)
-        & (rows["market_datetime"] <= end_dt)
-    ].copy()
+    if hasattr(rows, "between"):
+        window = rows.between(start_dt, end_dt)
+    else:
+        window = rows[
+            (rows["market_datetime"] >= start_dt)
+            & (rows["market_datetime"] <= end_dt)
+        ].copy()
 
     if window.empty:
         return {
@@ -2043,6 +2171,12 @@ def nearest_close_at_or_after(rows, target_dt):
     if target_dt is None:
         return None
 
+    if hasattr(rows, "at_or_after"):
+        row = rows.at_or_after(target_dt)
+        if row is None:
+            return None
+        return round_float(row.get("close"))
+
     future_rows = rows[rows["market_datetime"] >= target_dt]
 
     if future_rows.empty:
@@ -2056,7 +2190,10 @@ def close_at_day_end(rows, reference_dt):
         return None
 
     day = reference_dt.date()
-    same_day = rows[rows["market_datetime"].dt.date == day]
+    if hasattr(rows, "same_day"):
+        same_day = rows.same_day(day)
+    else:
+        same_day = rows[rows["market_datetime"].dt.date == day]
 
     if same_day.empty:
         return None

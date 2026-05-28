@@ -149,3 +149,63 @@ Commit:
 Tag:
 
 `PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+
+## Performance Diagnostic + Safe Optimization
+
+Status:
+
+COMPLETED / READY TO SAVE
+
+Completed work:
+
+- Performance profiling
+- `outputs/performance_profile_report.md`
+- `outputs/performance_profile.json`
+- `outputs/performance_optimization_plan.md`
+- Episode Research Index Cache
+- RDM Per-Case Cache
+- Shared Interaction Mask Cache
+- Live evolution row-window optimization
+- Profiling logs
+- Cache reuse metrics
+
+Measured results:
+
+- Episode research runtime: `24.55s -> 17.23s`
+- Research analysis: `23.89s -> 16.38s`
+- Latest research run after continued optimization: `16.41s total`, `15.83s cached analysis`
+- RDM runtime: `14.78s -> 14.66s`
+- Interaction core: `2.92s -> 1.96s`
+- Live evolution: `4.55s -> 4.36s`
+- Density: `~1.95s unchanged`
+
+Current conclusions:
+
+- Bottleneck mainly `CPU_PROCESSING + RDM_CALCULATOR`.
+- Repeated scans were partially reduced successfully.
+- Internet / Binance download is not the primary bottleneck for local research runs.
+- Density mapping remains computationally heavy.
+- The next safe speed wins are vectorization, optional cached storage, and batch write modes.
+
+Optimization state:
+
+- Episode research uses indexed row lookup.
+- RDM calculator caches live evolution rows by case.
+- Shared interaction masks are reused by interaction core, density, and lifecycle stages.
+- Live evolution row-window extraction uses sorted row_id lookup.
+
+Future targets:
+
+- Vectorize safe numeric calculations.
+- Prototype optional Parquet / DuckDB cache.
+- Add validation write modes.
+- Consider optional multiprocessing only after deterministic output diff checks.
+
+Rules:
+
+- No behavior changes
+- No scoring changes
+- No RDM logic changes
+- No Dashboard logic changes
+- No trading logic
+- No Phase 2

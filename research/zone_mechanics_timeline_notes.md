@@ -1,6 +1,6 @@
 # Zone Mechanics Timeline Notes
 
-- Run UTC: 2026-05-28T09:01:30+00:00
+- Run UTC: 2026-05-28T11:10:25+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -8,17 +8,17 @@
 - No Phase 2
 
 ## Timeline Step Counts
-- ELASTIC: 18
-- EXHAUSTION: 4
-- FATIGUE: 2
-- RECOVERY: 1
+- ELASTIC: 29
+- EXHAUSTION: 16
+- FATIGUE: 6
+- RECOVERY: 2
 
 ## Lifecycle Paths
-- ZONE_BIRTH -> ELASTIC: 18
-- ZONE_BIRTH -> ELASTIC -> FATIGUE -> EXHAUSTION: 2
-- ZONE_BIRTH -> ELASTIC -> PLASTIC -> FATIGUE: 2
-- ZONE_BIRTH -> ELASTIC -> PLASTIC -> FATIGUE -> RECOVERY: 1
-- ZONE_BIRTH -> ELASTIC -> EXPANSION -> EXHAUSTION: 2
+- ZONE_BIRTH -> ELASTIC: 29
+- ZONE_BIRTH -> ELASTIC -> FATIGUE -> EXHAUSTION: 8
+- ZONE_BIRTH -> ELASTIC -> PLASTIC -> FATIGUE: 6
+- ZONE_BIRTH -> ELASTIC -> PLASTIC -> FATIGUE -> RECOVERY: 2
+- ZONE_BIRTH -> ELASTIC -> EXPANSION -> EXHAUSTION: 8
 
 ## Interpretation
 - Timeline describes mechanical evolution, not a trade signal.

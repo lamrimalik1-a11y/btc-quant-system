@@ -989,6 +989,87 @@ Next step:
 
 
 ==================================================
+PERFORMANCE DIAGNOSTIC + SAFE OPTIMIZATION CHECKPOINT
+==================================================
+
+Status:
+
+COMPLETED / READY TO SAVE
+
+Scope:
+
+- Diagnostics only
+- Safe performance optimization only
+- No behavior changes
+- No scoring changes
+- No RDM logic changes
+- No Dashboard logic changes
+- No trading logic
+
+Completed work:
+
+- Performance profiling added.
+- Performance report generated:
+  - outputs/performance_profile_report.md
+  - outputs/performance_profile.json
+- Performance optimization plan generated:
+  - outputs/performance_optimization_plan.md
+- Episode Research Index Cache implemented.
+- RDM Per-Case Cache implemented.
+- Shared Interaction Mask Cache implemented.
+- Live evolution row-window optimization implemented.
+- Profiling logs added.
+- Cache reuse metrics added.
+
+Measured results:
+
+- Episode research runtime: 24.55s -> 17.23s
+- Research analysis: 23.89s -> 16.38s
+- Latest research run after continued optimization: 16.41s total, 15.83s cached analysis
+- RDM runtime: 14.78s -> 14.66s
+- Interaction core: 2.92s -> 1.96s
+- Live evolution: 4.55s -> 4.36s
+- Density: ~1.95s unchanged
+
+Current profiling conclusions:
+
+- Main bottleneck remains CPU_PROCESSING + RDM_CALCULATOR.
+- Repeated scans were partially reduced successfully.
+- Internet / Binance download is not the primary bottleneck for local research runs.
+- Density mapping remains computationally heavy because weighted density buckets still require per-zone row analysis inside Active RDM Zone.
+
+Current optimization state:
+
+- Episode research now uses indexed row lookup for repeated historical row access.
+- RDM calculator now caches live evolution rows by case.
+- RDM interaction masks are built once and reused.
+- Live evolution row windows use sorted row_id lookup instead of repeated full dataframe scans.
+
+Future optimization targets:
+
+- Vectorization of safe numeric RDM calculations.
+- Optional Parquet / DuckDB research cache.
+- Batch write / reduced write modes for validation.
+- Optional multiprocessing later, only after deterministic output diff checks.
+
+Latest checkpoint context:
+
+- Base RDM checkpoint: PHASE1B_RDM_MARKET_MECHANICS_V1_5
+- Previous committed context package commit: fa8c58b
+- This optimization checkpoint commit: Add performance diagnostics and safe optimization pass
+
+Rules remain:
+
+- Research only
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+- No scoring changes
+- No Dashboard V2 scoring changes
+
+
+==================================================
 NEXT STEP
 ==================================================
 

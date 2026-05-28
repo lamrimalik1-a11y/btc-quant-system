@@ -44,6 +44,7 @@ from tools.generate_replay_observation import (
     build_replay_observation_v2,
     write_dict_rows,
 )
+from tools.performance_profile import PerfProfiler
 
 
 BINANCE_AGGTRADES_URL = "https://api.binance.com/api/v3/aggTrades"
@@ -95,137 +96,175 @@ def parse_args():
 
 
 def main():
+    profiler = PerfProfiler("historical_replay_generation")
     args = parse_args()
 
-    if args.row_size <= 0:
-        raise SystemExit("--row-size must be greater than 0")
+    try:
+        if args.row_size <= 0:
+            raise SystemExit("--row-size must be greater than 0")
 
-    start_ms = parse_datetime_to_ms(args.start)
-    end_ms = parse_datetime_to_ms(args.end)
+        start_ms = parse_datetime_to_ms(args.start)
+        end_ms = parse_datetime_to_ms(args.end)
 
-    if start_ms >= end_ms:
-        raise SystemExit("--start must be before --end")
+        if start_ms >= end_ms:
+            raise SystemExit("--start must be before --end")
 
-    if args.overwrite:
-        clear_download_checkpoint()
+        if args.overwrite:
+            clear_download_checkpoint()
 
-    resume_checkpoint = load_matching_checkpoint(
-        symbol=args.symbol,
-        start_date=args.start,
-        end_date=args.end,
-    )
-
-    ensure_outputs_can_be_written(
-        overwrite=args.overwrite,
-        save_raw=args.save_raw,
-        resume_active=resume_checkpoint is not None,
-    )
-
-    print(f"Symbol: {args.symbol}")
-    print(f"Start: {args.start}")
-    print(f"End: {args.end}")
-    print(f"Row size: {args.row_size}")
-    if resume_checkpoint:
-        print(
-            "Resume checkpoint found: "
-            f"last timestamp={resume_checkpoint.get('last_success_timestamp')} | "
-            f"last aggTrade id={resume_checkpoint.get('last_success_agg_trade_id')} | "
-            f"downloaded={resume_checkpoint.get('downloaded_count')}"
+        resume_checkpoint = load_matching_checkpoint(
+            symbol=args.symbol,
+            start_date=args.start,
+            end_date=args.end,
         )
 
-    agg_trades = download_agg_trades(
-        symbol=args.symbol,
-        start_ms=start_ms,
-        end_ms=end_ms,
-        start_date=args.start,
-        end_date=args.end,
-        checkpoint=resume_checkpoint,
-    )
+        ensure_outputs_can_be_written(
+            overwrite=args.overwrite,
+            save_raw=args.save_raw,
+            resume_active=resume_checkpoint is not None,
+        )
 
-    if agg_trades is None:
-        return
+        print(f"Symbol: {args.symbol}")
+        print(f"Start: {args.start}")
+        print(f"End: {args.end}")
+        print(f"Row size: {args.row_size}")
+        if resume_checkpoint:
+            print(
+                "Resume checkpoint found: "
+                f"last timestamp={resume_checkpoint.get('last_success_timestamp')} | "
+                f"last aggTrade id={resume_checkpoint.get('last_success_agg_trade_id')} | "
+                f"downloaded={resume_checkpoint.get('downloaded_count')}"
+            )
 
-    historical_rows = build_historical_rows(
-        agg_trades=agg_trades,
-        row_size=args.row_size,
-    )
+        with profiler.step("download_total"):
+            agg_trades = download_agg_trades(
+                symbol=args.symbol,
+                start_ms=start_ms,
+                end_ms=end_ms,
+                start_date=args.start,
+                end_date=args.end,
+                checkpoint=resume_checkpoint,
+                profiler=profiler,
+            )
 
-    historical_observation_rows = build_historical_observation_rows(
-        historical_rows
-    )
+        if agg_trades is None:
+            profiler.add_metric("download_paused", True)
+            return
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        with profiler.step("aggregation_replay_row_build"):
+            historical_rows = build_historical_rows(
+                agg_trades=agg_trades,
+                row_size=args.row_size,
+            )
 
-    write_dict_rows(
-        HISTORICAL_MARKET_ROWS_FILE,
-        get_union_fieldnames(historical_rows),
-        historical_rows,
-    )
-    write_dict_rows(
-        HISTORICAL_OBSERVATION_ROWS_FILE,
-        OBSERVATION_FIELDNAMES,
-        historical_observation_rows,
-    )
+        with profiler.step("observation_row_build"):
+            historical_observation_rows = build_historical_observation_rows(
+                historical_rows
+            )
 
-    observation_dataframe = pd.DataFrame(historical_observation_rows)
-    replay_events, replay_episodes = build_replay_observation(
-        observation_dataframe
-    )
-    replay_v2_events, replay_v2_episodes = build_replay_observation_v2(
-        observation_dataframe
-    )
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    write_dict_rows(
-        HISTORICAL_REPLAY_EVENTS_FILE,
-        EVENT_FIELDNAMES,
-        replay_events,
-    )
-    write_dict_rows(
-        HISTORICAL_REPLAY_EPISODES_FILE,
-        EPISODE_FIELDNAMES,
-        replay_episodes,
-    )
-    write_dict_rows(
-        HISTORICAL_REPLAY_V2_EVENTS_FILE,
-        V2_EVENT_FIELDNAMES,
-        replay_v2_events,
-    )
-    write_dict_rows(
-        HISTORICAL_REPLAY_V2_EPISODES_FILE,
-        V2_EPISODE_FIELDNAMES,
-        replay_v2_episodes,
-    )
+        with profiler.step("csv_write_market_rows"):
+            write_dict_rows(
+                HISTORICAL_MARKET_ROWS_FILE,
+                get_union_fieldnames(historical_rows),
+                historical_rows,
+            )
+        with profiler.step("csv_write_observation_rows"):
+            write_dict_rows(
+                HISTORICAL_OBSERVATION_ROWS_FILE,
+                OBSERVATION_FIELDNAMES,
+                historical_observation_rows,
+            )
 
-    if args.save_raw:
-        write_raw_agg_trades(agg_trades)
+        with profiler.step("pandas_dataframe_build"):
+            observation_dataframe = pd.DataFrame(historical_observation_rows)
 
-    clear_download_checkpoint()
+        with profiler.step("replay_v1_build"):
+            replay_events, replay_episodes = build_replay_observation(
+                observation_dataframe
+            )
+        with profiler.step("replay_v2_build"):
+            replay_v2_events, replay_v2_episodes = build_replay_observation_v2(
+                observation_dataframe
+            )
 
-    print(f"Trades downloaded: {len(agg_trades)}")
-    print(f"Rows built: {len(historical_rows)}")
-    print(
-        "Historical observation rows written: "
-        f"{len(historical_observation_rows)}"
-    )
-    print(f"Historical events found: {len(replay_events)}")
-    print(f"Historical episodes found: {len(replay_episodes)}")
-    print(f"Historical V2 events found: {len(replay_v2_events)}")
-    print(f"Historical V2 episodes found: {len(replay_v2_episodes)}")
-    print(f"Historical market rows: {HISTORICAL_MARKET_ROWS_FILE}")
-    print(f"Historical observation rows: {HISTORICAL_OBSERVATION_ROWS_FILE}")
-    print(f"Historical replay events: {HISTORICAL_REPLAY_EVENTS_FILE}")
-    print(f"Historical replay episodes: {HISTORICAL_REPLAY_EPISODES_FILE}")
-    print(f"Historical replay V2 events: {HISTORICAL_REPLAY_V2_EVENTS_FILE}")
-    print(
-        "Historical replay V2 episodes: "
-        f"{HISTORICAL_REPLAY_V2_EPISODES_FILE}"
-    )
+        with profiler.step("csv_write_replay_v1_events"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_EVENTS_FILE,
+                EVENT_FIELDNAMES,
+                replay_events,
+            )
+        with profiler.step("csv_write_replay_v1_episodes"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_EPISODES_FILE,
+                EPISODE_FIELDNAMES,
+                replay_episodes,
+            )
+        with profiler.step("csv_write_replay_v2_events"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_V2_EVENTS_FILE,
+                V2_EVENT_FIELDNAMES,
+                replay_v2_events,
+            )
+        with profiler.step("csv_write_replay_v2_episodes"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_V2_EPISODES_FILE,
+                V2_EPISODE_FIELDNAMES,
+                replay_v2_episodes,
+            )
 
-    if args.save_raw:
-        print(f"Historical raw aggTrades: {HISTORICAL_RAW_AGGTRADES_FILE}")
+        if args.save_raw:
+            with profiler.step("csv_write_raw_aggtrades"):
+                write_raw_agg_trades(agg_trades)
+
+        clear_download_checkpoint()
+
+        profiler.add_metric("trades_processed", len(agg_trades))
+        profiler.add_metric("rows_processed", len(historical_rows))
+        profiler.add_metric("observation_rows_processed", len(historical_observation_rows))
+        profiler.add_metric("v1_events", len(replay_events))
+        profiler.add_metric("v1_episodes", len(replay_episodes))
+        profiler.add_metric("v2_events", len(replay_v2_events))
+        profiler.add_metric("v2_episodes", len(replay_v2_episodes))
+
+        print(f"Trades downloaded: {len(agg_trades)}")
+        print(f"Rows built: {len(historical_rows)}")
+        print(
+            "Historical observation rows written: "
+            f"{len(historical_observation_rows)}"
+        )
+        print(f"Historical events found: {len(replay_events)}")
+        print(f"Historical episodes found: {len(replay_episodes)}")
+        print(f"Historical V2 events found: {len(replay_v2_events)}")
+        print(f"Historical V2 episodes found: {len(replay_v2_episodes)}")
+        print(f"Historical market rows: {HISTORICAL_MARKET_ROWS_FILE}")
+        print(f"Historical observation rows: {HISTORICAL_OBSERVATION_ROWS_FILE}")
+        print(f"Historical replay events: {HISTORICAL_REPLAY_EVENTS_FILE}")
+        print(f"Historical replay episodes: {HISTORICAL_REPLAY_EPISODES_FILE}")
+        print(f"Historical replay V2 events: {HISTORICAL_REPLAY_V2_EVENTS_FILE}")
+        print(
+            "Historical replay V2 episodes: "
+            f"{HISTORICAL_REPLAY_V2_EPISODES_FILE}"
+        )
+
+        if args.save_raw:
+            print(f"Historical raw aggTrades: {HISTORICAL_RAW_AGGTRADES_FILE}")
+    finally:
+        profiler.finish(
+            csv_files=[
+                HISTORICAL_MARKET_ROWS_FILE,
+                HISTORICAL_OBSERVATION_ROWS_FILE,
+                HISTORICAL_REPLAY_EVENTS_FILE,
+                HISTORICAL_REPLAY_EPISODES_FILE,
+                HISTORICAL_REPLAY_V2_EVENTS_FILE,
+                HISTORICAL_REPLAY_V2_EPISODES_FILE,
+                HISTORICAL_RAW_AGGTRADES_FILE,
+            ]
+        )
 
 
-def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoint):
+def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoint, profiler=None):
     trades = load_partial_agg_trades() if checkpoint else []
     current_start_ms = start_ms
 
@@ -236,11 +275,15 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
             print(f"Resuming from timestamp: {current_start_ms}")
 
     while current_start_ms <= end_ms:
+        batch_start = time.perf_counter()
         batch = fetch_agg_trades_batch_with_retries(
             symbol=symbol,
             start_ms=current_start_ms,
             end_ms=end_ms,
+            profiler=profiler,
         )
+        if profiler:
+            profiler.record("download_batch", time.perf_counter() - batch_start)
 
         if batch is None:
             last_success_timestamp = current_start_ms - 1
@@ -295,7 +338,7 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
     return trades
 
 
-def fetch_agg_trades_batch_with_retries(symbol, start_ms, end_ms):
+def fetch_agg_trades_batch_with_retries(symbol, start_ms, end_ms, profiler=None):
     params = {
         "symbol": symbol.upper(),
         "startTime": int(start_ms),
@@ -312,8 +355,17 @@ def fetch_agg_trades_batch_with_retries(symbol, start_ms, end_ms):
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
+            http_start = time.perf_counter()
             with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-                return json.loads(response.read().decode("utf-8"))
+                payload = response.read()
+            if profiler:
+                profiler.record("http_wait", time.perf_counter() - http_start)
+            parse_start = time.perf_counter()
+            decoded = payload.decode("utf-8")
+            parsed = json.loads(decoded)
+            if profiler:
+                profiler.record("parse_batch", time.perf_counter() - parse_start)
+            return parsed
         except HTTPError as error:
             if error.code in [429, 500, 502, 503, 504]:
                 sleep_before_retry(attempt, error)

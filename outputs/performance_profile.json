@@ -1,0 +1,360 @@
+{
+  "runs": {
+    "phase1b_episode_research": {
+      "script": "phase1b_episode_research",
+      "run_utc": "2026-05-28 11:09:52",
+      "total_runtime_seconds": 16.410588,
+      "slowest_step": {
+        "name": "research_analysis_time_after_cache",
+        "duration_seconds": 15.827497
+      },
+      "bottleneck_likely": "CPU_PROCESSING",
+      "steps": [
+        {
+          "name": "csv_read_episodes",
+          "duration_seconds": 0.026734
+        },
+        {
+          "name": "csv_read_observation_rows",
+          "duration_seconds": 0.133235
+        },
+        {
+          "name": "research_prepare_rows",
+          "duration_seconds": 0.069539
+        },
+        {
+          "name": "index_build_time",
+          "duration_seconds": 0.01278
+        },
+        {
+          "name": "research_analysis_time_after_cache",
+          "duration_seconds": 15.827497
+        },
+        {
+          "name": "pandas_dataframe_build",
+          "duration_seconds": 0.019609
+        },
+        {
+          "name": "research_preparation_zones",
+          "duration_seconds": 0.012014
+        },
+        {
+          "name": "research_lifecycle_memory",
+          "duration_seconds": 0.039975
+        },
+        {
+          "name": "csv_write_research_log",
+          "duration_seconds": 0.040367
+        },
+        {
+          "name": "csv_write_preparation_zones",
+          "duration_seconds": 0.008298
+        },
+        {
+          "name": "jsonl_write_lifecycle_events",
+          "duration_seconds": 0.049102
+        },
+        {
+          "name": "research_summary_build",
+          "duration_seconds": 0.098207
+        },
+        {
+          "name": "csv_write_research_summary",
+          "duration_seconds": 0.010557
+        },
+        {
+          "name": "research_journal_append",
+          "duration_seconds": 0.045458
+        }
+      ],
+      "step_totals": {
+        "research_analysis_time_after_cache": 15.827497,
+        "csv_read_observation_rows": 0.133235,
+        "research_summary_build": 0.098207,
+        "research_prepare_rows": 0.069539,
+        "jsonl_write_lifecycle_events": 0.049102,
+        "research_journal_append": 0.045458,
+        "csv_write_research_log": 0.040367,
+        "research_lifecycle_memory": 0.039975,
+        "csv_read_episodes": 0.026734,
+        "pandas_dataframe_build": 0.019609,
+        "index_build_time": 0.01278,
+        "research_preparation_zones": 0.012014,
+        "csv_write_research_summary": 0.010557,
+        "csv_write_preparation_zones": 0.008298
+      },
+      "metrics": {
+        "indexed_episode_count": 53,
+        "indexed_case_count": 53,
+        "episodes_loaded": 167,
+        "rows_loaded": 3018,
+        "episodes_analyzed": 53,
+        "score4plus_episodes": 53,
+        "research_candidates": 53
+      },
+      "csv_file_sizes": [
+        {
+          "path": "outputs\\historical_replay_dashboard_v2_episodes.csv",
+          "size_bytes": 81734,
+          "size_mb": 0.078
+        },
+        {
+          "path": "outputs\\historical_observation_rows.csv",
+          "size_bytes": 4082174,
+          "size_mb": 3.893
+        },
+        {
+          "path": "research\\phase1b_episode_research_log.csv",
+          "size_bytes": 90559,
+          "size_mb": 0.086
+        },
+        {
+          "path": "research\\phase1b_preparation_zones.csv",
+          "size_bytes": 9440,
+          "size_mb": 0.009
+        },
+        {
+          "path": "research\\phase1b_research_summary.csv",
+          "size_bytes": 2332,
+          "size_mb": 0.002
+        }
+      ],
+      "memory": {
+        "current_python_heap_mb": 5.253,
+        "peak_python_heap_mb": 7.083
+      }
+    },
+    "rdm_zone_mechanics_calculator": {
+      "script": "rdm_zone_mechanics_calculator",
+      "run_utc": "2026-05-28 11:10:25",
+      "total_runtime_seconds": 14.659851,
+      "slowest_step": {
+        "name": "rdm_live_evolution_after_cache",
+        "duration_seconds": 4.361965
+      },
+      "bottleneck_likely": "RDM_CALCULATOR",
+      "steps": [
+        {
+          "name": "csv_read_rdm_inputs",
+          "duration_seconds": 0.241402
+        },
+        {
+          "name": "jsonl_read_lifecycle_events",
+          "duration_seconds": 0.114706
+        },
+        {
+          "name": "pandas_dataset_build",
+          "duration_seconds": 0.070608
+        },
+        {
+          "name": "rdm_base_mechanics",
+          "duration_seconds": 1.425445
+        },
+        {
+          "name": "pandas_dataframe_build",
+          "duration_seconds": 0.013036
+        },
+        {
+          "name": "rdm_capacity",
+          "duration_seconds": 0.068851
+        },
+        {
+          "name": "rdm_sigma",
+          "duration_seconds": 0.040901
+        },
+        {
+          "name": "rdm_sigma_evolution",
+          "duration_seconds": 0.050162
+        },
+        {
+          "name": "rdm_verestchaguine",
+          "duration_seconds": 0.046231
+        },
+        {
+          "name": "rdm_result_summaries",
+          "duration_seconds": 0.090148
+        },
+        {
+          "name": "rdm_real_geometry_tracking",
+          "duration_seconds": 0.178743
+        },
+        {
+          "name": "rdm_live_evolution_after_cache",
+          "duration_seconds": 4.361965
+        },
+        {
+          "name": "rdm_case_cache_build_time",
+          "duration_seconds": 0.110822
+        },
+        {
+          "name": "interaction_mask_build_time",
+          "duration_seconds": 0.870054
+        },
+        {
+          "name": "rdm_interaction_core_after_cache",
+          "duration_seconds": 1.961055
+        },
+        {
+          "name": "rdm_density_after_cache",
+          "duration_seconds": 1.953991
+        },
+        {
+          "name": "rdm_true_lifecycle",
+          "duration_seconds": 0.921031
+        },
+        {
+          "name": "rdm_timeline_lifecycle",
+          "duration_seconds": 0.063566
+        },
+        {
+          "name": "rdm_birth_death_memory",
+          "duration_seconds": 0.218149
+        },
+        {
+          "name": "rdm_evolution_chart",
+          "duration_seconds": 0.108867
+        },
+        {
+          "name": "rdm_summary_notes_build",
+          "duration_seconds": 0.207568
+        },
+        {
+          "name": "csv_write_rdm_outputs",
+          "duration_seconds": 1.433947
+        },
+        {
+          "name": "text_json_write_rdm_outputs",
+          "duration_seconds": 0.032691
+        }
+      ],
+      "step_totals": {
+        "rdm_live_evolution_after_cache": 4.361965,
+        "rdm_interaction_core_after_cache": 1.961055,
+        "rdm_density_after_cache": 1.953991,
+        "csv_write_rdm_outputs": 1.433947,
+        "rdm_base_mechanics": 1.425445,
+        "rdm_true_lifecycle": 0.921031,
+        "interaction_mask_build_time": 0.870054,
+        "csv_read_rdm_inputs": 0.241402,
+        "rdm_birth_death_memory": 0.218149,
+        "rdm_summary_notes_build": 0.207568,
+        "rdm_real_geometry_tracking": 0.178743,
+        "jsonl_read_lifecycle_events": 0.114706,
+        "rdm_case_cache_build_time": 0.110822,
+        "rdm_evolution_chart": 0.108867,
+        "rdm_result_summaries": 0.090148,
+        "pandas_dataset_build": 0.070608,
+        "rdm_capacity": 0.068851,
+        "rdm_timeline_lifecycle": 0.063566,
+        "rdm_sigma_evolution": 0.050162,
+        "rdm_verestchaguine": 0.046231,
+        "rdm_sigma": 0.040901,
+        "text_json_write_rdm_outputs": 0.032691,
+        "pandas_dataframe_build": 0.013036
+      },
+      "metrics": {
+        "rdm_case_cache_count": 53,
+        "interaction_mask_reuse_count": 53,
+        "rows_processed": 53,
+        "historical_rows_loaded": 3018,
+        "live_evolution_rows": 3454,
+        "interaction_core_rows": 53,
+        "interaction_density_rows": 53,
+        "timeline_rows": 53,
+        "lifecycle_rows": 156
+      },
+      "csv_file_sizes": [
+        {
+          "path": "research\\zone_mechanics_cycle3_results.csv",
+          "size_bytes": 172551,
+          "size_mb": 0.165
+        },
+        {
+          "path": "research\\zone_mechanics_cycle3_summary.csv",
+          "size_bytes": 1791,
+          "size_mb": 0.002
+        },
+        {
+          "path": "research\\zone_mechanics_timeline.csv",
+          "size_bytes": 13113,
+          "size_mb": 0.013
+        },
+        {
+          "path": "research\\zone_mechanics_lifecycle.csv",
+          "size_bytes": 22550,
+          "size_mb": 0.022
+        },
+        {
+          "path": "research\\zone_mechanics_capacity.csv",
+          "size_bytes": 18137,
+          "size_mb": 0.017
+        },
+        {
+          "path": "research\\zone_mechanics_sigma.csv",
+          "size_bytes": 10942,
+          "size_mb": 0.01
+        },
+        {
+          "path": "research\\zone_mechanics_sigma_evolution.csv",
+          "size_bytes": 10359,
+          "size_mb": 0.01
+        },
+        {
+          "path": "research\\zone_mechanics_verestchaguine.csv",
+          "size_bytes": 9415,
+          "size_mb": 0.009
+        },
+        {
+          "path": "research\\zone_real_geometry_tracking.csv",
+          "size_bytes": 38099,
+          "size_mb": 0.036
+        },
+        {
+          "path": "research\\zone_live_rdm_evolution.csv",
+          "size_bytes": 2009750,
+          "size_mb": 1.917
+        },
+        {
+          "path": "research\\zone_interaction_core_geometry.csv",
+          "size_bytes": 20778,
+          "size_mb": 0.02
+        },
+        {
+          "path": "research\\zone_interaction_density_map.csv",
+          "size_bytes": 11733,
+          "size_mb": 0.011
+        },
+        {
+          "path": "research\\zone_true_lifecycle_tracking.csv",
+          "size_bytes": 18421,
+          "size_mb": 0.018
+        },
+        {
+          "path": "research\\zone_birth_registry.csv",
+          "size_bytes": 24548,
+          "size_mb": 0.023
+        },
+        {
+          "path": "research\\zone_death_registry.csv",
+          "size_bytes": 13199,
+          "size_mb": 0.013
+        },
+        {
+          "path": "research\\zone_evolution_chart.csv",
+          "size_bytes": 19607,
+          "size_mb": 0.019
+        },
+        {
+          "path": "research\\zone_evolution_history.csv",
+          "size_bytes": 39405,
+          "size_mb": 0.038
+        }
+      ],
+      "memory": {
+        "current_python_heap_mb": 8.249,
+        "peak_python_heap_mb": 16.885
+      }
+    }
+  },
+  "updated_utc": "2026-05-28 11:10:25"
+}

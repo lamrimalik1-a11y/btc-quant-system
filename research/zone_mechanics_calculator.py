@@ -17,6 +17,12 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+import sys
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from tools.performance_profile import PerfProfiler
+
 OUTPUT_DIR = ROOT_DIR / "outputs"
 RESEARCH_DIR = ROOT_DIR / "research"
 
@@ -67,155 +73,230 @@ NOTABLE_CASES = [
 
 
 def main() -> None:
+    profiler = PerfProfiler("rdm_zone_mechanics_calculator")
     run_utc = utc_now()
 
-    episodes = read_csv(EPISODES_FILE)
-    historical_rows = read_optional_csv(HISTORICAL_ROWS_FILE)
-    research_log = read_csv(RESEARCH_LOG_FILE)
-    case_labels = read_optional_csv(CASE_LABELS_FILE)
-    zone_events = read_jsonl(ZONE_LIFECYCLE_FILE)
-    field_events = read_jsonl(FIELD_LIFECYCLE_FILE)
+    try:
+        with profiler.step("csv_read_rdm_inputs"):
+            episodes = read_csv(EPISODES_FILE)
+            historical_rows = read_optional_csv(HISTORICAL_ROWS_FILE)
+            research_log = read_csv(RESEARCH_LOG_FILE)
+            case_labels = read_optional_csv(CASE_LABELS_FILE)
+        with profiler.step("jsonl_read_lifecycle_events"):
+            zone_events = read_jsonl(ZONE_LIFECYCLE_FILE)
+            field_events = read_jsonl(FIELD_LIFECYCLE_FILE)
 
-    dataset = build_dataset(episodes, research_log, case_labels)
-    results = []
+        with profiler.step("pandas_dataset_build"):
+            dataset = build_dataset(episodes, research_log, case_labels)
+        results = []
 
-    for _, row in dataset.iterrows():
-        results.append(
-            calculate_zone_mechanics_row(
-                row=row,
-                zone_events=zone_events,
-                field_events=field_events,
+        with profiler.step("rdm_base_mechanics"):
+            for _, row in dataset.iterrows():
+                results.append(
+                    calculate_zone_mechanics_row(
+                        row=row,
+                        zone_events=zone_events,
+                        field_events=field_events,
+                        run_utc=run_utc,
+                    )
+                )
+
+        with profiler.step("pandas_dataframe_build"):
+            results_df = pd.DataFrame(results)
+        with profiler.step("rdm_capacity"):
+            capacity_df = build_mechanics_capacity(results_df, run_utc)
+            results_df = merge_capacity_into_results(results_df, capacity_df)
+        with profiler.step("rdm_sigma"):
+            sigma_df = build_mechanics_sigma(results_df, run_utc)
+            results_df = merge_sigma_into_results(results_df, sigma_df)
+        with profiler.step("rdm_sigma_evolution"):
+            sigma_evolution_df = build_sigma_evolution(results_df, run_utc)
+            results_df = merge_sigma_evolution_into_results(results_df, sigma_evolution_df)
+        with profiler.step("rdm_verestchaguine"):
+            verestchaguine_df = build_verestchaguine_fleche(results_df, run_utc)
+            results_df = merge_verestchaguine_into_results(results_df, verestchaguine_df)
+        with profiler.step("rdm_result_summaries"):
+            results_df = add_rdm_result_summaries(results_df)
+        with profiler.step("rdm_real_geometry_tracking"):
+            geometry_tracking_df = build_real_geometry_tracking(results_df, run_utc)
+            results_df = merge_real_geometry_tracking_into_results(results_df, geometry_tracking_df)
+        with profiler.step("rdm_live_evolution_after_cache"):
+            live_evolution_df = build_live_rdm_evolution(results_df, historical_rows, run_utc)
+            results_df = merge_live_rdm_evolution_into_results(results_df, live_evolution_df)
+        with profiler.step("rdm_case_cache_build_time"):
+            rdm_case_cache = RdmCaseCache(live_evolution_df)
+        with profiler.step("interaction_mask_build_time"):
+            rdm_case_cache.precompute_interaction_masks()
+        profiler.add_metric("rdm_case_cache_count", rdm_case_cache.case_count)
+        with profiler.step("rdm_interaction_core_after_cache"):
+            interaction_core_df = build_interaction_core_geometry(
+                results_df,
+                live_evolution_df,
+                run_utc,
+                case_cache=rdm_case_cache,
+            )
+            results_df = merge_interaction_core_into_results(results_df, interaction_core_df)
+        with profiler.step("rdm_density_after_cache"):
+            density_df = build_interaction_density_map(
+                results_df,
+                live_evolution_df,
+                run_utc,
+                case_cache=rdm_case_cache,
+            )
+            results_df = merge_interaction_density_into_results(results_df, density_df)
+        with profiler.step("rdm_true_lifecycle"):
+            true_lifecycle_df = build_true_lifecycle_tracking(
+                results_df,
+                interaction_core_df,
+                live_evolution_df,
+                run_utc,
+                case_cache=rdm_case_cache,
+            )
+            results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
+        profiler.add_metric("interaction_mask_reuse_count", rdm_case_cache.mask_reuse_count)
+        with profiler.step("rdm_timeline_lifecycle"):
+            timeline_df = build_mechanics_timeline(results_df, run_utc)
+            lifecycle_df = build_mechanics_lifecycle(timeline_df, run_utc)
+        with profiler.step("rdm_birth_death_memory"):
+            birth_df = build_zone_birth_registry(results_df, run_utc)
+            death_df = build_zone_death_registry(results_df, run_utc)
+            memory = build_zone_mechanical_memory(results_df, birth_df, death_df, timeline_df, run_utc)
+        with profiler.step("rdm_evolution_chart"):
+            evolution_chart_df = build_zone_evolution_chart(results_df, birth_df, death_df, run_utc)
+            evolution_history_df = build_zone_evolution_history(evolution_chart_df, run_utc)
+        with profiler.step("rdm_summary_notes_build"):
+            summary_df = build_summary(results_df, run_utc)
+            notes_text = build_notes(results_df, summary_df, run_utc)
+            timeline_notes_text = build_timeline_notes(timeline_df, lifecycle_df, run_utc)
+            capacity_notes_text = build_capacity_notes(capacity_df, run_utc)
+            sigma_notes_text = build_sigma_notes(sigma_df, run_utc)
+            sigma_evolution_notes_text = build_sigma_evolution_notes(sigma_evolution_df, run_utc)
+            verestchaguine_notes_text = build_verestchaguine_notes(verestchaguine_df, run_utc)
+            birth_concept_text = build_zone_birth_concept()
+            evolution_notes_text = build_zone_evolution_notes(
+                evolution_chart_df,
+                evolution_history_df,
                 run_utc=run_utc,
             )
+            live_evolution_notes_text = build_live_rdm_evolution_notes(live_evolution_df, run_utc)
+            interaction_core_notes_text = build_interaction_core_notes(
+                interaction_core_df,
+                true_lifecycle_df,
+                run_utc,
+            )
+            density_notes_text = build_interaction_density_notes(density_df, run_utc)
+
+        RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
+        ZONE_BIRTH_CONCEPT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with profiler.step("csv_write_rdm_outputs"):
+            results_df.to_csv(RESULTS_FILE, index=False)
+            capacity_df.to_csv(CAPACITY_FILE, index=False)
+            sigma_df.to_csv(SIGMA_FILE, index=False)
+            sigma_evolution_df.to_csv(SIGMA_EVOLUTION_FILE, index=False)
+            verestchaguine_df.to_csv(VERESTCHAGUINE_FILE, index=False)
+            geometry_tracking_df.to_csv(ZONE_REAL_GEOMETRY_TRACKING_FILE, index=False)
+            live_evolution_df.to_csv(ZONE_LIVE_RDM_EVOLUTION_FILE, index=False)
+            interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
+            density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
+            true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
+            birth_df.to_csv(ZONE_BIRTH_REGISTRY_FILE, index=False)
+            death_df.to_csv(ZONE_DEATH_REGISTRY_FILE, index=False)
+            evolution_chart_df.to_csv(ZONE_EVOLUTION_CHART_FILE, index=False)
+            evolution_history_df.to_csv(ZONE_EVOLUTION_HISTORY_FILE, index=False)
+            timeline_df.to_csv(TIMELINE_FILE, index=False)
+            lifecycle_df.to_csv(LIFECYCLE_FILE, index=False)
+            summary_df.to_csv(SUMMARY_FILE, index=False)
+        with profiler.step("text_json_write_rdm_outputs"):
+            NOTES_FILE.write_text(notes_text, encoding="utf-8")
+            TIMELINE_NOTES_FILE.write_text(timeline_notes_text, encoding="utf-8")
+            CAPACITY_NOTES_FILE.write_text(capacity_notes_text, encoding="utf-8")
+            SIGMA_NOTES_FILE.write_text(sigma_notes_text, encoding="utf-8")
+            SIGMA_EVOLUTION_NOTES_FILE.write_text(sigma_evolution_notes_text, encoding="utf-8")
+            VERESTCHAGUINE_NOTES_FILE.write_text(verestchaguine_notes_text, encoding="utf-8")
+            ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE.write_text(live_evolution_notes_text, encoding="utf-8")
+            ZONE_INTERACTION_CORE_NOTES_FILE.write_text(interaction_core_notes_text, encoding="utf-8")
+            ZONE_INTERACTION_DENSITY_NOTES_FILE.write_text(density_notes_text, encoding="utf-8")
+            ZONE_MECHANICAL_MEMORY_FILE.write_text(
+                json.dumps(memory, indent=2, ensure_ascii=True),
+                encoding="utf-8",
+            )
+            ZONE_BIRTH_CONCEPT_FILE.write_text(birth_concept_text, encoding="utf-8")
+            ZONE_EVOLUTION_NOTES_FILE.write_text(evolution_notes_text, encoding="utf-8")
+
+        profiler.add_metric("rows_processed", len(results_df))
+        profiler.add_metric("historical_rows_loaded", len(historical_rows))
+        profiler.add_metric("live_evolution_rows", len(live_evolution_df))
+        profiler.add_metric("interaction_core_rows", len(interaction_core_df))
+        profiler.add_metric("interaction_density_rows", len(density_df))
+        profiler.add_metric("timeline_rows", len(timeline_df))
+        profiler.add_metric("lifecycle_rows", len(lifecycle_df))
+
+        print("Zone mechanics calculator complete.")
+        print(f"Results: {relative_path(RESULTS_FILE)}")
+        print(f"Summary: {relative_path(SUMMARY_FILE)}")
+        print(f"Notes: {relative_path(NOTES_FILE)}")
+        print(f"Timeline: {relative_path(TIMELINE_FILE)}")
+        print(f"Lifecycle: {relative_path(LIFECYCLE_FILE)}")
+        print(f"Timeline notes: {relative_path(TIMELINE_NOTES_FILE)}")
+        print(f"Capacity: {relative_path(CAPACITY_FILE)}")
+        print(f"Capacity notes: {relative_path(CAPACITY_NOTES_FILE)}")
+        print(f"Sigma: {relative_path(SIGMA_FILE)}")
+        print(f"Sigma notes: {relative_path(SIGMA_NOTES_FILE)}")
+        print(f"Sigma evolution: {relative_path(SIGMA_EVOLUTION_FILE)}")
+        print(f"Sigma evolution notes: {relative_path(SIGMA_EVOLUTION_NOTES_FILE)}")
+        print(f"Verestchaguine: {relative_path(VERESTCHAGUINE_FILE)}")
+        print(f"Verestchaguine notes: {relative_path(VERESTCHAGUINE_NOTES_FILE)}")
+        print(f"Real geometry tracking: {relative_path(ZONE_REAL_GEOMETRY_TRACKING_FILE)}")
+        print(f"Live RDM evolution: {relative_path(ZONE_LIVE_RDM_EVOLUTION_FILE)}")
+        print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
+        print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
+        print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
+        print(f"True lifecycle tracking: {relative_path(ZONE_TRUE_LIFECYCLE_TRACKING_FILE)}")
+        print(f"Interaction core notes: {relative_path(ZONE_INTERACTION_CORE_NOTES_FILE)}")
+        print(f"Interaction density notes: {relative_path(ZONE_INTERACTION_DENSITY_NOTES_FILE)}")
+        print(f"Zone birth registry: {relative_path(ZONE_BIRTH_REGISTRY_FILE)}")
+        print(f"Zone death registry: {relative_path(ZONE_DEATH_REGISTRY_FILE)}")
+        print(f"Zone mechanical memory: {relative_path(ZONE_MECHANICAL_MEMORY_FILE)}")
+        print(f"Zone birth concept: {relative_path(ZONE_BIRTH_CONCEPT_FILE)}")
+        print(f"Zone evolution chart: {relative_path(ZONE_EVOLUTION_CHART_FILE)}")
+        print(f"Zone evolution history: {relative_path(ZONE_EVOLUTION_HISTORY_FILE)}")
+        print(f"Zone evolution notes: {relative_path(ZONE_EVOLUTION_NOTES_FILE)}")
+        print(f"Rows generated: {len(results_df)}")
+        print(f"Timeline rows generated: {len(timeline_df)}")
+        print("Mechanical state counts:")
+        for state, count in results_df["zone_mechanical_state"].value_counts().items():
+            print(f"- {state}: {count}")
+        print("Notable cases:")
+        for case_id in NOTABLE_CASES:
+            matched = results_df[results_df["case_id"] == case_id]
+            if matched.empty:
+                print(f"- {case_id}: NOT_FOUND")
+            else:
+                state = matched.iloc[0]["zone_mechanical_state"]
+                label = matched.iloc[0]["case_label"]
+                print(f"- {case_id}: {state} / {label}")
+    finally:
+        profiler.finish(
+            csv_files=[
+                RESULTS_FILE,
+                SUMMARY_FILE,
+                TIMELINE_FILE,
+                LIFECYCLE_FILE,
+                CAPACITY_FILE,
+                SIGMA_FILE,
+                SIGMA_EVOLUTION_FILE,
+                VERESTCHAGUINE_FILE,
+                ZONE_REAL_GEOMETRY_TRACKING_FILE,
+                ZONE_LIVE_RDM_EVOLUTION_FILE,
+                ZONE_INTERACTION_CORE_GEOMETRY_FILE,
+                ZONE_INTERACTION_DENSITY_MAP_FILE,
+                ZONE_TRUE_LIFECYCLE_TRACKING_FILE,
+                ZONE_BIRTH_REGISTRY_FILE,
+                ZONE_DEATH_REGISTRY_FILE,
+                ZONE_EVOLUTION_CHART_FILE,
+                ZONE_EVOLUTION_HISTORY_FILE,
+            ]
         )
-
-    results_df = pd.DataFrame(results)
-    capacity_df = build_mechanics_capacity(results_df, run_utc)
-    results_df = merge_capacity_into_results(results_df, capacity_df)
-    sigma_df = build_mechanics_sigma(results_df, run_utc)
-    results_df = merge_sigma_into_results(results_df, sigma_df)
-    sigma_evolution_df = build_sigma_evolution(results_df, run_utc)
-    results_df = merge_sigma_evolution_into_results(results_df, sigma_evolution_df)
-    verestchaguine_df = build_verestchaguine_fleche(results_df, run_utc)
-    results_df = merge_verestchaguine_into_results(results_df, verestchaguine_df)
-    results_df = add_rdm_result_summaries(results_df)
-    geometry_tracking_df = build_real_geometry_tracking(results_df, run_utc)
-    results_df = merge_real_geometry_tracking_into_results(results_df, geometry_tracking_df)
-    live_evolution_df = build_live_rdm_evolution(results_df, historical_rows, run_utc)
-    results_df = merge_live_rdm_evolution_into_results(results_df, live_evolution_df)
-    interaction_core_df = build_interaction_core_geometry(results_df, live_evolution_df, run_utc)
-    results_df = merge_interaction_core_into_results(results_df, interaction_core_df)
-    density_df = build_interaction_density_map(results_df, live_evolution_df, run_utc)
-    results_df = merge_interaction_density_into_results(results_df, density_df)
-    true_lifecycle_df = build_true_lifecycle_tracking(results_df, interaction_core_df, live_evolution_df, run_utc)
-    results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
-    timeline_df = build_mechanics_timeline(results_df, run_utc)
-    lifecycle_df = build_mechanics_lifecycle(timeline_df, run_utc)
-    birth_df = build_zone_birth_registry(results_df, run_utc)
-    death_df = build_zone_death_registry(results_df, run_utc)
-    memory = build_zone_mechanical_memory(results_df, birth_df, death_df, timeline_df, run_utc)
-    evolution_chart_df = build_zone_evolution_chart(results_df, birth_df, death_df, run_utc)
-    evolution_history_df = build_zone_evolution_history(evolution_chart_df, run_utc)
-    summary_df = build_summary(results_df, run_utc)
-    notes_text = build_notes(results_df, summary_df, run_utc)
-    timeline_notes_text = build_timeline_notes(timeline_df, lifecycle_df, run_utc)
-    capacity_notes_text = build_capacity_notes(capacity_df, run_utc)
-    sigma_notes_text = build_sigma_notes(sigma_df, run_utc)
-    sigma_evolution_notes_text = build_sigma_evolution_notes(sigma_evolution_df, run_utc)
-    verestchaguine_notes_text = build_verestchaguine_notes(verestchaguine_df, run_utc)
-    birth_concept_text = build_zone_birth_concept()
-    evolution_notes_text = build_zone_evolution_notes(
-        evolution_chart_df,
-        evolution_history_df,
-        run_utc,
-    )
-    live_evolution_notes_text = build_live_rdm_evolution_notes(live_evolution_df, run_utc)
-    interaction_core_notes_text = build_interaction_core_notes(
-        interaction_core_df,
-        true_lifecycle_df,
-        run_utc,
-    )
-    density_notes_text = build_interaction_density_notes(density_df, run_utc)
-
-    RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
-    ZONE_BIRTH_CONCEPT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    results_df.to_csv(RESULTS_FILE, index=False)
-    capacity_df.to_csv(CAPACITY_FILE, index=False)
-    sigma_df.to_csv(SIGMA_FILE, index=False)
-    sigma_evolution_df.to_csv(SIGMA_EVOLUTION_FILE, index=False)
-    verestchaguine_df.to_csv(VERESTCHAGUINE_FILE, index=False)
-    geometry_tracking_df.to_csv(ZONE_REAL_GEOMETRY_TRACKING_FILE, index=False)
-    live_evolution_df.to_csv(ZONE_LIVE_RDM_EVOLUTION_FILE, index=False)
-    interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
-    density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
-    true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
-    birth_df.to_csv(ZONE_BIRTH_REGISTRY_FILE, index=False)
-    death_df.to_csv(ZONE_DEATH_REGISTRY_FILE, index=False)
-    evolution_chart_df.to_csv(ZONE_EVOLUTION_CHART_FILE, index=False)
-    evolution_history_df.to_csv(ZONE_EVOLUTION_HISTORY_FILE, index=False)
-    timeline_df.to_csv(TIMELINE_FILE, index=False)
-    lifecycle_df.to_csv(LIFECYCLE_FILE, index=False)
-    summary_df.to_csv(SUMMARY_FILE, index=False)
-    NOTES_FILE.write_text(notes_text, encoding="utf-8")
-    TIMELINE_NOTES_FILE.write_text(timeline_notes_text, encoding="utf-8")
-    CAPACITY_NOTES_FILE.write_text(capacity_notes_text, encoding="utf-8")
-    SIGMA_NOTES_FILE.write_text(sigma_notes_text, encoding="utf-8")
-    SIGMA_EVOLUTION_NOTES_FILE.write_text(sigma_evolution_notes_text, encoding="utf-8")
-    VERESTCHAGUINE_NOTES_FILE.write_text(verestchaguine_notes_text, encoding="utf-8")
-    ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE.write_text(live_evolution_notes_text, encoding="utf-8")
-    ZONE_INTERACTION_CORE_NOTES_FILE.write_text(interaction_core_notes_text, encoding="utf-8")
-    ZONE_INTERACTION_DENSITY_NOTES_FILE.write_text(density_notes_text, encoding="utf-8")
-    ZONE_MECHANICAL_MEMORY_FILE.write_text(
-        json.dumps(memory, indent=2, ensure_ascii=True),
-        encoding="utf-8",
-    )
-    ZONE_BIRTH_CONCEPT_FILE.write_text(birth_concept_text, encoding="utf-8")
-    ZONE_EVOLUTION_NOTES_FILE.write_text(evolution_notes_text, encoding="utf-8")
-
-    print("Zone mechanics calculator complete.")
-    print(f"Results: {relative_path(RESULTS_FILE)}")
-    print(f"Summary: {relative_path(SUMMARY_FILE)}")
-    print(f"Notes: {relative_path(NOTES_FILE)}")
-    print(f"Timeline: {relative_path(TIMELINE_FILE)}")
-    print(f"Lifecycle: {relative_path(LIFECYCLE_FILE)}")
-    print(f"Timeline notes: {relative_path(TIMELINE_NOTES_FILE)}")
-    print(f"Capacity: {relative_path(CAPACITY_FILE)}")
-    print(f"Capacity notes: {relative_path(CAPACITY_NOTES_FILE)}")
-    print(f"Sigma: {relative_path(SIGMA_FILE)}")
-    print(f"Sigma notes: {relative_path(SIGMA_NOTES_FILE)}")
-    print(f"Sigma evolution: {relative_path(SIGMA_EVOLUTION_FILE)}")
-    print(f"Sigma evolution notes: {relative_path(SIGMA_EVOLUTION_NOTES_FILE)}")
-    print(f"Verestchaguine: {relative_path(VERESTCHAGUINE_FILE)}")
-    print(f"Verestchaguine notes: {relative_path(VERESTCHAGUINE_NOTES_FILE)}")
-    print(f"Real geometry tracking: {relative_path(ZONE_REAL_GEOMETRY_TRACKING_FILE)}")
-    print(f"Live RDM evolution: {relative_path(ZONE_LIVE_RDM_EVOLUTION_FILE)}")
-    print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
-    print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
-    print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
-    print(f"True lifecycle tracking: {relative_path(ZONE_TRUE_LIFECYCLE_TRACKING_FILE)}")
-    print(f"Interaction core notes: {relative_path(ZONE_INTERACTION_CORE_NOTES_FILE)}")
-    print(f"Interaction density notes: {relative_path(ZONE_INTERACTION_DENSITY_NOTES_FILE)}")
-    print(f"Zone birth registry: {relative_path(ZONE_BIRTH_REGISTRY_FILE)}")
-    print(f"Zone death registry: {relative_path(ZONE_DEATH_REGISTRY_FILE)}")
-    print(f"Zone mechanical memory: {relative_path(ZONE_MECHANICAL_MEMORY_FILE)}")
-    print(f"Zone birth concept: {relative_path(ZONE_BIRTH_CONCEPT_FILE)}")
-    print(f"Zone evolution chart: {relative_path(ZONE_EVOLUTION_CHART_FILE)}")
-    print(f"Zone evolution history: {relative_path(ZONE_EVOLUTION_HISTORY_FILE)}")
-    print(f"Zone evolution notes: {relative_path(ZONE_EVOLUTION_NOTES_FILE)}")
-    print(f"Rows generated: {len(results_df)}")
-    print(f"Timeline rows generated: {len(timeline_df)}")
-    print("Mechanical state counts:")
-    for state, count in results_df["zone_mechanical_state"].value_counts().items():
-        print(f"- {state}: {count}")
-    print("Notable cases:")
-    for case_id in NOTABLE_CASES:
-        matched = results_df[results_df["case_id"] == case_id]
-        if matched.empty:
-            print(f"- {case_id}: NOT_FOUND")
-        else:
-            state = matched.iloc[0]["zone_mechanical_state"]
-            label = matched.iloc[0]["case_label"]
-            print(f"- {case_id}: {state} / {label}")
 
 
 def build_dataset(episodes: pd.DataFrame, research_log: pd.DataFrame, case_labels: pd.DataFrame) -> pd.DataFrame:
@@ -1627,16 +1708,17 @@ def build_live_rdm_evolution(results: pd.DataFrame, historical_rows: pd.DataFram
     rows_source = historical_rows.copy()
     rows_source["row_id_numeric"] = pd.to_numeric(rows_source["row_id"], errors="coerce")
     rows_source = rows_source.dropna(subset=["row_id_numeric"]).copy()
+    rows_source = rows_source.sort_values("row_id_numeric").reset_index(drop=True)
     if rows_source.empty:
         return build_static_live_rdm_evolution(results, run_utc)
 
+    row_ids = rows_source["row_id_numeric"].reset_index(drop=True)
     output_rows: List[Dict[str, Any]] = []
     for _, zone in results.iterrows():
         start_row, end_row = live_row_window(zone, rows_source)
-        zone_rows = rows_source[
-            (rows_source["row_id_numeric"] >= start_row)
-            & (rows_source["row_id_numeric"] <= end_row)
-        ].copy()
+        start_position = row_ids.searchsorted(start_row, side="left")
+        end_position = row_ids.searchsorted(end_row, side="right")
+        zone_rows = rows_source.iloc[int(start_position):int(end_position)].copy()
         if zone_rows.empty:
             output_rows.extend(build_static_live_rdm_evolution(pd.DataFrame([zone]), run_utc).to_dict("records"))
             continue
@@ -2098,21 +2180,88 @@ def build_live_rdm_evolution_notes(live: pd.DataFrame, run_utc: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_interaction_core_geometry(results: pd.DataFrame, live: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+class RdmCaseCache:
+    def __init__(self, live: pd.DataFrame) -> None:
+        self.live = live
+        self.live_by_case = {
+            str(case_id): group.copy()
+            for case_id, group in live.groupby("case_id")
+        } if not live.empty and "case_id" in live.columns else {}
+        self.base_masks: Dict[str, pd.Series] = {}
+        self.temporal_windows: Dict[str, pd.DataFrame] = {}
+        self.lifecycle_rows: Dict[str, pd.DataFrame] = {}
+        self.mask_reuse_count = 0
+
+    @property
+    def case_count(self) -> int:
+        return len(self.live_by_case)
+
+    def precompute_interaction_masks(self) -> None:
+        for case_id in self.live_by_case:
+            self.base_interaction_mask(case_id)
+
+    def case_live(self, case_id: Any) -> pd.DataFrame:
+        return self.live_by_case.get(str(case_id or ""), pd.DataFrame())
+
+    def base_interaction_mask(self, case_id: Any) -> pd.Series:
+        key = str(case_id or "")
+        if key in self.base_masks:
+            self.mask_reuse_count += 1
+            return self.base_masks[key]
+        live = self.case_live(key)
+        if live.empty:
+            mask = pd.Series(False, index=live.index)
+        else:
+            mask = base_interaction_mask(live)
+        self.base_masks[key] = mask
+        return mask
+
+    def temporal_interaction_window(self, case_id: Any, max_rows: int = 30) -> pd.DataFrame:
+        key = str(case_id or "")
+        if key in self.temporal_windows:
+            return self.temporal_windows[key]
+        live = self.case_live(key)
+        window = temporal_interaction_window(
+            live,
+            max_rows=max_rows,
+            interaction_mask=self.base_interaction_mask(key),
+        )
+        self.temporal_windows[key] = window
+        return window
+
+    def lifecycle_interaction_rows(self, case_id: Any) -> pd.DataFrame:
+        key = str(case_id or "")
+        if key in self.lifecycle_rows:
+            return self.lifecycle_rows[key]
+        case_live = self.case_live(key)
+        if case_live.empty:
+            rows = pd.DataFrame()
+        else:
+            rows = case_live[
+                case_live.get("inside_zone_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
+                | case_live.get("zone_touch_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
+                | case_live.get("mechanical_breach_summary_live", pd.Series("", index=case_live.index)).fillna("").astype(str).str.strip().ne("")
+            ]
+        self.lifecycle_rows[key] = rows
+        return rows
+
+
+def build_interaction_core_geometry(
+    results: pd.DataFrame,
+    live: pd.DataFrame,
+    run_utc: str,
+    case_cache: RdmCaseCache | None = None,
+) -> pd.DataFrame:
     rows: List[Dict[str, Any]] = []
-    live_by_case = {
-        str(case_id): group.copy()
-        for case_id, group in live.groupby("case_id")
-    } if not live.empty and "case_id" in live.columns else {}
+    cache = case_cache or RdmCaseCache(live)
 
     for _, row in results.iterrows():
         case_id = str(row.get("case_id") or "")
-        case_live = live_by_case.get(case_id, pd.DataFrame())
         formation_lower = to_float(row.get("real_zone_lower_edge")) or 0.0
         formation_upper = to_float(row.get("real_zone_upper_edge")) or 0.0
         formation_width = max(to_float(row.get("real_zone_width")) or abs(formation_upper - formation_lower), 1e-9)
         formation_mid = (formation_upper + formation_lower) / 2.0
-        temporal_live = temporal_interaction_window(case_live)
+        temporal_live = cache.temporal_interaction_window(case_id)
         interaction_points = interaction_core_points(
             temporal_live,
             formation_lower=formation_lower,
@@ -2218,13 +2367,20 @@ def build_interaction_core_geometry(results: pd.DataFrame, live: pd.DataFrame, r
     return pd.DataFrame(rows)
 
 
-def temporal_interaction_window(live: pd.DataFrame, max_rows: int = 30) -> pd.DataFrame:
+def temporal_interaction_window(
+    live: pd.DataFrame,
+    max_rows: int = 30,
+    interaction_mask: pd.Series | None = None,
+) -> pd.DataFrame:
     if live.empty:
         return live
     rows = live.copy()
     if "row_index" in rows.columns:
         rows = rows.sort_values("row_index")
-    interaction_mask = base_interaction_mask(rows)
+    if interaction_mask is None:
+        interaction_mask = base_interaction_mask(rows)
+    else:
+        interaction_mask = interaction_mask.reindex(rows.index, fill_value=False)
     interaction_rows = rows[interaction_mask].copy()
     if interaction_rows.empty:
         return rows.head(max_rows).copy()
@@ -2321,16 +2477,18 @@ def merge_interaction_core_into_results(results: pd.DataFrame, core: pd.DataFram
     return results.merge(core[columns], on=["case_id", "episode_id"], how="left")
 
 
-def build_interaction_density_map(results: pd.DataFrame, live: pd.DataFrame, run_utc: str) -> pd.DataFrame:
-    live_by_case = {
-        str(case_id): group.copy()
-        for case_id, group in live.groupby("case_id")
-    } if not live.empty and "case_id" in live.columns else {}
+def build_interaction_density_map(
+    results: pd.DataFrame,
+    live: pd.DataFrame,
+    run_utc: str,
+    case_cache: RdmCaseCache | None = None,
+) -> pd.DataFrame:
+    cache = case_cache or RdmCaseCache(live)
     rows: List[Dict[str, Any]] = []
 
     for _, row in results.iterrows():
         case_id = str(row.get("case_id") or "")
-        case_live = live_by_case.get(case_id, pd.DataFrame())
+        case_live = cache.case_live(case_id)
         density = interaction_density_for_row(row, case_live)
         rows.append(
             {
@@ -2541,22 +2699,16 @@ def build_true_lifecycle_tracking(
     core: pd.DataFrame,
     live: pd.DataFrame,
     run_utc: str,
+    case_cache: RdmCaseCache | None = None,
 ) -> pd.DataFrame:
     core_by_case = {str(row["case_id"]): row for _, row in core.iterrows()} if not core.empty else {}
-    live_by_case = {
-        str(case_id): group.copy()
-        for case_id, group in live.groupby("case_id")
-    } if not live.empty and "case_id" in live.columns else {}
+    cache = case_cache or RdmCaseCache(live)
     rows: List[Dict[str, Any]] = []
 
     for _, row in results.iterrows():
         case_id = str(row.get("case_id") or "")
-        case_live = live_by_case.get(case_id, pd.DataFrame())
-        interaction_rows = case_live[
-            case_live.get("inside_zone_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
-            | case_live.get("zone_touch_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
-            | case_live.get("mechanical_breach_summary_live", pd.Series("", index=case_live.index)).fillna("").astype(str).str.strip().ne("")
-        ] if not case_live.empty else pd.DataFrame()
+        case_live = cache.case_live(case_id)
+        interaction_rows = cache.lifecycle_interaction_rows(case_id)
         last_interaction = interaction_rows.tail(1).iloc[0] if not interaction_rows.empty else None
         latest = case_live.tail(1).iloc[0] if not case_live.empty else None
         death = mechanical_death_review(row, core_by_case.get(case_id), latest)

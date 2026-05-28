@@ -4,6 +4,10 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from dashboard.overlay_renderer import (
+    load_rdm_overlay_data,
+    render_rdm_visual_overlay,
+)
 from dashboard.research_mapping import (
     load_dashboard_research_mapping,
     map_research_to_dashboard_episodes,
@@ -1598,8 +1602,16 @@ def render_dashboard_v2_selected_research_panel(row):
         ],
         row,
     )
+    observation_rows, live_rows = load_rdm_overlay_data(BASE_DIR)
+    render_rdm_visual_overlay(row, observation_rows, live_rows)
     render_rdm_market_mechanics_panel(row)
+    render_rdm_real_zone_geometry_panel(row)
+    render_rdm_interaction_core_panel(row)
     render_zone_birth_panel(row)
+    render_rdm_birth_current_tracking_panel(row)
+    render_live_rdm_evolution_panel(row)
+    render_true_lifecycle_panel(row)
+    render_birth_live_degradation_panel(row)
     render_zone_life_tracking_panel(row)
     render_zone_evolution_panel(row)
     render_rdm_verestchaguine_panel(row)
@@ -1689,6 +1701,470 @@ def render_rdm_market_mechanics_panel(row):
         row,
     )
     render_rdm_section_result(row, "RDM Market Mechanics")
+
+
+def render_rdm_real_zone_geometry_panel(row):
+    st.subheader("RDM Real Zone Geometry - Research Only")
+    st.caption(
+        "Real chart geometry for the research zone. This is observation-only "
+        "context and does not affect scoring, signals, or execution."
+    )
+
+    if safe_research_panel_value(row, "real_zone_upper_edge") == "N/A":
+        st.info("No real zone geometry mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Time Window",
+        [
+            ("Birth Time", "real_birth_time", "metric"),
+            ("Left Time", "real_zone_left_time", "metric"),
+            ("Right Time", "real_zone_right_time", "metric"),
+            ("End Time", "real_zone_end_time", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Price Geometry",
+        [
+            ("Upper Edge", "real_zone_upper_edge", "metric"),
+            ("Lower Edge", "real_zone_lower_edge", "metric"),
+            ("Mid Price", "real_zone_mid_price", "metric"),
+            ("Real Width", "real_zone_width", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Geometry Source",
+        [
+            ("Birth Price", "real_birth_price", "metric"),
+            ("Lifetime", "real_zone_lifetime", "metric"),
+            ("Active Duration", "real_zone_active_duration", "metric"),
+            ("Fallback Used", "geometry_fallback_used", "status"),
+            ("Source", "geometry_source", "mechanics"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "RDM Real Zone Geometry")
+
+
+def render_rdm_birth_current_tracking_panel(row):
+    st.subheader("Birth vs Current Mechanical Tracking - Research Only")
+    st.caption(
+        "Compares birth, current, return, and final research mechanics. Breach "
+        "flags are retained for observation review only."
+    )
+
+    if safe_research_panel_value(row, "sigma_birth") == "N/A":
+        st.info("No birth/current mechanical tracking mapped for this case yet.")
+        return
+
+    table = build_birth_current_tracking_table(row)
+    st.dataframe(sanitize_dataframe_for_display(table), use_container_width=True)
+    render_research_card(
+        st.container(),
+        "Mechanical Breach Summary",
+        [
+            ("Breach Count", "mechanical_breach_count", "metric"),
+            ("Breach Summary", "mechanical_breach_summary", "mechanics"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "Birth vs Current Mechanical Tracking")
+
+
+def render_rdm_interaction_core_panel(row):
+    st.subheader("RDM Interaction Core Geometry - Research Only")
+    st.caption(
+        "Separates the large formation range from the smaller price area where "
+        "touch, return, stress, absorption, or rejection actually occurred."
+    )
+
+    if safe_research_panel_value(row, "interaction_core_upper_edge") == "N/A":
+        st.info("No interaction core geometry mapped for this case yet.")
+        return
+
+    columns = st.columns(3)
+    render_research_card(
+        columns[0],
+        "Context / Formation Range",
+        [
+            ("Formation Upper", "formation_upper_edge", "metric"),
+            ("Formation Lower", "formation_lower_edge", "metric"),
+            ("Context Range", "formation_width", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[1],
+        "Active RDM Zone",
+        [
+            ("Active Upper", "interaction_core_upper_edge", "metric"),
+            ("Active Lower", "interaction_core_lower_edge", "metric"),
+            ("Active RDM Zone Width", "interaction_core_width", "metric"),
+            ("Efficiency", "interaction_core_efficiency_ratio", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[2],
+        "Core Quality",
+        [
+            ("Source", "interaction_core_source", "mechanics"),
+            ("Points", "interaction_core_points_count", "metric"),
+            ("Valid", "interaction_core_valid_flag", "status"),
+            ("Width State", "interaction_core_width_state", "capacity"),
+        ],
+        row,
+    )
+    density_columns = st.columns(3)
+    render_research_card(
+        density_columns[0],
+        "Interaction Density",
+        [
+            ("Density State", "interaction_density_state", "capacity"),
+            ("Dominant Location", "dominant_interaction_location", "mechanics"),
+            ("Peak Price", "interaction_density_peak_price", "metric"),
+            ("Weighted Center", "interaction_density_weighted_center", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        density_columns[1],
+        "Density Band",
+        [
+            ("Band Upper", "interaction_density_upper_band", "metric"),
+            ("Band Lower", "interaction_density_lower_band", "metric"),
+            ("Band Width", "interaction_density_width", "metric"),
+            ("Points", "interaction_density_points_count", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        density_columns[2],
+        "Core Sub-Zones",
+        [
+            ("Upper Score", "core_upper_density_score", "metric"),
+            ("Middle Score", "core_middle_density_score", "metric"),
+            ("Lower Score", "core_lower_density_score", "metric"),
+            ("Band", "dominant_interaction_band", "mechanics"),
+        ],
+        row,
+    )
+    detail_columns = st.columns(3)
+    render_research_card(
+        detail_columns[0],
+        "Raw Core",
+        [
+            ("Raw Upper", "raw_interaction_core_upper_edge", "metric"),
+            ("Raw Lower", "raw_interaction_core_lower_edge", "metric"),
+            ("Raw Width", "raw_interaction_core_width", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        detail_columns[1],
+        "Spatial Clamp / Compression",
+        [
+            ("Clamped Upper", "clamped_interaction_core_upper_edge", "metric"),
+            ("Clamped Lower", "clamped_interaction_core_lower_edge", "metric"),
+            ("Clamped Width", "clamped_interaction_core_width", "metric"),
+            ("Clamp Applied", "core_spatial_clamp_applied", "status"),
+            ("Compression Applied", "interaction_core_compression_applied", "status"),
+            ("Compression Reason", "interaction_core_compression_reason", "mechanics"),
+        ],
+        row,
+    )
+    render_research_card(
+        detail_columns[2],
+        "Temporal Window",
+        [
+            ("Window Start", "core_temporal_window_start", "metric"),
+            ("Window End", "core_temporal_window_end", "metric"),
+            ("Seconds", "core_temporal_window_seconds", "metric"),
+            ("Rows", "core_temporal_window_rows", "metric"),
+            ("Temporal Filter", "core_temporal_filter_applied", "status"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "RDM Interaction Core Geometry")
+
+
+def render_live_rdm_evolution_panel(row):
+    st.subheader("Live RDM Evolution - Research Only")
+    st.caption(
+        "Live-style replay evolution for this zone. It reads historical rows only; "
+        "it is not live scanning, not a signal, and not execution."
+    )
+
+    if safe_research_panel_value(row, "rdm_live_status") == "N/A":
+        st.info("No live RDM evolution data mapped for this case yet.")
+        return
+
+    card_columns = st.columns(3)
+    render_research_card(
+        card_columns[0],
+        "Current Live Status",
+        [
+            ("Raw Status", "raw_live_status", "capacity"),
+            ("Guarded Status", "guarded_live_status", "capacity"),
+            ("Risk", "rdm_live_risk", "severity"),
+            ("Watch", "rdm_live_watch_action", "capacity"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[1],
+        "Zone Contact",
+        [
+            ("Inside Zone", "inside_zone_flag", "status"),
+            ("Touch", "zone_touch_flag", "status"),
+            ("Return", "return_to_zone_flag", "status"),
+            ("Distance", "distance_to_zone", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        card_columns[2],
+        "Evolution",
+        [
+            ("Step", "evolution_step", "mechanics"),
+            ("Transition", "evolution_transition", "mechanics"),
+            ("State", "evolution_state", "mechanics"),
+            ("Breach Count", "mechanical_breach_count_live", "metric"),
+        ],
+        row,
+    )
+    guard_columns = st.columns(3)
+    render_research_card(
+        guard_columns[0],
+        "Live Guard",
+        [
+            ("Guard Applied", "live_guard_applied", "status"),
+            ("Guard Reason", "live_guard_reason", "mechanics"),
+            ("Confirmation Score", "live_confirmation_score", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        guard_columns[1],
+        "Persistence",
+        [
+            ("Breach Streak", "live_breach_streak", "metric"),
+            ("Rupture Streak", "live_rupture_streak", "metric"),
+            ("Inside Streak", "live_inside_zone_streak", "metric"),
+            ("Stress Persistence", "live_stress_persistence", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        guard_columns[2],
+        "Confirmations",
+        [
+            ("Sigma", "sigma_confirmed_breach", "status"),
+            ("Capacity", "capacity_confirmed_breach", "status"),
+            ("Health", "health_confirmed_collapse", "status"),
+            ("Fatigue", "fatigue_confirmed_high", "status"),
+            ("Multi Factor", "multi_factor_breach_confirmed", "status"),
+        ],
+        row,
+    )
+    st.caption(safe_research_panel_value(row, "rdm_live_reason"))
+    table = build_live_rdm_tracking_table(row)
+    st.dataframe(sanitize_dataframe_for_display(table), use_container_width=True)
+    render_rdm_section_result(row, "Live RDM Evolution")
+
+
+def render_true_lifecycle_panel(row):
+    st.subheader("True Zone Lifecycle - Research Only")
+    st.caption(
+        "Tracks lifecycle after formation. Formation end is not treated as proof "
+        "of zone death."
+    )
+
+    if safe_research_panel_value(row, "true_lifecycle_state") == "N/A":
+        st.info("No true lifecycle tracking mapped for this case yet.")
+        return
+
+    columns = st.columns(3)
+    render_research_card(
+        columns[0],
+        "Formation / Life",
+        [
+            ("Formation Start", "formation_start_time", "metric"),
+            ("Formation End", "formation_end_time", "metric"),
+            ("Active Life Start", "active_life_start_time", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[1],
+        "Last Interaction",
+        [
+            ("Last Time", "last_mechanical_interaction_time", "metric"),
+            ("Last Price", "last_mechanical_interaction_price", "metric"),
+            ("Rows Since", "time_since_last_interaction", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[2],
+        "Lifecycle Result",
+        [
+            ("Dormant", "dormant_state_flag", "status"),
+            ("True Death", "true_mechanical_death_flag", "status"),
+            ("Death Score", "mechanical_death_score", "metric"),
+            ("State", "true_lifecycle_state", "capacity"),
+            ("Reason", "mechanical_death_reason", "mechanics"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "True Zone Lifecycle")
+
+
+def render_birth_live_degradation_panel(row):
+    st.subheader("Birth vs Live Degradation - Research Only")
+    st.caption("Observation-only degradation from zone birth baseline to guarded live state.")
+
+    if safe_research_panel_value(row, "birth_vs_live_degradation_state") == "N/A":
+        st.info("No birth/live degradation data mapped for this case yet.")
+        return
+
+    columns = st.columns(2)
+    render_research_card(
+        columns[0],
+        "Degradation Metrics",
+        [
+            ("Sigma", "sigma_degradation_from_birth", "metric"),
+            ("Rigidity", "rigidity_degradation_from_birth", "metric"),
+            ("Fatigue Increase", "fatigue_increase_from_birth", "metric"),
+            ("Health", "health_degradation_from_birth", "metric"),
+        ],
+        row,
+    )
+    render_research_card(
+        columns[1],
+        "Degradation State",
+        [
+            ("State", "birth_vs_live_degradation_state", "capacity"),
+            ("Final Status", "rdm_final_status", "capacity"),
+            ("Reason", "rdm_final_reason", "mechanics"),
+        ],
+        row,
+    )
+    render_rdm_section_result(row, "Birth vs Live Degradation")
+
+
+def build_live_rdm_tracking_table(row):
+    metrics = [
+        ("Sigma", "sigma"),
+        ("Capacity", "capacity"),
+        ("Rigidity", "rigidity"),
+        ("Fleche", "fleche"),
+        ("Dynamic Fleche", "dynamic_fleche"),
+        ("Moment", "moment"),
+        ("Load", "load"),
+        ("Fatigue", "fatigue"),
+        ("Recovery", "recovery"),
+        ("Health", "health"),
+    ]
+    rows = []
+    for label, prefix in metrics:
+        rows.append(
+            {
+                "Metric": label,
+                "Birth": safe_research_panel_value(row, f"{prefix}_birth"),
+                "Live": safe_research_panel_value(row, f"{prefix}_live"),
+                "Change": live_change_value(row, prefix),
+                "Status": live_metric_status(row, prefix),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def live_change_value(row, prefix):
+    if prefix in {"moment", "load", "fatigue", "recovery", "health"}:
+        birth = numeric_research_value(row, f"{prefix}_birth")
+        live = numeric_research_value(row, f"{prefix}_live")
+        if birth is None or live is None:
+            return "N/A"
+        return round(live - birth, 6)
+    return safe_research_panel_value(row, f"{prefix}_change_from_birth")
+
+
+def live_metric_status(row, prefix):
+    direct_field = f"{prefix}_live_status"
+    value = safe_research_panel_value(row, direct_field)
+    if value != "N/A":
+        return value
+    if prefix == "health":
+        return safe_research_panel_value(row, "health_live_status")
+    if safe_research_panel_value(row, f"{prefix}_live") == "N/A":
+        return "NO_DATA"
+    return "LIVE_SAFE"
+
+
+def build_birth_current_tracking_table(row):
+    metrics = [
+        ("Sigma", "sigma"),
+        ("Capacity", "capacity"),
+        ("Rigidity", "rigidity"),
+        ("Resistance", "resistance"),
+        ("Fleche", "fleche"),
+        ("Dynamic Fleche", "dynamic_fleche"),
+        ("Moment", "moment"),
+        ("Load", "load"),
+        ("Fatigue", "fatigue"),
+        ("Recovery", "recovery"),
+        ("Health", "health"),
+    ]
+    rows = []
+    for label, prefix in metrics:
+        rows.append(
+            {
+                "Metric": label,
+                "Birth": safe_research_panel_value(row, f"{prefix}_birth"),
+                "Current": safe_research_panel_value(row, f"{prefix}_current"),
+                "Return": safe_research_panel_value(row, f"{prefix}_at_return"),
+                "Final": safe_research_panel_value(row, f"{prefix}_final"),
+                "Change From Birth": safe_research_panel_value(row, f"{prefix}_change_from_birth"),
+                "Status": mechanical_tracking_status(row, prefix),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def mechanical_tracking_status(row, prefix):
+    if prefix == "sigma" and safe_research_panel_value(row, "sigma_breach_flag") == "True":
+        return "BREACHED"
+    if prefix == "capacity" and safe_research_panel_value(row, "capacity_breach_flag") == "True":
+        return "BREACHED"
+    if prefix == "rigidity" and safe_research_panel_value(row, "rigidity_decay_flag") == "True":
+        return "DECAYED"
+    if prefix == "fatigue" and safe_research_panel_value(row, "fatigue_breach_flag") == "True":
+        return "BREACHED"
+    if prefix == "health" and safe_research_panel_value(row, "health_collapse_flag") == "True":
+        return "COLLAPSED"
+    if prefix == "recovery":
+        change = numeric_research_value(row, "recovery_change_from_birth")
+        if change is not None and change > 0:
+            return "RECOVERED"
+    value = safe_research_panel_value(row, f"{prefix}_current")
+    if value == "N/A":
+        return "NO_DATA"
+    return "SAFE"
+
+
+def numeric_research_value(row, field):
+    value = safe_research_panel_value(row, field)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def render_rdm_timeline_panel(row):
@@ -2264,8 +2740,9 @@ def render_rdm_section_result(row, section_name):
 def render_final_rdm_result(row):
     st.subheader("Final RDM Result - Research Only")
     st.caption(
-        "Final mechanical summary for observation research. This is not a signal, "
-        "not an entry, not execution, and not Dashboard V2 scoring."
+        "Final mechanical summary for observation research. Active zone references "
+        "use Interaction Core Width, while Formation Range remains background context. "
+        "This is not a signal, not an entry, not execution, and not Dashboard V2 scoring."
     )
 
     if safe_research_panel_value(row, "rdm_zone_status") == "N/A":
@@ -2277,7 +2754,10 @@ def render_final_rdm_result(row):
         columns[0],
         "Zone Result",
         [
-            ("ZONE STATUS", "rdm_zone_status", "capacity"),
+            ("ZONE STATUS", "rdm_final_status", "capacity"),
+            ("LIVE STATUS", "guarded_live_status", "capacity"),
+            ("STATIC STATUS", "rdm_zone_status", "capacity"),
+            ("ACTIVE RDM ZONE WIDTH", "interaction_core_width", "metric"),
             ("HEALTH SCORE", "rdm_health_score", "metric"),
         ],
         row,
@@ -2297,6 +2777,7 @@ def render_final_rdm_result(row):
         [
             ("SHORT REASON", "rdm_short_reason", "mechanics"),
             ("WATCH ACTION", "rdm_watch_action", "capacity"),
+            ("FINAL REASON", "rdm_final_reason", "mechanics"),
         ],
         row,
     )
@@ -2402,6 +2883,14 @@ def research_badge_color(label, badge_type):
 
     if "FALSE PREPARATION" in normalized or "FAILED" in normalized:
         return "#FECACA"
+    if "BREACHED" in normalized or "COLLAPSED" in normalized:
+        return "#FCA5A5"
+    if "DECAYED" in normalized:
+        return "#FDBA74"
+    if "RECOVERED" in normalized:
+        return "#BBF7D0"
+    if "NO DATA" in normalized:
+        return "#E5E7EB"
     if "DIRECT REVERSAL" in normalized or "REVERSAL" in normalized:
         return "#FDBA74"
     if "PURE EXPANSION" in normalized or "SUCCESS" in normalized:
@@ -2575,6 +3064,67 @@ def format_research_label(value):
         "WAIT_FOR_ACTIVE_LOAD": "Wait For Active Load",
         "MONITOR_MECHANICAL_CONTEXT": "Monitor Mechanical Context",
         "OBSERVE_ONLY": "Observe Only",
+        "LIVE_SAFE": "Live Safe",
+        "LIVE_WARNING": "Live Warning",
+        "LIVE_FATIGUE": "Live Fatigue",
+        "LIVE_BREACH": "Live Breach",
+        "LIVE_RECOVERY": "Live Recovery",
+        "LIVE_RUPTURE": "Live Rupture",
+        "LIVE_DORMANT": "Live Dormant",
+        "LIVE_AGING": "Live Aging",
+        "OUTSIDE_ZONE_NO_RUPTURE": "Outside Zone No Rupture",
+        "PERSISTENT_MULTI_FACTOR_BREACH": "Persistent Multi Factor Breach",
+        "RUPTURE_REQUIRES_THREE_ROW_MULTI_FACTOR_CONFIRMATION": "Rupture Requires Three Row Multi Factor Confirmation",
+        "PERSISTENT_CONFIRMED_BREACH": "Persistent Confirmed Breach",
+        "SINGLE_ROW_BREACH_DOWNGRADED_TO_WARNING": "Single Row Breach Downgraded To Warning",
+        "FATIGUE_WITHOUT_CONFIRMED_BREACH": "Fatigue Without Confirmed Breach",
+        "RECOVERY_AFTER_STRESS": "Recovery After Stress",
+        "INSIDE_ZONE_WITHOUT_CONFIRMED_BREACH": "Inside Zone Without Confirmed Breach",
+        "NO_GUARD_NEEDED": "No Guard Needed",
+        "REVIEW_LIVE_BREACH_CONTEXT": "Review Live Breach Context",
+        "WATCH_LIVE_BREACH": "Watch Live Breach",
+        "TO_ACTIVE_LOAD": "To Active Load",
+        "TO_ZONE_TOUCH": "To Zone Touch",
+        "TO_FATIGUE": "To Fatigue",
+        "STRESS_TO_BREACH": "Stress To Breach",
+        "STRESS_TO_RECOVERY": "Stress To Recovery",
+        "AGING_OUTSIDE_ZONE": "Aging Outside Zone",
+        "PREPARATION_ZONE": "Preparation Zone",
+        "EPISODE_PRICE_RANGE": "Episode Price Range",
+        "SINGLE_PRICE_WIDTH_ESTIMATE": "Single Price Width Estimate",
+        "PLACEHOLDER_FALLBACK": "Placeholder Fallback",
+        "LIVE_INTERACTION_POINTS": "Live Interaction Points",
+        "FALLBACK_ADAPTIVE_CORE": "Fallback Adaptive Core",
+        "CORE_TIGHT": "Core Tight",
+        "CORE_NORMAL": "Core Normal",
+        "CORE_WIDE": "Core Wide",
+        "CORE_FALLBACK": "Core Fallback",
+        "CORE_TOO_WIDE": "Core Too Wide",
+        "CORE_INVALID_TOO_WIDE": "Core Invalid Too Wide",
+        "LOW_DENSITY": "Low Density",
+        "NORMAL_DENSITY": "Normal Density",
+        "HIGH_DENSITY": "High Density",
+        "EXTREME_DENSITY": "Extreme Density",
+        "UPPER_CORE": "Upper Core",
+        "MIDDLE_CORE": "Middle Core",
+        "LOWER_CORE": "Lower Core",
+        "MULTI_NODE": "Multi Node",
+        "NO_CLEAR_DENSITY": "No Clear Density",
+        "CLAMPED_TO_FORMATION_RANGE": "Clamped To Formation Range",
+        "NO_CLAMP_NEEDED": "No Clamp Needed",
+        "CORE_WIDTH_ABOVE_HALF_FORMATION": "Core Width Above Half Formation",
+        "INVALID_TOO_WIDE_FALLBACK": "Invalid Too Wide Fallback",
+        "BIRTH": "Birth",
+        "FORMATION": "Formation",
+        "ACTIVE_INTERACTION": "Active Interaction",
+        "RETEST": "Retest",
+        "MECHANICALLY_DEAD": "Mechanically Dead",
+        "MODERATE_DEGRADATION": "Moderate Degradation",
+        "SEVERE_DEGRADATION": "Severe Degradation",
+        "BREACHED": "Breached",
+        "DECAYED": "Decayed",
+        "COLLAPSED": "Collapsed",
+        "NO_DATA": "No Data",
     }
     text = str(value).strip()
 

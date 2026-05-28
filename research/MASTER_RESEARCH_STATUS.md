@@ -249,3 +249,79 @@ RULES
 STATUS
 ------
 Research Extension = STABLE
+
+RDM MARKET MECHANICS V1.5
+-------------------------
+- Status = VALIDATED CHECKPOINT
+- Real Zone Geometry = VALIDATED
+- Birth vs Live Tracking = VALIDATED
+- Live RDM Evolution = VALIDATED
+- Calibration Guards = VALIDATED
+- Interaction Core Geometry = VALIDATED
+- Spatial Clamp = VALIDATED
+- Temporal Interaction Window = VALIDATED
+- True Lifecycle Guard = VALIDATED
+- Adaptive Recovery / Healing = VALIDATED
+- Regime-Normalized Sigma = VALIDATED
+- Interaction Density Mapping = VALIDATED
+- Weighted Interaction Center = VALIDATED
+- Density Bands = VALIDATED
+- Structural Lifecycle Calibration = VALIDATED
+- Recovery Persistence = VALIDATED
+- Fatigue Realism = VALIDATED
+- Rupture Persistence = VALIDATED
+- Mechanical Memory = VALIDATED
+- Birth / Return / Final comparison = VALIDATED
+- Overlay calibration = VALIDATED
+- Context vs Active Zone separation = VALIDATED
+
+RDM V1.5 GEOMETRY MODEL
+-----------------------
+- Context / Formation Range != Active RDM Zone
+- Active RDM Zone != Interaction Density Band
+- Context / Formation Range = broad historical formation area that created the zone.
+- Active RDM Zone = compressed interaction core used as the primary active mechanical zone.
+- Interaction Density Band = weighted concentration area inside the Active RDM Zone where touch, return, rejection, stress, absorption, recovery, and fatigue concentrate.
+
+RDM V1.5 CALIBRATION CONCLUSIONS
+--------------------------------
+- Previous pessimistic collapse bias fixed.
+- Recovery now has meaningful structural effect.
+- Rupture persistence calibrated.
+- One-row rupture / breach behavior is guarded.
+- Interaction core compressed successfully.
+- Active RDM Zone is now smaller than Context / Formation Range.
+- Density mapping is operational.
+- Weighted interaction center is operational.
+- Density bands are operational.
+- Structure behaves more realistically as a lifecycle that can recover, age, fatigue, rupture, or become dormant.
+
+RDM V1.5 DASHBOARD / OVERLAY
+----------------------------
+- Context / Formation Range is shown as background context.
+- Active RDM Zone is visually emphasized.
+- Interaction Density Band is shown inside the Active RDM Zone.
+- Final RDM Result references Active RDM Zone and guarded lifecycle state, not raw formation width.
+
+RDM V1.5 RULES
+--------------
+- Research only
+- Observation only
+- No live execution
+- No decision engine
+- No trading signals
+- No entries
+- No scoring changes
+- No Dashboard V2 scoring changes
+- No Phase 2
+- Mechanics-first
+- Cases reference-only
+
+RDM V1.5 NEXT STEP
+------------------
+- Observation / Calibration
+- Replay validation
+- Historical validation
+- False positive review
+- Live observation
+- Do not advance phases

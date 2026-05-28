@@ -21,6 +21,7 @@ OUTPUT_DIR = ROOT_DIR / "outputs"
 RESEARCH_DIR = ROOT_DIR / "research"
 
 EPISODES_FILE = OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
+HISTORICAL_ROWS_FILE = OUTPUT_DIR / "historical_observation_rows.csv"
 RESEARCH_LOG_FILE = RESEARCH_DIR / "phase1b_episode_research_log.csv"
 ZONE_LIFECYCLE_FILE = RESEARCH_DIR / "zone_lifecycle_events.jsonl"
 FIELD_LIFECYCLE_FILE = RESEARCH_DIR / "field_lifecycle_events.jsonl"
@@ -47,6 +48,14 @@ ZONE_BIRTH_CONCEPT_FILE = ROOT_DIR / "docs" / "zone_mechanics_birth_concept.md"
 ZONE_EVOLUTION_CHART_FILE = RESEARCH_DIR / "zone_evolution_chart.csv"
 ZONE_EVOLUTION_HISTORY_FILE = RESEARCH_DIR / "zone_evolution_history.csv"
 ZONE_EVOLUTION_NOTES_FILE = RESEARCH_DIR / "zone_evolution_notes.md"
+ZONE_REAL_GEOMETRY_TRACKING_FILE = RESEARCH_DIR / "zone_real_geometry_tracking.csv"
+ZONE_LIVE_RDM_EVOLUTION_FILE = RESEARCH_DIR / "zone_live_rdm_evolution.csv"
+ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE = RESEARCH_DIR / "zone_live_rdm_evolution_notes.md"
+ZONE_INTERACTION_CORE_GEOMETRY_FILE = RESEARCH_DIR / "zone_interaction_core_geometry.csv"
+ZONE_TRUE_LIFECYCLE_TRACKING_FILE = RESEARCH_DIR / "zone_true_lifecycle_tracking.csv"
+ZONE_INTERACTION_CORE_NOTES_FILE = RESEARCH_DIR / "zone_interaction_core_notes.md"
+ZONE_INTERACTION_DENSITY_MAP_FILE = RESEARCH_DIR / "zone_interaction_density_map.csv"
+ZONE_INTERACTION_DENSITY_NOTES_FILE = RESEARCH_DIR / "zone_interaction_density_notes.md"
 
 NOTABLE_CASES = [
     "CASE_00021",
@@ -61,6 +70,7 @@ def main() -> None:
     run_utc = utc_now()
 
     episodes = read_csv(EPISODES_FILE)
+    historical_rows = read_optional_csv(HISTORICAL_ROWS_FILE)
     research_log = read_csv(RESEARCH_LOG_FILE)
     case_labels = read_optional_csv(CASE_LABELS_FILE)
     zone_events = read_jsonl(ZONE_LIFECYCLE_FILE)
@@ -89,6 +99,16 @@ def main() -> None:
     verestchaguine_df = build_verestchaguine_fleche(results_df, run_utc)
     results_df = merge_verestchaguine_into_results(results_df, verestchaguine_df)
     results_df = add_rdm_result_summaries(results_df)
+    geometry_tracking_df = build_real_geometry_tracking(results_df, run_utc)
+    results_df = merge_real_geometry_tracking_into_results(results_df, geometry_tracking_df)
+    live_evolution_df = build_live_rdm_evolution(results_df, historical_rows, run_utc)
+    results_df = merge_live_rdm_evolution_into_results(results_df, live_evolution_df)
+    interaction_core_df = build_interaction_core_geometry(results_df, live_evolution_df, run_utc)
+    results_df = merge_interaction_core_into_results(results_df, interaction_core_df)
+    density_df = build_interaction_density_map(results_df, live_evolution_df, run_utc)
+    results_df = merge_interaction_density_into_results(results_df, density_df)
+    true_lifecycle_df = build_true_lifecycle_tracking(results_df, interaction_core_df, live_evolution_df, run_utc)
+    results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
     timeline_df = build_mechanics_timeline(results_df, run_utc)
     lifecycle_df = build_mechanics_lifecycle(timeline_df, run_utc)
     birth_df = build_zone_birth_registry(results_df, run_utc)
@@ -109,6 +129,13 @@ def main() -> None:
         evolution_history_df,
         run_utc,
     )
+    live_evolution_notes_text = build_live_rdm_evolution_notes(live_evolution_df, run_utc)
+    interaction_core_notes_text = build_interaction_core_notes(
+        interaction_core_df,
+        true_lifecycle_df,
+        run_utc,
+    )
+    density_notes_text = build_interaction_density_notes(density_df, run_utc)
 
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
     ZONE_BIRTH_CONCEPT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -117,6 +144,11 @@ def main() -> None:
     sigma_df.to_csv(SIGMA_FILE, index=False)
     sigma_evolution_df.to_csv(SIGMA_EVOLUTION_FILE, index=False)
     verestchaguine_df.to_csv(VERESTCHAGUINE_FILE, index=False)
+    geometry_tracking_df.to_csv(ZONE_REAL_GEOMETRY_TRACKING_FILE, index=False)
+    live_evolution_df.to_csv(ZONE_LIVE_RDM_EVOLUTION_FILE, index=False)
+    interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
+    density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
+    true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
     birth_df.to_csv(ZONE_BIRTH_REGISTRY_FILE, index=False)
     death_df.to_csv(ZONE_DEATH_REGISTRY_FILE, index=False)
     evolution_chart_df.to_csv(ZONE_EVOLUTION_CHART_FILE, index=False)
@@ -130,6 +162,9 @@ def main() -> None:
     SIGMA_NOTES_FILE.write_text(sigma_notes_text, encoding="utf-8")
     SIGMA_EVOLUTION_NOTES_FILE.write_text(sigma_evolution_notes_text, encoding="utf-8")
     VERESTCHAGUINE_NOTES_FILE.write_text(verestchaguine_notes_text, encoding="utf-8")
+    ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE.write_text(live_evolution_notes_text, encoding="utf-8")
+    ZONE_INTERACTION_CORE_NOTES_FILE.write_text(interaction_core_notes_text, encoding="utf-8")
+    ZONE_INTERACTION_DENSITY_NOTES_FILE.write_text(density_notes_text, encoding="utf-8")
     ZONE_MECHANICAL_MEMORY_FILE.write_text(
         json.dumps(memory, indent=2, ensure_ascii=True),
         encoding="utf-8",
@@ -152,6 +187,14 @@ def main() -> None:
     print(f"Sigma evolution notes: {relative_path(SIGMA_EVOLUTION_NOTES_FILE)}")
     print(f"Verestchaguine: {relative_path(VERESTCHAGUINE_FILE)}")
     print(f"Verestchaguine notes: {relative_path(VERESTCHAGUINE_NOTES_FILE)}")
+    print(f"Real geometry tracking: {relative_path(ZONE_REAL_GEOMETRY_TRACKING_FILE)}")
+    print(f"Live RDM evolution: {relative_path(ZONE_LIVE_RDM_EVOLUTION_FILE)}")
+    print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
+    print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
+    print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
+    print(f"True lifecycle tracking: {relative_path(ZONE_TRUE_LIFECYCLE_TRACKING_FILE)}")
+    print(f"Interaction core notes: {relative_path(ZONE_INTERACTION_CORE_NOTES_FILE)}")
+    print(f"Interaction density notes: {relative_path(ZONE_INTERACTION_DENSITY_NOTES_FILE)}")
     print(f"Zone birth registry: {relative_path(ZONE_BIRTH_REGISTRY_FILE)}")
     print(f"Zone death registry: {relative_path(ZONE_DEATH_REGISTRY_FILE)}")
     print(f"Zone mechanical memory: {relative_path(ZONE_MECHANICAL_MEMORY_FILE)}")
@@ -280,7 +323,20 @@ def calculate_zone_mechanics_row(
         "case_label": value(row, "case_label", ""),
         "reference_example_flag": bool(value(row, "case_label", "")),
         "episode_start_time_utc": value(row, "episode_start_time_utc"),
+        "episode_end_time_utc": value(row, "episode_end_time_utc"),
+        "start_row_id": value(row, "start_row_id"),
+        "end_row_id": value(row, "end_row_id"),
         "duration_seconds": value(row, "duration_seconds"),
+        "start_price": value(row, "start_price"),
+        "end_price": value(row, "end_price"),
+        "price_at_1m": value(row, "price_at_1m"),
+        "price_at_5m": value(row, "price_at_5m"),
+        "price_at_15m": value(row, "price_at_15m"),
+        "price_at_30m": value(row, "price_at_30m"),
+        "price_at_1h": value(row, "price_at_1h"),
+        "price_at_2h": value(row, "price_at_2h"),
+        "price_at_4h": value(row, "price_at_4h"),
+        "price_at_day_end": value(row, "price_at_day_end"),
         "score_bucket": value(row, "score_bucket"),
         "peak_layer_count": value(row, "peak_layer_count"),
         "peak_max_severity": value(row, "peak_max_severity"),
@@ -290,9 +346,19 @@ def calculate_zone_mechanics_row(
         "pre_velocity_abs_mean": value(row, "pre_velocity_abs_mean"),
         "pre_delta_abs_mean": value(row, "pre_delta_abs_mean"),
         "pre_quiet_score": value(row, "pre_quiet_score"),
+        "pre_range": value(row, "pre_range"),
+        "pre_range_value": value(row, "pre_range_value"),
         "pre_range_ratio": value(row, "pre_range_ratio"),
+        "preparation_low_price": value(row, "preparation_low_price"),
+        "preparation_high_price": value(row, "preparation_high_price"),
+        "preparation_mid_price": value(row, "preparation_mid_price"),
+        "preparation_start_row": value(row, "preparation_start_row"),
+        "preparation_end_row": value(row, "preparation_end_row"),
         "preparation_strength": value(row, "preparation_strength"),
         "zone_revisit_count": value(row, "zone_revisit_count"),
+        "return_price": value(row, "return_price"),
+        "return_row": value(row, "return_row"),
+        "return_timestamp": value(row, "return_timestamp"),
         "expansion_type": value(row, "expansion_type"),
         "expansion_strength": value(row, "expansion_strength"),
         "reversal_type": value(row, "reversal_type"),
@@ -407,9 +473,14 @@ def calculate_fatigue_index(row: pd.Series, zone_events: pd.DataFrame, field_eve
     zone_rejections = count_state(zone_events, "zone_rejected")
     field_exhaustions = count_state(field_events, "field_exhausted")
     field_weakening = count_state(field_events, "field_weakening")
+    zone_reclaims = count_state(zone_events, "zone_reclaimed")
+    field_recoveries = count_state(field_events, "field_recovered")
     reaction_delay = to_float(row.get("revisit_expansion_delay_minutes")) or 0.0
-    fatigue = revisit_count * 8 + zone_rejections * 25 + field_exhaustions * 20 + field_weakening * 15
-    fatigue += min(reaction_delay, 60) * 0.5
+    fatigue = revisit_count * 4 + zone_rejections * 18 + field_exhaustions * 14 + field_weakening * 9
+    fatigue += min(reaction_delay, 60) * 0.25
+    fatigue -= zone_reclaims * 14 + field_recoveries * 16
+    if str(row.get("expansion_type") or "") == "PURE_EXPANSION":
+        fatigue -= 8
     return min(fatigue, 100.0)
 
 
@@ -440,29 +511,29 @@ def calculate_zone_rigidity(row: pd.Series, zone_events: pd.DataFrame) -> float:
 
 def calculate_zone_strength_decay(row: pd.Series, zone_events: pd.DataFrame, field_events: pd.DataFrame) -> float:
     decay = 0.0
-    decay += count_state(zone_events, "zone_rejected") * 35
-    decay += count_state(field_events, "field_exhausted") * 20
-    decay += count_state(field_events, "field_weakening") * 15
+    decay += count_state(zone_events, "zone_rejected") * 22
+    decay += count_state(field_events, "field_exhausted") * 14
+    decay += count_state(field_events, "field_weakening") * 9
     if truthy(row.get("failed_after_return")):
-        decay += 20
+        decay += 12
     if count_state(zone_events, "zone_reclaimed"):
-        decay -= 25
+        decay -= 30
     if count_state(field_events, "field_recovered"):
-        decay -= 25
+        decay -= 32
     return max(min(decay, 100), 0)
 
 
 def calculate_recovery_ratio(row: pd.Series, zone_events: pd.DataFrame, field_events: pd.DataFrame) -> float:
     recovery = 0.0
     stress = 1.0
-    recovery += count_state(zone_events, "zone_reclaimed") * 40
-    recovery += count_state(field_events, "field_recovered") * 40
+    recovery += count_state(zone_events, "zone_reclaimed") * 55
+    recovery += count_state(field_events, "field_recovered") * 55
     if str(row.get("expansion_type") or "") == "PURE_EXPANSION":
-        recovery += 20
-    stress += count_state(zone_events, "zone_rejected") * 30
-    stress += count_state(field_events, "field_exhausted") * 20
+        recovery += 25
+    stress += count_state(zone_events, "zone_rejected") * 24
+    stress += count_state(field_events, "field_exhausted") * 16
     if truthy(row.get("failed_after_return")):
-        stress += 25
+        stress += 18
     return max(min(recovery / stress, 2.0), 0.0)
 
 
@@ -516,7 +587,7 @@ def classify_zone_mechanics(
                 "EXPANSION_EXHAUSTION",
                 "EXHAUSTED_ZONE",
             )
-        if zone_strength_decay >= 70:
+        if zone_strength_decay >= 85 and truthy(row.get("failed_after_return")):
             return mechanics_result(
                 "RUPTURE_FAMILY",
                 "FAILED_RETURN_RUPTURE",
@@ -528,7 +599,7 @@ def classify_zone_mechanics(
             "EXHAUSTED_ZONE",
         )
 
-    if fleche_state == "RUPTURE":
+    if fleche_state == "RUPTURE" and zone_strength_decay >= 80 and fatigue_state == "CRITICAL_FATIGUE":
         return mechanics_result(
             "RUPTURE_FAMILY",
             "DIRECT_RUPTURE",
@@ -1271,6 +1342,1415 @@ def rdm_watch_action(status: str, risk: str) -> str:
     return "OBSERVE_ONLY"
 
 
+def build_real_geometry_tracking(results: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in results.iterrows():
+        geometry = real_zone_geometry(row)
+        tracking = mechanical_tracking_values(row, geometry)
+        breaches = mechanical_breach_flags(tracking)
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "zone_id": zone_identifier(row),
+                **geometry,
+                **tracking,
+                **breaches,
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def merge_real_geometry_tracking_into_results(results: pd.DataFrame, tracking: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or tracking.empty or "case_id" not in tracking.columns:
+        return results
+
+    tracking_columns = [column for column in tracking.columns if column not in {"analysis_run_utc", "research_only"}]
+    return results.merge(tracking[tracking_columns], on=["case_id", "episode_id"], how="left")
+
+
+def real_zone_geometry(row: pd.Series) -> Dict[str, Any]:
+    low = to_float(row.get("preparation_low_price"))
+    high = to_float(row.get("preparation_high_price"))
+    fallback_used = False
+    source = "PREPARATION_ZONE"
+
+    if low is not None and high is not None and high != low:
+        lower_edge, upper_edge = min(low, high), max(low, high)
+    else:
+        prices = available_real_prices(row)
+        if len(prices) >= 2 and max(prices) != min(prices):
+            lower_edge, upper_edge = min(prices), max(prices)
+            source = "EPISODE_PRICE_RANGE"
+        elif prices:
+            center = prices[0]
+            width = fallback_price_width(row, center)
+            lower_edge, upper_edge = center - width / 2.0, center + width / 2.0
+            source = "SINGLE_PRICE_WIDTH_ESTIMATE"
+        else:
+            lower_edge, upper_edge = 0.0, 1.0
+            fallback_used = True
+            source = "PLACEHOLDER_FALLBACK"
+
+    zone_width = abs(upper_edge - lower_edge)
+    mid_price = (upper_edge + lower_edge) / 2.0
+    birth_price = first_price(row, ["start_price", "preparation_mid_price", "return_price", "end_price"])
+    end_time = row.get("episode_end_time_utc")
+    return {
+        "real_zone_upper_edge": round_float(upper_edge),
+        "real_zone_lower_edge": round_float(lower_edge),
+        "real_zone_mid_price": round_float(mid_price),
+        "real_zone_width": round_float(zone_width),
+        "real_birth_price": round_float(birth_price if birth_price is not None else mid_price),
+        "real_birth_time": row.get("episode_start_time_utc"),
+        "real_zone_left_time": row.get("episode_start_time_utc"),
+        "real_zone_right_time": row.get("return_timestamp") or end_time,
+        "real_zone_end_time": end_time,
+        "real_zone_lifetime": round_float(row.get("zone_age") or row.get("duration_seconds")),
+        "real_zone_active_duration": round_float(row.get("duration_seconds")),
+        "geometry_fallback_used": fallback_used,
+        "geometry_source": source,
+    }
+
+
+def available_real_prices(row: pd.Series) -> List[float]:
+    fields = [
+        "start_price",
+        "end_price",
+        "return_price",
+        "price_at_1m",
+        "price_at_5m",
+        "price_at_15m",
+        "price_at_30m",
+        "price_at_1h",
+        "price_at_2h",
+        "price_at_4h",
+        "price_at_day_end",
+    ]
+    prices: List[float] = []
+    for field in fields:
+        price = to_float(row.get(field))
+        if price is not None and price > 0:
+            prices.append(price)
+    return prices
+
+
+def fallback_price_width(row: pd.Series, center: float) -> float:
+    range_value = abs_number(row.get("pre_range_value")) or abs_number(row.get("pre_range"))
+    if range_value:
+        return max(range_value, center * 0.0001)
+    return max(center * 0.001, 1.0)
+
+
+def first_price(row: pd.Series, fields: List[str]) -> float | None:
+    for field in fields:
+        price = to_float(row.get(field))
+        if price is not None and price > 0:
+            return price
+    return None
+
+
+def mechanical_tracking_values(row: pd.Series, geometry: Dict[str, Any]) -> Dict[str, Any]:
+    sigma_birth = to_float(row.get("sigma_barre_zone"))
+    sigma_current = to_float(row.get("adaptive_sigma_barre_v2")) or sigma_birth
+    sigma_return = to_float(row.get("sigma_market")) if truthy(row.get("return_to_preparation")) else None
+    sigma_final = sigma_current
+
+    capacity_birth = to_float(row.get("zone_moment_capacity"))
+    capacity_current = to_float(row.get("regime_adjusted_capacity")) or capacity_birth
+    capacity_return = capacity_current
+    capacity_final = capacity_current
+
+    rigidity_birth = to_float(row.get("initial_rigidity")) or to_float(row.get("zone_rigidity"))
+    rigidity_current = to_float(row.get("zone_rigidity"))
+    rigidity_return = rigidity_current
+    rigidity_final = max((rigidity_current or 0.0) - (to_float(row.get("zone_strength_decay")) or 0.0) * 0.25, 0.0)
+
+    resistance_birth = to_float(row.get("base_zone_resistance"))
+    resistance_current = to_float(row.get("adaptive_sigma_barre_v2")) or resistance_birth
+    resistance_return = resistance_current
+    resistance_final = resistance_current
+
+    fleche_birth = 0.0
+    fleche_current = to_float(row.get("zone_fleche_ratio"))
+    fleche_return = fleche_current if truthy(row.get("return_to_preparation")) else None
+    fleche_final = fleche_current
+
+    dynamic_fleche_birth = 0.0
+    dynamic_fleche_current = to_float(row.get("fleche_verestchaguine"))
+    dynamic_fleche_return = dynamic_fleche_current if truthy(row.get("return_to_preparation")) else None
+    dynamic_fleche_final = dynamic_fleche_current
+
+    moment_birth = 0.0
+    moment_current = to_float(row.get("signed_moment_proxy"))
+    moment_return = moment_current if truthy(row.get("return_to_preparation")) else None
+    moment_final = moment_current
+
+    load_birth = 0.0
+    load_current = to_float(row.get("mechanical_load_score"))
+    load_return = load_current if truthy(row.get("return_to_preparation")) else None
+    load_final = load_current
+
+    fatigue_birth = 0.0
+    fatigue_current = to_float(row.get("fatigue_index"))
+    fatigue_return = fatigue_current if truthy(row.get("return_to_preparation")) else None
+    fatigue_final = fatigue_current
+
+    recovery_birth = 0.0
+    recovery_current = to_float(row.get("recovery_ratio"))
+    recovery_return = recovery_current if truthy(row.get("return_to_preparation")) else None
+    recovery_final = recovery_current
+
+    health_current = to_float(row.get("rdm_health_score"))
+    health_birth = min((health_current or 70.0) + 12.0, 100.0)
+    health_return = health_current if truthy(row.get("return_to_preparation")) else None
+    health_final = health_current
+
+    return {
+        "sigma_birth": round_float(sigma_birth),
+        "capacity_birth": round_float(capacity_birth),
+        "rigidity_birth": round_float(rigidity_birth),
+        "resistance_birth": round_float(resistance_birth),
+        "fleche_birth": round_float(fleche_birth),
+        "dynamic_fleche_birth": round_float(dynamic_fleche_birth),
+        "moment_birth": round_float(moment_birth),
+        "load_birth": round_float(load_birth),
+        "fatigue_birth": round_float(fatigue_birth),
+        "recovery_birth": round_float(recovery_birth),
+        "health_birth": round_float(health_birth),
+        "sigma_current": round_float(sigma_current),
+        "capacity_current": round_float(capacity_current),
+        "rigidity_current": round_float(rigidity_current),
+        "resistance_current": round_float(resistance_current),
+        "fleche_current": round_float(fleche_current),
+        "dynamic_fleche_current": round_float(dynamic_fleche_current),
+        "moment_current": round_float(moment_current),
+        "load_current": round_float(load_current),
+        "fatigue_current": round_float(fatigue_current),
+        "recovery_current": round_float(recovery_current),
+        "health_current": round_float(health_current),
+        "return_time": row.get("return_timestamp"),
+        "return_price": round_float(row.get("return_price")),
+        "sigma_at_return": round_float(sigma_return),
+        "capacity_at_return": round_float(capacity_return),
+        "rigidity_at_return": round_float(rigidity_return),
+        "resistance_at_return": round_float(resistance_return),
+        "fleche_at_return": round_float(fleche_return),
+        "dynamic_fleche_at_return": round_float(dynamic_fleche_return),
+        "moment_at_return": round_float(moment_return),
+        "load_at_return": round_float(load_return),
+        "fatigue_at_return": round_float(fatigue_return),
+        "recovery_at_return": round_float(recovery_return),
+        "health_at_return": round_float(health_return),
+        "final_time": row.get("episode_end_time_utc"),
+        "final_price": round_float(first_price(row, ["price_at_day_end", "end_price", "return_price"])),
+        "sigma_final": round_float(sigma_final),
+        "capacity_final": round_float(capacity_final),
+        "rigidity_final": round_float(rigidity_final),
+        "resistance_final": round_float(resistance_final),
+        "fleche_final": round_float(fleche_final),
+        "dynamic_fleche_final": round_float(dynamic_fleche_final),
+        "moment_final": round_float(moment_final),
+        "load_final": round_float(load_final),
+        "fatigue_final": round_float(fatigue_final),
+        "recovery_final": round_float(recovery_final),
+        "health_final": round_float(health_final),
+        "sigma_change_from_birth": round_float(change_from_birth(sigma_birth, sigma_current)),
+        "capacity_change_from_birth": round_float(change_from_birth(capacity_birth, capacity_current)),
+        "rigidity_change_from_birth": round_float(change_from_birth(rigidity_birth, rigidity_current)),
+        "resistance_change_from_birth": round_float(change_from_birth(resistance_birth, resistance_current)),
+        "fleche_change_from_birth": round_float(change_from_birth(fleche_birth, fleche_current)),
+        "dynamic_fleche_change_from_birth": round_float(change_from_birth(dynamic_fleche_birth, dynamic_fleche_current)),
+        "moment_change_from_birth": round_float(change_from_birth(moment_birth, moment_current)),
+        "load_change_from_birth": round_float(change_from_birth(load_birth, load_current)),
+        "fatigue_change_from_birth": round_float(change_from_birth(fatigue_birth, fatigue_current)),
+        "recovery_change_from_birth": round_float(change_from_birth(recovery_birth, recovery_current)),
+        "health_change_from_birth": round_float(change_from_birth(health_birth, health_current)),
+    }
+
+
+def mechanical_breach_flags(values: Dict[str, Any]) -> Dict[str, Any]:
+    sigma_breach = compare_greater(values.get("sigma_at_return") or values.get("sigma_current"), values.get("sigma_birth"))
+    capacity_breach = compare_greater(values.get("load_current"), values.get("capacity_birth"))
+    rigidity_decay = compare_less(values.get("rigidity_current"), (to_float(values.get("rigidity_birth")) or 0.0) * 0.70)
+    fatigue_breach = compare_greater(values.get("fatigue_current"), (to_float(values.get("fatigue_birth")) or 0.0) + 50.0)
+    health_collapse = compare_less(values.get("health_current"), (to_float(values.get("health_birth")) or 0.0) - 30.0)
+    flags = {
+        "sigma_breach_flag": sigma_breach,
+        "capacity_breach_flag": capacity_breach,
+        "rigidity_decay_flag": rigidity_decay,
+        "fatigue_breach_flag": fatigue_breach,
+        "health_collapse_flag": health_collapse,
+    }
+    active = [name.replace("_flag", "").upper() for name, enabled in flags.items() if enabled]
+    return {
+        **flags,
+        "mechanical_breach_count": len(active),
+        "mechanical_breach_summary": "|".join(active),
+    }
+
+
+def change_from_birth(birth: Any, current: Any) -> float | None:
+    birth_value = to_float(birth)
+    current_value = to_float(current)
+    if birth_value is None or current_value is None:
+        return None
+    return current_value - birth_value
+
+
+def compare_greater(left: Any, right: Any) -> bool:
+    left_value = to_float(left)
+    right_value = to_float(right)
+    if left_value is None or right_value is None:
+        return False
+    return left_value > right_value
+
+
+def compare_less(left: Any, right: Any) -> bool:
+    left_value = to_float(left)
+    right_value = to_float(right)
+    if left_value is None or right_value is None:
+        return False
+    return left_value < right_value
+
+
+def build_live_rdm_evolution(results: pd.DataFrame, historical_rows: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    if results.empty:
+        return pd.DataFrame()
+    if historical_rows.empty or "row_id" not in historical_rows.columns or "close" not in historical_rows.columns:
+        return build_static_live_rdm_evolution(results, run_utc)
+
+    rows_source = historical_rows.copy()
+    rows_source["row_id_numeric"] = pd.to_numeric(rows_source["row_id"], errors="coerce")
+    rows_source = rows_source.dropna(subset=["row_id_numeric"]).copy()
+    if rows_source.empty:
+        return build_static_live_rdm_evolution(results, run_utc)
+
+    output_rows: List[Dict[str, Any]] = []
+    for _, zone in results.iterrows():
+        start_row, end_row = live_row_window(zone, rows_source)
+        zone_rows = rows_source[
+            (rows_source["row_id_numeric"] >= start_row)
+            & (rows_source["row_id_numeric"] <= end_row)
+        ].copy()
+        if zone_rows.empty:
+            output_rows.extend(build_static_live_rdm_evolution(pd.DataFrame([zone]), run_utc).to_dict("records"))
+            continue
+        output_rows.extend(live_evolution_rows_for_zone(zone, zone_rows, run_utc))
+
+    return pd.DataFrame(output_rows)
+
+
+def build_static_live_rdm_evolution(results: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    rows: List[Dict[str, Any]] = []
+    for _, zone in results.iterrows():
+        price = first_price(zone, ["final_price", "return_price", "real_birth_price"])
+        record = live_evolution_record(
+                zone=zone,
+                row_index=zone.get("end_row_id") or zone.get("episode_id"),
+                timestamp=zone.get("final_time") or zone.get("episode_end_time_utc"),
+                price=price,
+                source_row=pd.Series(dtype=object),
+                run_utc=run_utc,
+                breach_memory={},
+        )
+        rows.append(apply_live_rdm_guard(record, {}))
+    return pd.DataFrame(rows)
+
+
+def live_row_window(zone: pd.Series, rows_source: pd.DataFrame) -> tuple[float, float]:
+    candidates_start = [
+        to_float(zone.get("preparation_start_row")),
+        to_float(zone.get("start_row_id")),
+        to_float(zone.get("return_row")),
+    ]
+    candidates_end = [
+        to_float(zone.get("end_row_id")),
+        to_float(zone.get("return_row")),
+        to_float(zone.get("preparation_end_row")),
+    ]
+    valid_start = [item for item in candidates_start if item is not None and item > 0]
+    valid_end = [item for item in candidates_end if item is not None and item > 0]
+    start = min(valid_start) if valid_start else float(rows_source["row_id_numeric"].min())
+    end = max(valid_end) if valid_end else start + 120.0
+    if end <= start:
+        end = start + 120.0
+    return start, end
+
+
+def live_evolution_rows_for_zone(zone: pd.Series, zone_rows: pd.DataFrame, run_utc: str) -> List[Dict[str, Any]]:
+    output: List[Dict[str, Any]] = []
+    breach_memory: Dict[str, bool] = {}
+    guard_state: Dict[str, int] = {}
+    for _, source_row in zone_rows.sort_values("row_id_numeric").iterrows():
+        record = live_evolution_record(
+            zone=zone,
+            row_index=source_row.get("row_id"),
+            timestamp=source_row.get("market_timestamp"),
+            price=to_float(source_row.get("close")),
+            source_row=source_row,
+            run_utc=run_utc,
+            breach_memory=breach_memory,
+        )
+        output.append(apply_live_rdm_guard(record, guard_state))
+    return output
+
+
+def live_evolution_record(
+    zone: pd.Series,
+    row_index: Any,
+    timestamp: Any,
+    price: Any,
+    source_row: pd.Series,
+    run_utc: str,
+    breach_memory: Dict[str, bool],
+) -> Dict[str, Any]:
+    price_value = to_float(price) or to_float(zone.get("real_birth_price")) or 0.0
+    upper = to_float(zone.get("real_zone_upper_edge")) or 0.0
+    lower = to_float(zone.get("real_zone_lower_edge")) or 0.0
+    width = max(to_float(zone.get("real_zone_width")) or abs(upper - lower), 1e-9)
+    mid = (upper + lower) / 2.0
+    inside = lower <= price_value <= upper if upper >= lower else False
+    distance = 0.0 if inside else min(abs(price_value - lower), abs(price_value - upper))
+    touch = inside or distance <= max(width * 0.05, max(price_value, 1.0) * 0.00005)
+    return_row = to_float(zone.get("return_row"))
+    row_number = to_float(row_index)
+    return_to_zone = bool(touch and return_row is not None and row_number is not None and row_number >= return_row)
+
+    sigma_birth = to_float(zone.get("sigma_birth")) or to_float(zone.get("sigma_barre_zone")) or 0.0
+    capacity_birth = to_float(zone.get("capacity_birth")) or to_float(zone.get("zone_moment_capacity")) or 0.0
+    rigidity_birth = to_float(zone.get("rigidity_birth")) or to_float(zone.get("zone_rigidity")) or 0.0
+    health_birth = to_float(zone.get("health_birth")) or min((to_float(zone.get("rdm_health_score")) or 70.0) + 12.0, 100.0)
+
+    active_load = inside or touch
+    delta_zscore = abs_number(source_row.get("delta_zscore"))
+    velocity_zscore = abs_number(source_row.get("velocity_zscore"))
+    volume_zscore = abs_number(source_row.get("volume_zscore"))
+    penetration = max(width / 2.0 - abs(price_value - mid), 0.0) if inside else 0.0
+    fleche_live = safe_divide(penetration, width) if active_load else 0.0
+    row_progress = live_row_progress(zone, row_number)
+    regime_normalizer = live_regime_stress_normalizer(source_row, zone)
+    stress_factor = min(((delta_zscore + velocity_zscore + volume_zscore) / 9.0) / regime_normalizer, 1.2) if active_load else 0.0
+    sigma_live = sigma_birth * (1.0 + stress_factor * fleche_live) if active_load else sigma_birth
+    recovery_base = to_float(zone.get("recovery_current")) or 0.0
+    repair_effect = min(recovery_base, 2.0)
+    capacity_live = max(capacity_birth - row_progress * (to_float(zone.get("zone_strength_decay")) or 0.0) * 0.08 + repair_effect * 10.0, 0.0)
+    rigidity_live = max(rigidity_birth - row_progress * (to_float(zone.get("zone_strength_decay")) or 0.0) * 0.55 + repair_effect * 8.0, 0.0)
+    dynamic_fleche_live = fleche_live * (1.0 + row_progress * 0.25)
+    moment_live = (delta_zscore if direction_from_signed(source_row.get("delta_zscore")) != "DOWN" else -delta_zscore) * penetration if active_load else 0.0
+    load_live = min(fleche_live * 35.0 + stress_factor * 25.0, 100.0) if active_load else 0.0
+    stress_activity = min(stress_factor + fleche_live, 1.0) if active_load else 0.0
+    recovery_live = recovery_base * row_progress if active_load else 0.0
+    fatigue_live = min(
+        max(
+            (to_float(zone.get("fatigue_birth")) or 0.0)
+            + row_progress * (to_float(zone.get("fatigue_current")) or 0.0) * stress_activity
+            - recovery_live * 22.0,
+            0.0,
+        ),
+        100.0,
+    )
+    health_live = max(health_birth - fatigue_live * 0.18 - max(load_live - 50.0, 0.0) * 0.12 + recovery_live * 12.0, 0.0)
+
+    sigma_status = live_sigma_status(sigma_live, sigma_birth, breach_memory)
+    capacity_status = live_capacity_status(capacity_live, capacity_birth, load_live, breach_memory)
+    rigidity_status = live_rigidity_status(rigidity_live, rigidity_birth, breach_memory)
+    fleche_status = live_fleche_status(fleche_live)
+    health_status = live_health_status(health_live, health_birth, breach_memory)
+    breach_items = [
+        item
+        for item, status in {
+            "SIGMA": sigma_status,
+            "CAPACITY": capacity_status,
+            "RIGIDITY": rigidity_status,
+            "HEALTH": health_status,
+        }.items()
+        if status in {"BREACHED", "DECAYED", "COLLAPSED"}
+    ]
+    stored_breach_items = sorted(key.upper() for key, enabled in breach_memory.items() if enabled)
+    live_status, live_risk, live_reason, watch_action = live_rdm_summary(
+        active_load=active_load,
+        breach_count=len(breach_items),
+        fatigue_live=fatigue_live,
+        recovery_live=recovery_live,
+        health_live=health_live,
+    )
+    evolution_step, transition, state = live_evolution_state(
+        inside=inside,
+        touch=touch,
+        breach_count=len(breach_items),
+        recovery_live=recovery_live,
+        fatigue_live=fatigue_live,
+    )
+
+    return {
+        "analysis_run_utc": run_utc,
+        "zone_id": zone_identifier(zone),
+        "case_id": zone.get("case_id"),
+        "episode_id": zone.get("episode_id"),
+        "row_index": row_index,
+        "timestamp": timestamp,
+        "price": round_float(price_value),
+        "real_zone_upper_edge": round_float(upper),
+        "real_zone_lower_edge": round_float(lower),
+        "real_zone_width": round_float(width),
+        "inside_zone_flag": inside,
+        "distance_to_zone": round_float(distance),
+        "zone_touch_flag": touch,
+        "return_to_zone_flag": return_to_zone,
+        "sigma_birth": round_float(sigma_birth),
+        "sigma_live": round_float(sigma_live),
+        "sigma_change_from_birth": round_float(change_from_birth(sigma_birth, sigma_live)),
+        "sigma_live_status": sigma_status,
+        "capacity_birth": round_float(capacity_birth),
+        "capacity_live": round_float(capacity_live),
+        "capacity_change_from_birth": round_float(change_from_birth(capacity_birth, capacity_live)),
+        "capacity_live_status": capacity_status,
+        "rigidity_birth": round_float(rigidity_birth),
+        "rigidity_live": round_float(rigidity_live),
+        "rigidity_change_from_birth": round_float(change_from_birth(rigidity_birth, rigidity_live)),
+        "rigidity_live_status": rigidity_status,
+        "fleche_birth": round_float(zone.get("fleche_birth")),
+        "fleche_live": round_float(fleche_live),
+        "dynamic_fleche_live": round_float(dynamic_fleche_live),
+        "fleche_live_status": fleche_status,
+        "moment_live": round_float(moment_live),
+        "load_live": round_float(load_live),
+        "fatigue_live": round_float(fatigue_live),
+        "recovery_live": round_float(recovery_live),
+        "health_live": round_float(health_live),
+        "health_live_status": health_status,
+        "mechanical_breach_count_live": len(stored_breach_items),
+        "mechanical_breach_summary_live": "|".join(stored_breach_items),
+        "raw_live_status": live_status,
+        "guarded_live_status": live_status,
+        "rdm_live_status": live_status,
+        "rdm_live_risk": live_risk,
+        "rdm_live_reason": live_reason,
+        "rdm_live_watch_action": watch_action,
+        "evolution_step": evolution_step,
+        "evolution_transition": transition,
+        "evolution_state": state,
+        "research_only": True,
+    }
+
+
+def merge_live_rdm_evolution_into_results(results: pd.DataFrame, live: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or live.empty or "case_id" not in live.columns:
+        return results
+    latest = live.sort_values(["case_id", "row_index"]).groupby("case_id", as_index=False).tail(1)
+    live_columns = [
+        column
+        for column in latest.columns
+        if column not in {"analysis_run_utc", "research_only", "zone_id", "episode_id", "case_id"}
+    ]
+    return results.merge(latest[["case_id", *live_columns]], on="case_id", how="left", suffixes=("", "_live"))
+
+
+def live_regime_stress_normalizer(source_row: pd.Series, zone: pd.Series) -> float:
+    regime_text = " ".join(
+        str(value or "")
+        for value in [
+            source_row.get("volatility_regime"),
+            source_row.get("velocity_state"),
+            source_row.get("volume_state"),
+            zone.get("mechanical_regime_context"),
+        ]
+    ).upper()
+    if "RECOVERY" in regime_text:
+        return 1.45
+    if "EXTREME" in regime_text:
+        return 1.80
+    if "HIGH" in regime_text or "EXPANSION" in regime_text or "SHOCK" in regime_text:
+        return 1.55
+    if "LOW" in regime_text or "COMPRESSION" in regime_text or "QUIET" in regime_text:
+        return 0.95
+    return 1.25
+
+
+def apply_live_rdm_guard(record: Dict[str, Any], state: Dict[str, int]) -> Dict[str, Any]:
+    inside = truthy(record.get("inside_zone_flag"))
+    raw_status = str(record.get("raw_live_status") or record.get("rdm_live_status") or "LIVE_SAFE")
+    sigma_confirmed = str(record.get("sigma_live_status") or "") == "BREACHED"
+    capacity_confirmed = str(record.get("capacity_live_status") or "") == "BREACHED"
+    health_confirmed = str(record.get("health_live_status") or "") == "COLLAPSED"
+    fatigue_confirmed = (to_float(record.get("fatigue_live")) or 0.0) >= 85.0
+    current_factor_count = sum(
+        [sigma_confirmed, capacity_confirmed, health_confirmed, fatigue_confirmed]
+    )
+    current_breach = current_factor_count > 0
+    current_rupture = current_factor_count >= 2
+    current_recovery = raw_status == "LIVE_RECOVERY"
+    current_stress = inside and (
+        current_breach
+        or (to_float(record.get("load_live")) or 0.0) > 0.0
+        or (to_float(record.get("fatigue_live")) or 0.0) > 0.0
+    )
+
+    state["inside"] = state.get("inside", 0) + 1 if inside else 0
+    state["breach"] = state.get("breach", 0) + 1 if inside and current_breach else 0
+    state["rupture"] = state.get("rupture", 0) + 1 if inside and current_rupture else 0
+    state["recovery"] = state.get("recovery", 0) + 1 if inside and current_recovery else 0
+    state["stress"] = state.get("stress", 0) + 1 if current_stress else 0
+
+    breach_streak = state["breach"]
+    rupture_streak = state["rupture"]
+    confirmation_score = current_factor_count
+    multi_factor = confirmation_score >= 2
+    guarded_status = raw_status
+    guard_applied = False
+    guard_reason = "NO_GUARD_NEEDED"
+
+    if not inside:
+        guarded_status = live_outside_zone_status(record)
+        guard_applied = raw_status in {"LIVE_BREACH", "LIVE_RUPTURE"}
+        guard_reason = "OUTSIDE_ZONE_NO_RUPTURE"
+    elif rupture_streak >= 5 and breach_streak >= 5 and multi_factor and (health_confirmed or fatigue_confirmed):
+        guarded_status = "LIVE_RUPTURE"
+        guard_reason = "PERSISTENT_STRUCTURAL_FAILURE_CONFIRMED"
+    elif breach_streak >= 3 and confirmation_score >= 1:
+        guarded_status = "LIVE_BREACH"
+        if raw_status == "LIVE_RUPTURE":
+            guard_applied = True
+            guard_reason = "RUPTURE_REQUIRES_THREE_ROW_MULTI_FACTOR_CONFIRMATION"
+        else:
+            guard_reason = "PERSISTENT_CONFIRMED_BREACH"
+    elif current_breach:
+        guarded_status = "LIVE_WARNING"
+        guard_applied = raw_status in {"LIVE_BREACH", "LIVE_RUPTURE"}
+        guard_reason = "SINGLE_ROW_BREACH_DOWNGRADED_TO_WARNING"
+    elif fatigue_confirmed and state["stress"] >= 3:
+        guarded_status = "LIVE_FATIGUE"
+        guard_reason = "FATIGUE_WITHOUT_CONFIRMED_BREACH"
+    elif current_recovery or state.get("recovery", 0) >= 2:
+        guarded_status = "LIVE_RECOVERY"
+        guard_reason = "RECOVERY_AFTER_STRESS"
+    elif inside:
+        guarded_status = "LIVE_SAFE"
+        guard_reason = "INSIDE_ZONE_WITHOUT_CONFIRMED_BREACH"
+
+    risk, reason, action = guarded_live_outcome(
+        guarded_status=guarded_status,
+        guard_reason=guard_reason,
+        confirmation_score=confirmation_score,
+    )
+    record.update(
+        {
+            "live_breach_streak": breach_streak,
+            "live_rupture_streak": rupture_streak,
+            "live_inside_zone_streak": state["inside"],
+            "live_recovery_streak": state["recovery"],
+            "live_stress_persistence": state["stress"],
+            "sigma_confirmed_breach": sigma_confirmed and breach_streak >= 2,
+            "capacity_confirmed_breach": capacity_confirmed and breach_streak >= 2,
+            "health_confirmed_collapse": health_confirmed and breach_streak >= 2,
+            "fatigue_confirmed_high": fatigue_confirmed and state["stress"] >= 3,
+            "multi_factor_breach_confirmed": multi_factor and breach_streak >= 3,
+            "live_guard_applied": guard_applied,
+            "live_guard_reason": guard_reason,
+            "raw_live_status": raw_status,
+            "guarded_live_status": guarded_status,
+            "live_confirmation_score": confirmation_score,
+            "rdm_live_status": guarded_status,
+            "rdm_live_risk": risk,
+            "rdm_live_reason": reason,
+            "rdm_live_watch_action": action,
+        }
+    )
+    return record
+
+
+def live_outside_zone_status(record: Dict[str, Any]) -> str:
+    distance = to_float(record.get("distance_to_zone")) or 0.0
+    width = to_float(record.get("real_zone_width")) or 1.0
+    if distance > width:
+        return "LIVE_AGING"
+    if distance > 0:
+        return "LIVE_DORMANT"
+    return "LIVE_SAFE"
+
+
+def guarded_live_outcome(guarded_status: str, guard_reason: str, confirmation_score: int) -> tuple[str, str, str]:
+    if guarded_status == "LIVE_RUPTURE":
+        return "CRITICAL", "Guard confirmed persistent multi-factor live rupture context.", "REVIEW_LIVE_BREACH_CONTEXT"
+    if guarded_status == "LIVE_BREACH":
+        return "HIGH", "Guard confirmed persistent live breach context.", "WATCH_LIVE_BREACH"
+    if guarded_status == "LIVE_WARNING":
+        return "MEDIUM", "Single-row breach was downgraded to warning by persistence guard.", "MONITOR_MECHANICAL_CONTEXT"
+    if guarded_status == "LIVE_FATIGUE":
+        return "HIGH", "Live fatigue is persistent without rupture confirmation.", "WATCH_FATIGUE_DECAY"
+    if guarded_status == "LIVE_RECOVERY":
+        return "MEDIUM", "Live recovery is present after stress context.", "REVIEW_RECOVERY_BEHAVIOR"
+    if guarded_status == "LIVE_AGING":
+        return "LOW", "Price is outside zone; only aging context is tracked.", "WAIT_FOR_ACTIVE_LOAD"
+    if guarded_status == "LIVE_DORMANT":
+        return "LOW", "Price is near/outside the zone; active load is not confirmed.", "WAIT_FOR_ACTIVE_LOAD"
+    return "LOW", f"Live guard state is stable ({guard_reason}, confirmations={confirmation_score}).", "OBSERVE_ONLY"
+
+
+def live_row_progress(zone: pd.Series, row_number: float | None) -> float:
+    start = to_float(zone.get("preparation_start_row")) or to_float(zone.get("start_row_id")) or row_number or 0.0
+    end = to_float(zone.get("end_row_id")) or to_float(zone.get("return_row")) or start + 1.0
+    if row_number is None or end <= start:
+        return 1.0
+    return max(min((row_number - start) / (end - start), 1.0), 0.0)
+
+
+def live_sigma_status(value: float, birth: float, memory: Dict[str, bool]) -> str:
+    breached = birth > 0 and value > birth * 1.15
+    if breached:
+        memory["sigma"] = True
+    return "BREACHED" if breached else "LIVE_SAFE"
+
+
+def live_capacity_status(capacity_live: float, capacity_birth: float, load_live: float, memory: Dict[str, bool]) -> str:
+    breached = capacity_birth > 0 and (capacity_live < capacity_birth * 0.55 or load_live > capacity_birth * 1.35)
+    if breached:
+        memory["capacity"] = True
+    if breached:
+        return "BREACHED"
+    if capacity_birth > 0 and capacity_live < capacity_birth * 0.75:
+        return "DECAYED"
+    return "LIVE_SAFE"
+
+
+def live_rigidity_status(rigidity_live: float, rigidity_birth: float, memory: Dict[str, bool]) -> str:
+    decayed = rigidity_birth > 0 and rigidity_live < rigidity_birth * 0.55
+    if decayed:
+        memory["rigidity"] = True
+    return "DECAYED" if decayed else "LIVE_SAFE"
+
+
+def live_fleche_status(fleche_live: float) -> str:
+    if fleche_live >= 1.0:
+        return "BREACHED"
+    if fleche_live >= 0.60:
+        return "LIVE_WARNING"
+    return "LIVE_SAFE"
+
+
+def live_health_status(health_live: float, health_birth: float, memory: Dict[str, bool]) -> str:
+    collapsed = health_birth > 0 and health_live < health_birth - 45.0
+    if collapsed:
+        memory["health"] = True
+    return "COLLAPSED" if collapsed else "LIVE_SAFE"
+
+
+def live_rdm_summary(active_load: bool, breach_count: int, fatigue_live: float, recovery_live: float, health_live: float) -> tuple[str, str, str, str]:
+    if not active_load:
+        return "LIVE_DORMANT", "LOW", "Price is outside the zone; no active mechanical load.", "WAIT_FOR_ACTIVE_LOAD"
+    if breach_count >= 3 and fatigue_live >= 85 and health_live < 35:
+        return "LIVE_RUPTURE", "CRITICAL", "Multiple live mechanical breach conditions are active.", "REVIEW_LIVE_BREACH_CONTEXT"
+    if breach_count == 1:
+        return "LIVE_BREACH", "HIGH", "One live mechanical baseline is breached.", "WATCH_LIVE_BREACH"
+    if fatigue_live >= 85:
+        return "LIVE_FATIGUE", "HIGH", "Live fatigue is elevated while the zone is active.", "WATCH_FATIGUE_DECAY"
+    if recovery_live > 0 and health_live >= 55:
+        return "LIVE_RECOVERY", "MEDIUM", "Live recovery is improving the zone context.", "REVIEW_RECOVERY_BEHAVIOR"
+    return "LIVE_SAFE", "LOW", "Live mechanics remain inside research-safe context.", "OBSERVE_ONLY"
+
+
+def live_evolution_state(inside: bool, touch: bool, breach_count: int, recovery_live: float, fatigue_live: float) -> tuple[str, str, str]:
+    if breach_count >= 2:
+        return "BREACH", "STRESS_TO_BREACH", "LIVE_RUPTURE"
+    if recovery_live > 0:
+        return "RECOVERY", "STRESS_TO_RECOVERY", "LIVE_RECOVERY"
+    if fatigue_live >= 70:
+        return "STRESS", "TO_FATIGUE", "LIVE_FATIGUE"
+    if inside:
+        return "CURRENT", "TO_ACTIVE_LOAD", "LIVE_ACTIVE"
+    if touch:
+        return "RETURN", "TO_ZONE_TOUCH", "LIVE_TOUCH"
+    return "CURRENT", "AGING_OUTSIDE_ZONE", "LIVE_DORMANT"
+
+
+def build_live_rdm_evolution_notes(live: pd.DataFrame, run_utc: str) -> str:
+    status_counts = Counter(live["rdm_live_status"].dropna().astype(str)) if not live.empty and "rdm_live_status" in live.columns else Counter()
+    raw_status_counts = Counter(live["raw_live_status"].dropna().astype(str)) if not live.empty and "raw_live_status" in live.columns else Counter()
+    breach_counts = Counter(live["mechanical_breach_count_live"].dropna().astype(str)) if not live.empty and "mechanical_breach_count_live" in live.columns else Counter()
+    guard_count = int(live["live_guard_applied"].astype(str).str.upper().isin(["TRUE", "1"]).sum()) if not live.empty and "live_guard_applied" in live.columns else 0
+    lines = [
+        "# Zone Live RDM Evolution",
+        "",
+        f"Run UTC: {run_utc}",
+        "",
+        "Research-only live-style replay timeline. No live execution, no scoring changes, and no signals.",
+        "",
+        f"Rows: {len(live)}",
+        f"Guard applied rows: {guard_count}",
+        "",
+        "## Raw Live Status Counts",
+        "",
+    ]
+    lines.extend(f"- {status}: {count}" for status, count in raw_status_counts.items())
+    lines.extend([
+        "",
+        "## Guarded Live Status Counts",
+        "",
+    ])
+    lines.extend(f"- {status}: {count}" for status, count in status_counts.items())
+    lines.extend(["", "## Live Breach Counts", ""])
+    lines.extend(f"- {count_value}: {count}" for count_value, count in breach_counts.items())
+    return "\n".join(lines) + "\n"
+
+
+def build_interaction_core_geometry(results: pd.DataFrame, live: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    rows: List[Dict[str, Any]] = []
+    live_by_case = {
+        str(case_id): group.copy()
+        for case_id, group in live.groupby("case_id")
+    } if not live.empty and "case_id" in live.columns else {}
+
+    for _, row in results.iterrows():
+        case_id = str(row.get("case_id") or "")
+        case_live = live_by_case.get(case_id, pd.DataFrame())
+        formation_lower = to_float(row.get("real_zone_lower_edge")) or 0.0
+        formation_upper = to_float(row.get("real_zone_upper_edge")) or 0.0
+        formation_width = max(to_float(row.get("real_zone_width")) or abs(formation_upper - formation_lower), 1e-9)
+        formation_mid = (formation_upper + formation_lower) / 2.0
+        temporal_live = temporal_interaction_window(case_live)
+        interaction_points = interaction_core_points(
+            temporal_live,
+            formation_lower=formation_lower,
+            formation_upper=formation_upper,
+            formation_width=formation_width,
+        )
+        temporal_rows = len(temporal_live)
+
+        if len(interaction_points) >= 3:
+            point_lower = min(interaction_points)
+            point_upper = max(interaction_points)
+            point_width = max(point_upper - point_lower, 0.0)
+            margin = max(point_width * 0.10, 5.0)
+            raw_lower = point_lower - margin
+            raw_upper = point_upper + margin
+            source = "LIVE_INTERACTION_POINTS"
+            valid = True
+        else:
+            fallback_width = min(formation_width * 0.25, max(50.0, formation_width * 0.10))
+            center = to_float(row.get("real_birth_price")) or formation_mid
+            raw_lower = center - fallback_width / 2.0
+            raw_upper = center + fallback_width / 2.0
+            margin = fallback_width / 2.0
+            source = "FALLBACK_ADAPTIVE_CORE"
+            valid = False
+
+        raw_width = max(raw_upper - raw_lower, 0.0)
+        clamped_lower = max(raw_lower, formation_lower)
+        clamped_upper = min(raw_upper, formation_upper)
+        if clamped_upper < clamped_lower:
+            clamped_lower, clamped_upper = adaptive_core_bounds(row, formation_lower, formation_upper, formation_width, formation_mid)
+        clamped_width = max(clamped_upper - clamped_lower, 0.0)
+        clamp_applied = clamped_lower != raw_lower or clamped_upper != raw_upper
+        clamp_reason = "CLAMPED_TO_FORMATION_RANGE" if clamp_applied else "NO_CLAMP_NEEDED"
+
+        weighted_center = interaction_weighted_center(interaction_points, row, formation_mid)
+        compression_applied = False
+        compression_reason = "NO_COMPRESSION_NEEDED"
+        compressed_width = clamped_width
+        core_lower, core_upper = clamped_lower, clamped_upper
+        if safe_divide(clamped_width, formation_width) > 0.50:
+            compression_applied = True
+            compression_reason = "CORE_WIDTH_ABOVE_HALF_FORMATION"
+            compressed_width = min(clamped_width, formation_width * 0.25)
+            core_lower = weighted_center - compressed_width / 2.0
+            core_upper = weighted_center + compressed_width / 2.0
+            core_lower = max(core_lower, formation_lower)
+            core_upper = min(core_upper, formation_upper)
+            compressed_width = max(core_upper - core_lower, 0.0)
+
+        core_width = max(core_upper - core_lower, 0.0)
+        efficiency = safe_divide(core_width, formation_width)
+        if efficiency > 1.0:
+            core_lower, core_upper = adaptive_core_bounds(row, formation_lower, formation_upper, formation_width, formation_mid)
+            core_width = max(core_upper - core_lower, 0.0)
+            efficiency = safe_divide(core_width, formation_width)
+            source = "FALLBACK_ADAPTIVE_CORE"
+            valid = False
+            compression_applied = True
+            compression_reason = "INVALID_TOO_WIDE_FALLBACK"
+
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "zone_id": zone_identifier(row),
+                "formation_upper_edge": round_float(formation_upper),
+                "formation_lower_edge": round_float(formation_lower),
+                "formation_mid_price": round_float(formation_mid),
+                "formation_width": round_float(formation_width),
+                "raw_interaction_core_upper_edge": round_float(raw_upper),
+                "raw_interaction_core_lower_edge": round_float(raw_lower),
+                "raw_interaction_core_width": round_float(raw_width),
+                "clamped_interaction_core_upper_edge": round_float(clamped_upper),
+                "clamped_interaction_core_lower_edge": round_float(clamped_lower),
+                "clamped_interaction_core_width": round_float(clamped_width),
+                "core_spatial_clamp_applied": clamp_applied,
+                "core_spatial_clamp_reason": clamp_reason,
+                "core_temporal_window_start": row.get("real_birth_time") or row.get("episode_start_time_utc"),
+                "core_temporal_window_end": temporal_window_end(temporal_live),
+                "core_temporal_window_seconds": round_float(temporal_window_seconds(temporal_live)),
+                "core_temporal_window_rows": temporal_rows,
+                "core_temporal_filter_applied": True,
+                "interaction_core_weighted_center": round_float(weighted_center),
+                "interaction_core_compression_applied": compression_applied,
+                "interaction_core_compression_reason": compression_reason,
+                "interaction_core_compressed_width": round_float(compressed_width),
+                "interaction_core_upper_edge": round_float(core_upper),
+                "interaction_core_lower_edge": round_float(core_lower),
+                "interaction_core_mid_price": round_float((core_upper + core_lower) / 2.0),
+                "interaction_core_width": round_float(core_width),
+                "interaction_core_efficiency_ratio": round_float(efficiency),
+                "interaction_core_source": source,
+                "interaction_core_points_count": len(interaction_points),
+                "interaction_core_valid_flag": valid,
+                "interaction_core_margin": round_float(margin),
+                "interaction_core_width_state": interaction_core_width_state(efficiency, source),
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def temporal_interaction_window(live: pd.DataFrame, max_rows: int = 30) -> pd.DataFrame:
+    if live.empty:
+        return live
+    rows = live.copy()
+    if "row_index" in rows.columns:
+        rows = rows.sort_values("row_index")
+    interaction_mask = base_interaction_mask(rows)
+    interaction_rows = rows[interaction_mask].copy()
+    if interaction_rows.empty:
+        return rows.head(max_rows).copy()
+    first_position = rows.index.get_loc(interaction_rows.index[0])
+    return rows.iloc[first_position : first_position + max_rows].copy()
+
+
+def base_interaction_mask(rows: pd.DataFrame) -> pd.Series:
+    text_status = (
+        rows.get("guarded_live_status", pd.Series("", index=rows.index)).astype(str)
+        + "|"
+        + rows.get("rdm_live_status", pd.Series("", index=rows.index)).astype(str)
+    )
+    breach_text = rows.get("mechanical_breach_summary_live", pd.Series("", index=rows.index)).fillna("").astype(str)
+    return (
+        rows.get("inside_zone_flag", pd.Series(False, index=rows.index)).astype(str).str.upper().isin(["TRUE", "1"])
+        | rows.get("zone_touch_flag", pd.Series(False, index=rows.index)).astype(str).str.upper().isin(["TRUE", "1"])
+        | rows.get("return_to_zone_flag", pd.Series(False, index=rows.index)).astype(str).str.upper().isin(["TRUE", "1"])
+        | text_status.str.contains("LIVE_BREACH|LIVE_WARNING|LIVE_RECOVERY|LIVE_FATIGUE", regex=True)
+        | (breach_text.str.strip().ne("") & breach_text.str.upper().ne("NONE"))
+        | (pd.to_numeric(rows.get("recovery_live", 0), errors="coerce").fillna(0) > 0)
+        | (pd.to_numeric(rows.get("fatigue_live", 0), errors="coerce").fillna(0).diff().abs().fillna(0) > 10)
+        | (pd.to_numeric(rows.get("load_live", 0), errors="coerce").fillna(0) > 0)
+    )
+
+
+def interaction_core_points(
+    live: pd.DataFrame,
+    formation_lower: float,
+    formation_upper: float,
+    formation_width: float,
+) -> List[float]:
+    if live.empty or "price" not in live.columns:
+        return []
+    rows = live.copy()
+    near_lower = formation_lower - formation_width * 0.10
+    near_upper = formation_upper + formation_width * 0.10
+    prices = pd.to_numeric(rows["price"], errors="coerce")
+    near_formation = prices.between(near_lower, near_upper)
+    stress_inside = (pd.to_numeric(rows.get("load_live", 0), errors="coerce").fillna(0) > 0) & prices.between(formation_lower, formation_upper)
+    mask = (base_interaction_mask(rows) | stress_inside) & near_formation
+    return pd.to_numeric(rows.loc[mask, "price"], errors="coerce").dropna().astype(float).tolist()
+
+
+def interaction_weighted_center(points: List[float], row: pd.Series, formation_mid: float) -> float:
+    if points:
+        series = pd.Series(points)
+        return float(series.median())
+    return to_float(row.get("real_birth_price")) or formation_mid
+
+
+def adaptive_core_bounds(row: pd.Series, formation_lower: float, formation_upper: float, formation_width: float, formation_mid: float) -> tuple[float, float]:
+    fallback_width = min(formation_width * 0.25, max(50.0, formation_width * 0.10))
+    center = to_float(row.get("real_birth_price")) or formation_mid
+    lower = max(center - fallback_width / 2.0, formation_lower)
+    upper = min(center + fallback_width / 2.0, formation_upper)
+    return lower, upper
+
+
+def temporal_window_end(rows: pd.DataFrame) -> Any:
+    if rows.empty or "timestamp" not in rows.columns:
+        return ""
+    return rows.tail(1).iloc[0].get("timestamp")
+
+
+def temporal_window_seconds(rows: pd.DataFrame) -> float | None:
+    if rows.empty or "timestamp" not in rows.columns:
+        return None
+    start = to_float(rows.head(1).iloc[0].get("timestamp"))
+    end = to_float(rows.tail(1).iloc[0].get("timestamp"))
+    if start is None or end is None:
+        return None
+    return max((end - start) / 1000.0, 0.0)
+
+
+def interaction_core_width_state(ratio: float, source: str) -> str:
+    if ratio > 1.0:
+        return "CORE_INVALID_TOO_WIDE"
+    if source == "FALLBACK_ADAPTIVE_CORE":
+        return "CORE_FALLBACK"
+    if ratio <= 0.25:
+        return "CORE_TIGHT"
+    if ratio <= 0.50:
+        return "CORE_NORMAL"
+    if ratio <= 0.80:
+        return "CORE_WIDE"
+    return "CORE_TOO_WIDE"
+
+
+def merge_interaction_core_into_results(results: pd.DataFrame, core: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or core.empty:
+        return results
+    columns = [column for column in core.columns if column not in {"analysis_run_utc", "research_only", "zone_id"}]
+    return results.merge(core[columns], on=["case_id", "episode_id"], how="left")
+
+
+def build_interaction_density_map(results: pd.DataFrame, live: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    live_by_case = {
+        str(case_id): group.copy()
+        for case_id, group in live.groupby("case_id")
+    } if not live.empty and "case_id" in live.columns else {}
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in results.iterrows():
+        case_id = str(row.get("case_id") or "")
+        case_live = live_by_case.get(case_id, pd.DataFrame())
+        density = interaction_density_for_row(row, case_live)
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "zone_id": zone_identifier(row),
+                **density,
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def interaction_density_for_row(row: pd.Series, live: pd.DataFrame, bucket_count: int = 7) -> Dict[str, Any]:
+    lower = to_float(row.get("interaction_core_lower_edge"))
+    upper = to_float(row.get("interaction_core_upper_edge"))
+    if lower is None or upper is None or upper <= lower or live.empty:
+        return empty_density_result(row)
+
+    zone_rows = live.copy()
+    zone_rows["price_numeric"] = pd.to_numeric(zone_rows.get("price"), errors="coerce")
+    zone_rows = zone_rows[
+        (zone_rows["price_numeric"] >= lower)
+        & (zone_rows["price_numeric"] <= upper)
+    ].copy()
+    if zone_rows.empty:
+        return empty_density_result(row)
+
+    zone_rows["density_weight"] = zone_rows.apply(interaction_density_weight, axis=1)
+    zone_rows = zone_rows[zone_rows["density_weight"] > 0].copy()
+    if zone_rows.empty:
+        return empty_density_result(row)
+
+    weighted_center = safe_divide(
+        (zone_rows["price_numeric"] * zone_rows["density_weight"]).sum(),
+        zone_rows["density_weight"].sum(),
+    )
+    peak_row = zone_rows.sort_values("density_weight", ascending=False).iloc[0]
+    peak_price = to_float(peak_row.get("price_numeric")) or weighted_center
+    bucket_edges = density_bucket_edges(lower, upper, bucket_count)
+    bucket_scores = density_bucket_scores(zone_rows, bucket_edges)
+    dominant_indexes = dominant_density_indexes(bucket_scores)
+    band_lower = bucket_edges[min(dominant_indexes)]
+    band_upper = bucket_edges[max(dominant_indexes) + 1]
+    density_width = max(band_upper - band_lower, 0.0)
+    efficiency = safe_divide(density_width, upper - lower)
+    upper_score, middle_score, lower_score = density_band_scores(bucket_scores)
+    dominant_location = dominant_density_location(bucket_scores)
+    density_score = float(sum(bucket_scores))
+
+    return {
+        "interaction_density_score": round_float(density_score),
+        "interaction_density_state": interaction_density_state(density_score, len(zone_rows)),
+        "interaction_density_peak_price": round_float(peak_price),
+        "interaction_density_weighted_center": round_float(weighted_center),
+        "interaction_density_upper_band": round_float(band_upper),
+        "interaction_density_lower_band": round_float(band_lower),
+        "interaction_density_width": round_float(density_width),
+        "interaction_density_efficiency_ratio": round_float(efficiency),
+        "interaction_density_points_count": len(zone_rows),
+        "core_upper_density_score": round_float(upper_score),
+        "core_middle_density_score": round_float(middle_score),
+        "core_lower_density_score": round_float(lower_score),
+        "dominant_interaction_band": dominant_location,
+        "dominant_interaction_location": dominant_location,
+    }
+
+
+def empty_density_result(row: pd.Series) -> Dict[str, Any]:
+    lower = to_float(row.get("interaction_core_lower_edge")) or 0.0
+    upper = to_float(row.get("interaction_core_upper_edge")) or lower
+    mid = (upper + lower) / 2.0
+    return {
+        "interaction_density_score": 0.0,
+        "interaction_density_state": "LOW_DENSITY",
+        "interaction_density_peak_price": round_float(mid),
+        "interaction_density_weighted_center": round_float(mid),
+        "interaction_density_upper_band": round_float(upper),
+        "interaction_density_lower_band": round_float(lower),
+        "interaction_density_width": round_float(max(upper - lower, 0.0)),
+        "interaction_density_efficiency_ratio": 1.0 if upper > lower else 0.0,
+        "interaction_density_points_count": 0,
+        "core_upper_density_score": 0.0,
+        "core_middle_density_score": 0.0,
+        "core_lower_density_score": 0.0,
+        "dominant_interaction_band": "NO_CLEAR_DENSITY",
+        "dominant_interaction_location": "NO_CLEAR_DENSITY",
+    }
+
+
+def interaction_density_weight(row: pd.Series) -> float:
+    weight = 1.0
+    if truthy(row.get("zone_touch_flag")):
+        weight += 1.0
+    if truthy(row.get("return_to_zone_flag")):
+        weight += 1.25
+    if str(row.get("guarded_live_status") or "") in {"LIVE_WARNING", "LIVE_BREACH", "LIVE_RECOVERY", "LIVE_FATIGUE"}:
+        weight += 1.5
+    if (to_float(row.get("recovery_live")) or 0.0) > 0:
+        weight += 0.75
+    if (to_float(row.get("fatigue_live")) or 0.0) > 0:
+        weight += min((to_float(row.get("fatigue_live")) or 0.0) / 60.0, 1.5)
+    weight += min(abs_number(row.get("sigma_live")) / 100.0, 1.0)
+    weight += min(abs_number(row.get("load_live")) / 35.0, 1.5)
+    weight += min(abs_number(row.get("moment_live")) / 100.0, 1.0)
+    if str(row.get("mechanical_breach_summary_live") or "").strip():
+        weight += 1.0
+    return weight
+
+
+def density_bucket_edges(lower: float, upper: float, bucket_count: int) -> List[float]:
+    width = (upper - lower) / bucket_count
+    return [lower + width * index for index in range(bucket_count + 1)]
+
+
+def density_bucket_scores(rows: pd.DataFrame, edges: List[float]) -> List[float]:
+    scores = [0.0 for _ in range(len(edges) - 1)]
+    for _, row in rows.iterrows():
+        price = to_float(row.get("price_numeric"))
+        if price is None:
+            continue
+        for index in range(len(edges) - 1):
+            is_last = index == len(edges) - 2
+            if edges[index] <= price < edges[index + 1] or (is_last and price <= edges[index + 1]):
+                scores[index] += to_float(row.get("density_weight")) or 0.0
+                break
+    return scores
+
+
+def dominant_density_indexes(scores: List[float]) -> List[int]:
+    if not scores or max(scores) <= 0:
+        return [0]
+    peak = max(scores)
+    return [index for index, score in enumerate(scores) if score >= peak * 0.85]
+
+
+def density_band_scores(scores: List[float]) -> tuple[float, float, float]:
+    if not scores:
+        return 0.0, 0.0, 0.0
+    third = max(len(scores) // 3, 1)
+    lower_score = sum(scores[:third])
+    middle_score = sum(scores[third : len(scores) - third])
+    upper_score = sum(scores[len(scores) - third :])
+    return upper_score, middle_score, lower_score
+
+
+def dominant_density_location(scores: List[float]) -> str:
+    if not scores or max(scores) <= 0:
+        return "NO_CLEAR_DENSITY"
+    peak = max(scores)
+    close = [index for index, score in enumerate(scores) if score >= peak * 0.85]
+    if len(close) > 1:
+        return "MULTI_NODE"
+    index = close[0]
+    ratio = (index + 0.5) / len(scores)
+    if ratio >= 0.66:
+        return "UPPER_CORE"
+    if ratio <= 0.34:
+        return "LOWER_CORE"
+    return "MIDDLE_CORE"
+
+
+def interaction_density_state(score: float, points: int) -> str:
+    if points < 3 or score < 8:
+        return "LOW_DENSITY"
+    if score < 20:
+        return "NORMAL_DENSITY"
+    if score < 40:
+        return "HIGH_DENSITY"
+    return "EXTREME_DENSITY"
+
+
+def merge_interaction_density_into_results(results: pd.DataFrame, density: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or density.empty:
+        return results
+    columns = [column for column in density.columns if column not in {"analysis_run_utc", "research_only", "zone_id"}]
+    return results.merge(density[columns], on=["case_id", "episode_id"], how="left")
+
+
+def build_interaction_density_notes(density: pd.DataFrame, run_utc: str) -> str:
+    state_counts = Counter(density["interaction_density_state"].dropna().astype(str)) if not density.empty else Counter()
+    location_counts = Counter(density["dominant_interaction_location"].dropna().astype(str)) if not density.empty else Counter()
+    return "\n".join(
+        [
+            "# Interaction Density Map",
+            "",
+            f"Run UTC: {run_utc}",
+            "",
+            "Research-only map of weighted interaction density inside Active RDM Zone.",
+            "",
+            f"Rows: {len(density)}",
+            "",
+            "## Density States",
+            "",
+            *[f"- {state}: {count}" for state, count in state_counts.items()],
+            "",
+            "## Dominant Locations",
+            "",
+            *[f"- {location}: {count}" for location, count in location_counts.items()],
+        ]
+    ) + "\n"
+
+
+def build_true_lifecycle_tracking(
+    results: pd.DataFrame,
+    core: pd.DataFrame,
+    live: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    core_by_case = {str(row["case_id"]): row for _, row in core.iterrows()} if not core.empty else {}
+    live_by_case = {
+        str(case_id): group.copy()
+        for case_id, group in live.groupby("case_id")
+    } if not live.empty and "case_id" in live.columns else {}
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in results.iterrows():
+        case_id = str(row.get("case_id") or "")
+        case_live = live_by_case.get(case_id, pd.DataFrame())
+        interaction_rows = case_live[
+            case_live.get("inside_zone_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
+            | case_live.get("zone_touch_flag", pd.Series(False, index=case_live.index)).astype(str).str.upper().isin(["TRUE", "1"])
+            | case_live.get("mechanical_breach_summary_live", pd.Series("", index=case_live.index)).fillna("").astype(str).str.strip().ne("")
+        ] if not case_live.empty else pd.DataFrame()
+        last_interaction = interaction_rows.tail(1).iloc[0] if not interaction_rows.empty else None
+        latest = case_live.tail(1).iloc[0] if not case_live.empty else None
+        death = mechanical_death_review(row, core_by_case.get(case_id), latest)
+        state = true_lifecycle_state(row, latest, last_interaction, death)
+        degradation = birth_live_degradation(row, latest)
+
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "zone_id": zone_identifier(row),
+                "formation_start_time": row.get("real_birth_time") or row.get("episode_start_time_utc"),
+                "formation_end_time": row.get("episode_end_time_utc"),
+                "active_life_start_time": row.get("real_birth_time") or row.get("episode_start_time_utc"),
+                "last_mechanical_interaction_time": last_interaction.get("timestamp") if last_interaction is not None else "",
+                "last_mechanical_interaction_price": round_float(last_interaction.get("price")) if last_interaction is not None else "",
+                "time_since_last_interaction": round_float(time_since_last_interaction(case_live, last_interaction)),
+                "dormant_state_flag": state == "DORMANT",
+                "true_mechanical_death_flag": death["true_mechanical_death_flag"],
+                "mechanical_death_score": death["mechanical_death_score"],
+                "mechanical_death_reason": death["mechanical_death_reason"],
+                "true_lifecycle_state": state,
+                **degradation,
+                "rdm_final_status": final_status_from_lifecycle(state, death, latest),
+                "rdm_final_reason": final_reason_from_lifecycle(state, death),
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def mechanical_death_review(row: pd.Series, core_row: Any, latest: Any) -> Dict[str, Any]:
+    score = 0
+    reasons: List[str] = []
+    guarded = str(latest.get("guarded_live_status") if latest is not None else row.get("guarded_live_status") or "")
+    rupture_streak = to_float(latest.get("live_rupture_streak") if latest is not None else row.get("live_rupture_streak")) or 0.0
+    if guarded == "LIVE_RUPTURE" and rupture_streak >= 5:
+        score += 2
+        reasons.append("CONFIRMED_LIVE_RUPTURE")
+    if truthy(row.get("failed_after_return")):
+        score += 1
+        reasons.append("FAILED_RETURN")
+    if not truthy(row.get("return_to_preparation")) and str(row.get("guarded_live_status") or "") == "LIVE_BREACH":
+        score += 1
+        reasons.append("NO_RECOVERY_AFTER_BREACH")
+    if (to_float(row.get("fatigue_current")) or to_float(row.get("fatigue_live")) or 0.0) >= 85:
+        score += 1
+        reasons.append("SEVERE_FATIGUE")
+    if truthy(row.get("health_collapse_flag")) or str(latest.get("health_live_status") if latest is not None else "") == "COLLAPSED":
+        score += 1
+        reasons.append("HEALTH_COLLAPSE")
+    if truthy(row.get("capacity_breach_flag")) or str(latest.get("capacity_live_status") if latest is not None else "") == "BREACHED":
+        score += 1
+        reasons.append("CAPACITY_BREACH")
+    if str(row.get("sigma_state") or "") == "SIGMA_RUPTURE_RISK":
+        score += 1
+        reasons.append("SIGMA_RUPTURE_RISK")
+    if core_row is not None and (to_float(core_row.get("interaction_core_efficiency_ratio")) or 0.0) > 0.80:
+        score += 1
+        reasons.append("CORE_DEEP_BREACH")
+    recovery_active = (
+        str(latest.get("guarded_live_status") if latest is not None else "") == "LIVE_RECOVERY"
+        or (to_float(row.get("recovery_live")) or 0.0) > 0.25
+        or str(row.get("zone_recovery_state") or "") in {"RECOVERED", "STRONG_RECOVERY", "PARTIAL_RECOVERY"}
+    )
+    return {
+        "mechanical_death_score": score,
+        "true_mechanical_death_flag": score >= 4 and not recovery_active,
+        "mechanical_death_reason": "|".join(reasons),
+    }
+
+
+def true_lifecycle_state(row: pd.Series, latest: Any, last_interaction: Any, death: Dict[str, Any]) -> str:
+    if death["true_mechanical_death_flag"]:
+        return "MECHANICALLY_DEAD"
+    guarded = str(latest.get("guarded_live_status") if latest is not None else row.get("guarded_live_status") or "")
+    if guarded == "LIVE_RUPTURE":
+        return "RUPTURE"
+    if guarded == "LIVE_RECOVERY":
+        return "RECOVERY"
+    if guarded == "LIVE_FATIGUE":
+        return "FATIGUE"
+    if guarded in {"LIVE_BREACH", "LIVE_WARNING"}:
+        return "ACTIVE_INTERACTION"
+    if latest is not None and truthy(latest.get("return_to_zone_flag")):
+        return "RETEST"
+    if latest is not None and not truthy(latest.get("inside_zone_flag")):
+        return "DORMANT"
+    if last_interaction is not None:
+        return "ACTIVE_INTERACTION"
+    return "FORMATION"
+
+
+def time_since_last_interaction(case_live: pd.DataFrame, last_interaction: Any) -> float | None:
+    if case_live.empty or last_interaction is None:
+        return None
+    latest_row = to_float(case_live.tail(1).iloc[0].get("row_index"))
+    last_row = to_float(last_interaction.get("row_index"))
+    if latest_row is None or last_row is None:
+        return None
+    return latest_row - last_row
+
+
+def birth_live_degradation(row: pd.Series, latest: Any) -> Dict[str, Any]:
+    sigma_birth = to_float(row.get("sigma_birth")) or 0.0
+    sigma_live = to_float(latest.get("sigma_live") if latest is not None else row.get("sigma_live")) or 0.0
+    rigidity_birth = to_float(row.get("rigidity_birth")) or 0.0
+    rigidity_live = to_float(latest.get("rigidity_live") if latest is not None else row.get("rigidity_live")) or 0.0
+    fatigue_birth = to_float(row.get("fatigue_birth")) or 0.0
+    fatigue_live = to_float(latest.get("fatigue_live") if latest is not None else row.get("fatigue_live")) or 0.0
+    health_birth = to_float(row.get("health_birth")) or 0.0
+    health_live = to_float(latest.get("health_live") if latest is not None else row.get("health_live")) or 0.0
+    sigma_degradation = max(sigma_birth - sigma_live, 0.0)
+    rigidity_degradation = max(rigidity_birth - rigidity_live, 0.0)
+    fatigue_increase = max(fatigue_live - fatigue_birth, 0.0)
+    health_degradation = max(health_birth - health_live, 0.0)
+    state = degradation_state(rigidity_degradation, fatigue_increase, health_degradation)
+    return {
+        "sigma_degradation_from_birth": round_float(sigma_degradation),
+        "rigidity_degradation_from_birth": round_float(rigidity_degradation),
+        "fatigue_increase_from_birth": round_float(fatigue_increase),
+        "health_degradation_from_birth": round_float(health_degradation),
+        "birth_vs_live_degradation_state": state,
+    }
+
+
+def degradation_state(rigidity_degradation: float, fatigue_increase: float, health_degradation: float) -> str:
+    if health_degradation >= 60 or fatigue_increase >= 95:
+        return "COLLAPSED"
+    if health_degradation >= 42 or rigidity_degradation >= 45 or fatigue_increase >= 80:
+        return "SEVERE_DEGRADATION"
+    if health_degradation >= 22 or rigidity_degradation >= 25 or fatigue_increase >= 45:
+        return "MODERATE_DEGRADATION"
+    return "STABLE"
+
+
+def final_status_from_lifecycle(state: str, death: Dict[str, Any], latest: Any) -> str:
+    if death["true_mechanical_death_flag"] or state == "MECHANICALLY_DEAD":
+        return "MECHANICALLY_DEAD"
+    guarded = str(latest.get("guarded_live_status") if latest is not None else "")
+    if guarded == "LIVE_RUPTURE" or state == "RUPTURE":
+        return "RUPTURED"
+    if guarded == "LIVE_FATIGUE" or state == "FATIGUE":
+        return "FATIGUED"
+    if guarded == "LIVE_RECOVERY" or state == "RECOVERY":
+        return "RECOVERING"
+    if state == "DORMANT":
+        return "DORMANT"
+    if state in {"ACTIVE_INTERACTION", "RETEST"}:
+        return "ACTIVE_INTERACTION"
+    return "ALIVE"
+
+
+def final_reason_from_lifecycle(state: str, death: Dict[str, Any]) -> str:
+    if death["true_mechanical_death_flag"]:
+        return f"True mechanical death confirmed: {death['mechanical_death_reason']}"
+    return f"True lifecycle state is {state}; formation end is not used as death proof."
+
+
+def merge_true_lifecycle_into_results(results: pd.DataFrame, lifecycle: pd.DataFrame) -> pd.DataFrame:
+    if results.empty or lifecycle.empty:
+        return results
+    columns = [column for column in lifecycle.columns if column not in {"analysis_run_utc", "research_only", "zone_id"}]
+    return results.merge(lifecycle[columns], on=["case_id", "episode_id"], how="left")
+
+
+def build_interaction_core_notes(core: pd.DataFrame, lifecycle: pd.DataFrame, run_utc: str) -> str:
+    state_counts = Counter(core["interaction_core_width_state"].dropna().astype(str)) if not core.empty else Counter()
+    lifecycle_counts = Counter(lifecycle["true_lifecycle_state"].dropna().astype(str)) if not lifecycle.empty else Counter()
+    return "\n".join(
+        [
+            "# Interaction Core Geometry",
+            "",
+            f"Run UTC: {run_utc}",
+            "",
+            "Research-only split between formation range and interaction core.",
+            "",
+            f"Rows: {len(core)}",
+            "",
+            "## Core Width States",
+            "",
+            *[f"- {state}: {count}" for state, count in state_counts.items()],
+            "",
+            "## True Lifecycle States",
+            "",
+            *[f"- {state}: {count}" for state, count in lifecycle_counts.items()],
+            "",
+            "Formation end is not treated as mechanical death.",
+        ]
+    ) + "\n"
+
+
 def build_zone_stress_history(row: pd.Series) -> List[Dict[str, float]]:
     penetration = abs_number(row.get("zone_penetration_depth"))
     sigma_market = abs_number(row.get("sigma_market"))
@@ -1360,8 +2840,13 @@ def build_zone_birth_registry(results: pd.DataFrame, run_utc: str) -> pd.DataFra
     rows: List[Dict[str, Any]] = []
 
     for _, row in results.iterrows():
-        lower_edge, upper_edge = zone_edges(row)
-        zone_width = abs(upper_edge - lower_edge) if upper_edge != lower_edge else zone_range_height(row)
+        lower_edge = to_float(row.get("real_zone_lower_edge"))
+        upper_edge = to_float(row.get("real_zone_upper_edge"))
+        if lower_edge is None or upper_edge is None:
+            lower_edge, upper_edge = zone_edges(row)
+        zone_width = to_float(row.get("real_zone_width"))
+        if zone_width is None:
+            zone_width = abs(upper_edge - lower_edge) if upper_edge != lower_edge else zone_range_height(row)
         zone_id = zone_identifier(row)
         birth = classify_mechanical_birth(row)
 
@@ -1372,7 +2857,7 @@ def build_zone_birth_registry(results: pd.DataFrame, run_utc: str) -> pd.DataFra
                 "case_id": row.get("case_id"),
                 "episode_id": row.get("episode_id"),
                 "zone_type": zone_type_for_row(row),
-                "birth_time": row.get("episode_start_time_utc"),
+                "birth_time": row.get("real_birth_time") or row.get("episode_start_time_utc"),
                 "birth_price_range": f"{round_float(lower_edge)}-{round_float(upper_edge)}",
                 "upper_edge": round_float(upper_edge),
                 "lower_edge": round_float(lower_edge),
@@ -1394,12 +2879,12 @@ def build_zone_birth_registry(results: pd.DataFrame, run_utc: str) -> pd.DataFra
                 "birth_classification_source": birth["birth_classification_source"],
                 "birth_regime": row.get("mechanical_regime_context"),
                 "birth_family_candidate": row.get("mechanical_family"),
-                "zone_birth_time": row.get("episode_start_time_utc"),
-                "zone_last_test_time": row.get("episode_end_time_utc"),
+                "zone_birth_time": row.get("real_birth_time") or row.get("episode_start_time_utc"),
+                "zone_last_test_time": row.get("real_zone_right_time") or row.get("episode_end_time_utc"),
                 "zone_age": row.get("zone_age"),
                 "zone_test_count": row.get("zone_test_count"),
-                "zone_active_duration": row.get("duration_seconds"),
-                "zone_lifetime": row.get("zone_age"),
+                "zone_active_duration": row.get("real_zone_active_duration") or row.get("duration_seconds"),
+                "zone_lifetime": row.get("real_zone_lifetime") or row.get("zone_age"),
                 "zone_decay_rate": zone_decay_rate(row),
                 "zone_survival_ratio": zone_survival_ratio(row),
                 "research_only": True,
@@ -2134,9 +3619,11 @@ def calculate_sigma_market(row: pd.Series) -> float:
     context = str(row.get("mechanical_regime_context") or "")
     context_adjustment = 1.0
     if context == "RECOVERY_CONTEXT":
-        context_adjustment = 0.20
+        context_adjustment = 0.18
     elif context == "EXPANSION_EXHAUSTION_CONTEXT":
-        context_adjustment = 0.45
+        context_adjustment = 0.38
+    elif context == "HIGH_VOLATILITY_CONTEXT":
+        context_adjustment = 0.65
     return penetration * volume_proxy * velocity_proxy * delta_alignment * context_adjustment
 
 
@@ -2186,9 +3673,9 @@ def zone_moment_capacity(row: pd.Series) -> float:
     recovery = to_float(row.get("recovery_ratio")) or 0.0
     fatigue = to_float(row.get("fatigue_index")) or 0.0
 
-    capacity = rigidity * (1 - min(decay, 100.0) / 100.0)
-    capacity += min(recovery, 2.0) * 20.0
-    capacity -= min(fatigue, 100.0) * 0.15
+    capacity = rigidity * (1 - min(decay, 100.0) / 140.0)
+    capacity += min(recovery, 2.0) * 28.0
+    capacity -= min(fatigue, 100.0) * 0.08
     return max(capacity, 1.0)
 
 

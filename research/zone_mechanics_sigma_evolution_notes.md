@@ -1,6 +1,6 @@
 # Zone Mechanics Sigma Evolution Notes
 
-- Run UTC: 2026-05-27T12:38:05+00:00
+- Run UTC: 2026-05-28T09:01:30+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -9,11 +9,9 @@
 - No Phase 2
 
 ## Sigma Memory State Counts
-- FRESH_SIGMA: 12
-- FATIGUED_SIGMA: 10
-- CRITICAL_SIGMA: 2
+- FRESH_SIGMA: 17
+- FATIGUED_SIGMA: 7
 - REPAIRED_SIGMA: 1
-- INSTITUTIONAL_SIGMA: 2
 
 ## Interpretation
 - Sigma evolution extends sigma_barre_zone with age, tests, repair cycles, and memory.

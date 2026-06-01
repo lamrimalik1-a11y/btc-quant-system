@@ -284,6 +284,51 @@ RDM_INTERACTION_CORE_FIELDS = [
     "dominant_interaction_location",
 ]
 
+RDM_V16_NUMERIC_FIELDS = [
+    "rdm_v16_rigidity_birth",
+    "rdm_v16_rigidity_current",
+    "rdm_v16_rigidity_live",
+    "rdm_v16_rigidity_final",
+    "rdm_v16_rigidity_delta",
+    "rdm_v16_rigidity_change_pct",
+    "rdm_v16_sigma_birth",
+    "rdm_v16_sigma_current",
+    "rdm_v16_sigma_live",
+    "rdm_v16_sigma_final",
+    "rdm_v16_sigma_delta",
+    "rdm_v16_sigma_change_pct",
+    "rdm_v16_fleche_birth",
+    "rdm_v16_fleche_current",
+    "rdm_v16_fleche_live",
+    "rdm_v16_fleche_final",
+    "rdm_v16_fleche_delta",
+    "rdm_v16_fleche_change_pct",
+    "rdm_v16_capacity_birth",
+    "rdm_v16_capacity_current",
+    "rdm_v16_capacity_live",
+    "rdm_v16_capacity_final",
+    "rdm_v16_capacity_delta",
+    "rdm_v16_capacity_change_pct",
+    "rdm_v16_fatigue_birth",
+    "rdm_v16_fatigue_current",
+    "rdm_v16_fatigue_live",
+    "rdm_v16_fatigue_final",
+    "rdm_v16_fatigue_delta",
+    "rdm_v16_fatigue_change_pct",
+    "rdm_v16_recovery_birth",
+    "rdm_v16_recovery_current",
+    "rdm_v16_recovery_live",
+    "rdm_v16_recovery_final",
+    "rdm_v16_recovery_delta",
+    "rdm_v16_recovery_change_pct",
+    "rdm_v16_stress_utilization_current",
+    "rdm_v16_moment_utilization_current",
+    "rdm_v16_interaction_density_score_current",
+    "rdm_v16_interaction_density_width_current",
+    "rdm_v16_interaction_density_efficiency_ratio_current",
+    "rdm_v16_interaction_density_points_current",
+]
+
 RDM_TIMELINE_FIELDS = [
     "timeline_step",
     "timeline_order",
@@ -732,6 +777,7 @@ def build_research_mapping(
                 *RDM_REAL_GEOMETRY_FIELDS,
                 *RDM_LIVE_EVOLUTION_FIELDS,
                 *RDM_INTERACTION_CORE_FIELDS,
+                *RDM_V16_NUMERIC_FIELDS,
                 *RDM_TIMELINE_FIELDS,
                 *RDM_CAPACITY_FIELDS,
                 *RDM_SIGMA_FIELDS,
@@ -858,11 +904,11 @@ def preparation_quality_case_fields(preparation_quality):
 
 def rdm_mechanics_case_fields(rdm_mechanics):
     if rdm_mechanics.empty:
-        return pd.DataFrame(columns=["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS])
+        return pd.DataFrame(columns=["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS, *RDM_V16_NUMERIC_FIELDS])
 
     rows = rdm_mechanics.copy()
-    ensure_columns(rows, ["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS])
-    return rows[["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS]].copy()
+    ensure_columns(rows, ["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS, *RDM_V16_NUMERIC_FIELDS])
+    return rows[["case_id", *RDM_MECHANICS_FIELDS, *RDM_REAL_GEOMETRY_FIELDS, *RDM_LIVE_EVOLUTION_FIELDS, *RDM_INTERACTION_CORE_FIELDS, *RDM_V16_NUMERIC_FIELDS]].copy()
 
 
 def rdm_timeline_case_fields(rdm_timeline):

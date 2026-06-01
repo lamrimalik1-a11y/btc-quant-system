@@ -4,11 +4,11 @@
 
 The project is stable at:
 
+RDM V1.6-A NUMERICAL FOUNDATION
+
+Base checkpoint:
+
 PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
-
-Commit:
-
-See latest repository commit for the replay consistency checkpoint.
 
 Tag:
 
@@ -21,6 +21,8 @@ Current system status:
 - Dashboard V2 UI = operational
 - Research Agent V1 = stable
 - RDM Market Mechanics V1.5 = validated
+- RDM Market Mechanics V1.6-A = completed
+- Numerical Foundation layer = operational
 - Interaction Density Mapping = operational
 - Structural lifecycle calibration = operational
 - Replay Consistency Lock = stable
@@ -49,6 +51,7 @@ Completed:
 - Zone lifecycle memory
 - Field lifecycle memory
 - Lifecycle event persistence
+- RDM V1.6-A Numerical Foundation
 
 ## Active Phase
 
@@ -56,12 +59,15 @@ PHASE 1B+ Research Expansion
 
 Active work:
 
-- Observation / calibration
-- Replay validation
-- Historical validation
-- False positive review
-- Live observation
-- RDM mechanics refinement
+RDM V1.6 Development
+
+Completed:
+
+- RDM V1.6-A Numerical Foundation
+
+Next target:
+
+- RDM V1.6-B Attacker Definition
 
 ## Latest Stable Checkpoint
 
@@ -217,3 +223,43 @@ Validator result:
 Conclusion:
 
 Historical replay mode is isolated. Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode. Replay, RDM, Dashboard, and Overlay are traceable to explicit historical replay sources.
+
+## RDM V1.6-A Numerical Foundation
+
+Status:
+
+COMPLETED
+
+Scope:
+
+Research only. Additive extension of RDM V1.5. Zero formula changes. Zero lifecycle changes. Zero scoring changes.
+
+Implemented:
+
+- 42 new `rdm_v16_*` columns
+- Birth / Current / Live / Final absolute metrics
+- Delta from Birth for all metric families
+- Percentage Change from Birth for all metric families
+
+Metric Families:
+
+- Rigidity / Sigma / Flèche / Capacity / Fatigue / Recovery
+- Stress Utilization / Moment Utilization / Interaction Density
+
+Validation:
+
+- py_compile passed
+- 634 rows generated
+- zone_mechanics_calculator.py executed successfully
+
+Rules Preserved:
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No Phase 2 / No execution / No entries / No live signals
+
+Next:
+
+RDM V1.6-B Attacker Definition

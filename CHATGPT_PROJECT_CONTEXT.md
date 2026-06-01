@@ -154,23 +154,63 @@ Ratios:
 - Live execution
 - Signal logic
 
-## Next Step
+## RDM V1.6-A Numerical Foundation
 
-Validate:
+Status:
 
-- Formation
-- Active Core
-- Density Band
+COMPLETED
 
-Across multiple episodes.
+Scope:
 
-Then return to:
+Research only. Additive extension of RDM V1.5. Zero formula changes. Zero lifecycle changes. Zero scoring changes.
 
-- Prepare Zone TRUE > 4
-- Continue RDM Market Mechanics:
-  - Rigidity
-  - Fatigue
-  - Recovery
-  - Attacker behavior
+Implemented:
+
+- 42 new `rdm_v16_*` columns added to `zone_mechanics_cycle3_results.csv`
+- Numerical Foundation layer
+- Birth / Current / Live / Final absolute metrics
+- Delta from Birth for all metric families
+- Percentage Change from Birth for all metric families
+
+Metric Families:
+
+- Rigidity / Sigma / Flèche / Capacity / Fatigue / Recovery
+- Stress Utilization / Moment Utilization / Interaction Density
+
+Validation:
+
+- py_compile passed
+- zone_mechanics_calculator.py executed successfully
+- 634 rows generated
+
+Example — Episode 622:
+
+Rigidity: Birth=50.0 / Current=50.0 / Delta=0.0
+
+Sigma: Birth=19.194501 / Current=7.276244 / Delta=-11.918257 / Change=-62.092039%
+
+Rules Preserved:
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No Phase 2 / No execution / No entries / No live signals
+
+## Current Active Phase
+
+PHASE 1B+ Research Expansion
+
+Active work:
+
+RDM V1.6 Development
+
+Completed:
+
+- RDM V1.6-A Numerical Foundation
+
+Next Target:
+
+RDM V1.6-B Attacker Definition
 
 Do not advance to Phase 2.

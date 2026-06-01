@@ -30,15 +30,23 @@ Optional supporting files to upload:
 
 Current checkpoint:
 
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+`RDM_V1.6-A_NUMERICAL_FOUNDATION`
 
-Commit:
+Base tag:
 
-`b04a781`
+`PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
 
-Tag:
+Previous checkpoint:
 
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+`PHASE1B_RDM_MARKET_MECHANICS_V1_5` (commit `b04a781`)
+
+Current RDM phase:
+
+RDM V1.6-A Numerical Foundation — COMPLETED
+
+Next target:
+
+RDM V1.6-B Attacker Definition
 
 Important rules:
 
@@ -56,7 +64,8 @@ Suggested first prompt in the ChatGPT Project:
 ```text
 You are working on my BTC Quant repo in PHASE 1B+ Research Expansion.
 Load the uploaded project context files first.
-Current checkpoint is PHASE1B_RDM_MARKET_MECHANICS_V1_5, commit b04a781, tag PHASE1B_RDM_MARKET_MECHANICS_V1_5.
-Rules: research only, no Phase 2, no execution, no entries, no live signals, no scoring changes, no Dashboard V2 scoring changes.
-Continue from the current RDM Market Mechanics V1.5 state.
+Current checkpoint is RDM V1.6-A Numerical Foundation, completed and stable.
+Base checkpoint: PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK.
+Rules: research only, no Phase 2, no execution, no entries, no live signals, no scoring changes, no Dashboard V2 scoring changes, no RDM formula changes.
+Active development: RDM V1.6. Completed: V1.6-A. Next: V1.6-B Attacker Definition.
 ```

@@ -1556,3 +1556,88 @@ Then return to:
 - Prepare Zone TRUE > 4
 - Continue RDM Market Mechanics:
   Rigidity, Fatigue, Recovery, Attacker
+
+
+==================================================
+PHASE 1B+ RDM MARKET MECHANICS V1.6
+==================================================
+
+==================================================
+RDM V1.6-A NUMERICAL FOUNDATION
+==================================================
+
+Status:
+
+COMPLETED
+
+Scope:
+
+Research only.
+
+Implemented:
+
+- 42 new rdm_v16_* columns
+- Numerical Foundation layer
+- Birth / Current / Live / Final metrics
+- Delta from Birth
+- Percentage Change from Birth
+
+Metric Families:
+
+- Rigidity
+- Sigma
+- Flèche
+- Capacity
+- Fatigue
+- Recovery
+- Stress Utilization (current)
+- Moment Utilization (current)
+- Interaction Density
+
+Validation:
+
+- py_compile passed
+- zone_mechanics_calculator.py executed successfully
+- 634 rows generated
+
+Example:
+
+Episode 622
+
+Rigidity:
+Birth=50.0
+Current=50.0
+Delta=0.0
+
+Sigma:
+Birth=19.194501
+Current=7.276244
+Delta=-11.918257
+Change=-62.092039%
+
+Rules Preserved:
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+
+Current Phase:
+
+PHASE 1B+ Research Expansion
+
+Active Work:
+
+RDM V1.6 Development
+
+Completed:
+
+RDM V1.6-A Numerical Foundation
+
+Next Target:
+
+RDM V1.6-B Attacker Definition

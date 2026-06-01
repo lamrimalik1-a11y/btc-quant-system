@@ -163,3 +163,76 @@ Latest validator result:
 Important conclusion:
 
 Historical replay mode is now isolated. Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode. Replay / RDM / Dashboard / Overlay rendering are traceable to explicit historical replay sources.
+
+## RDM V1.6-A Numerical Foundation
+
+Checkpoint:
+
+`RDM_V1.6-A_NUMERICAL_FOUNDATION`
+
+Status:
+
+COMPLETED
+
+Scope:
+
+Research only. Extension of RDM V1.5. No formula changes. No lifecycle changes. No scoring changes.
+
+Implemented:
+
+- 42 new `rdm_v16_*` columns added to `zone_mechanics_cycle3_results.csv`
+- Numerical Foundation layer
+- Birth / Current / Live / Final absolute metrics
+- Delta from Birth for all tracked metric families
+- Percentage Change from Birth for all tracked metric families
+
+Metric Families covered:
+
+- Rigidity
+- Sigma
+- Flèche
+- Capacity
+- Fatigue
+- Recovery
+- Stress Utilization (current)
+- Moment Utilization (current)
+- Interaction Density
+
+Validation:
+
+- py_compile passed
+- zone_mechanics_calculator.py executed successfully
+- 634 rows generated
+
+Example — Episode 622:
+
+Rigidity: Birth=50.0 / Current=50.0 / Delta=0.0
+
+Sigma: Birth=19.194501 / Current=7.276244 / Delta=-11.918257 / Change=-62.092039%
+
+Rules Preserved:
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+
+## Current Active Phase
+
+PHASE 1B+ Research Expansion
+
+Active Work:
+
+RDM V1.6 Development
+
+Completed:
+
+- RDM V1.6-A Numerical Foundation
+
+Next Target:
+
+- RDM V1.6-B Attacker Definition

@@ -1,6 +1,6 @@
 # Interaction Core Geometry
 
-Run UTC: 2026-06-01T12:03:18+00:00
+Run UTC: 2026-06-01T15:12:02+00:00
 
 Research-only split between formation range and interaction core.
 

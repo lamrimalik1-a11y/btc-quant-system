@@ -1,6 +1,6 @@
 # Performance Profile Report
 
-Updated UTC: 2026-06-01 12:03:18
+Updated UTC: 2026-06-01 15:12:02
 
 ## phase1b_episode_research
 
@@ -42,23 +42,23 @@ Updated UTC: 2026-06-01 12:03:18
 
 ## rdm_zone_mechanics_calculator
 
-- Total runtime: 162.444685s
-- Slowest function / step: rdm_live_evolution_after_cache (59.128079s)
+- Total runtime: 181.023981s
+- Slowest function / step: rdm_live_evolution_after_cache (59.24864s)
 - Bottleneck likely: RDM_CALCULATOR
-- Peak Python heap: 167.345 MB
+- Peak Python heap: 167.357 MB
 
 ### Top Bottlenecks
 
-- rdm_live_evolution_after_cache: 59.128079s
-- rdm_interaction_core_after_cache: 20.774109s
-- rdm_density_after_cache: 19.601476s
-- csv_write_rdm_outputs: 17.700275s
-- rdm_base_mechanics: 14.484707s
-- rdm_true_lifecycle: 10.51312s
-- interaction_mask_build_time: 8.223431s
-- rdm_birth_death_memory: 2.509634s
-- rdm_summary_notes_build: 1.378847s
-- rdm_case_cache_build_time: 1.207696s
+- rdm_live_evolution_after_cache: 59.24864s
+- rdm_interaction_core_after_cache: 23.138265s
+- rdm_density_after_cache: 21.937228s
+- csv_write_rdm_outputs: 20.050261s
+- rdm_base_mechanics: 15.267788s
+- rdm_true_lifecycle: 11.603105s
+- interaction_mask_build_time: 9.509758s
+- rdm_v16_numeric_foundation: 5.638164s
+- rdm_birth_death_memory: 3.996532s
+- rdm_summary_notes_build: 1.770268s
 
 ### Metrics
 
@@ -74,7 +74,7 @@ Updated UTC: 2026-06-01 12:03:18
 
 ### CSV File Sizes
 
-- research\zone_mechanics_cycle3_results.csv: 1.874 MB
+- research\zone_mechanics_cycle3_results.csv: 2.028 MB
 - research\zone_mechanics_cycle3_summary.csv: 0.002 MB
 - research\zone_mechanics_timeline.csv: 0.148 MB
 - research\zone_mechanics_lifecycle.csv: 0.263 MB

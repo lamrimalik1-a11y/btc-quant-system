@@ -126,131 +126,136 @@
     },
     "rdm_zone_mechanics_calculator": {
       "script": "rdm_zone_mechanics_calculator",
-      "run_utc": "2026-06-01 12:03:18",
-      "total_runtime_seconds": 162.444685,
+      "run_utc": "2026-06-01 15:12:02",
+      "total_runtime_seconds": 181.023981,
       "slowest_step": {
         "name": "rdm_live_evolution_after_cache",
-        "duration_seconds": 59.128079
+        "duration_seconds": 59.24864
       },
       "bottleneck_likely": "RDM_CALCULATOR",
       "steps": [
         {
           "name": "csv_read_rdm_inputs",
-          "duration_seconds": 0.667659
+          "duration_seconds": 0.833385
         },
         {
           "name": "jsonl_read_lifecycle_events",
-          "duration_seconds": 0.303728
+          "duration_seconds": 0.284652
         },
         {
           "name": "pandas_dataset_build",
-          "duration_seconds": 0.132127
+          "duration_seconds": 0.151878
         },
         {
           "name": "rdm_base_mechanics",
-          "duration_seconds": 14.484707
+          "duration_seconds": 15.267788
         },
         {
           "name": "pandas_dataframe_build",
-          "duration_seconds": 0.028503
+          "duration_seconds": 0.023958
         },
         {
           "name": "rdm_capacity",
-          "duration_seconds": 0.632059
+          "duration_seconds": 0.507448
         },
         {
           "name": "rdm_sigma",
-          "duration_seconds": 0.39595
+          "duration_seconds": 0.280886
         },
         {
           "name": "rdm_sigma_evolution",
-          "duration_seconds": 0.342476
+          "duration_seconds": 0.329827
         },
         {
           "name": "rdm_verestchaguine",
-          "duration_seconds": 0.365671
+          "duration_seconds": 0.367048
         },
         {
           "name": "rdm_result_summaries",
-          "duration_seconds": 0.882206
+          "duration_seconds": 0.890754
         },
         {
           "name": "rdm_real_geometry_tracking",
-          "duration_seconds": 0.607871
+          "duration_seconds": 0.597851
         },
         {
           "name": "rdm_live_evolution_after_cache",
-          "duration_seconds": 59.128079
+          "duration_seconds": 59.24864
         },
         {
           "name": "rdm_case_cache_build_time",
-          "duration_seconds": 1.207696
+          "duration_seconds": 1.235586
         },
         {
           "name": "interaction_mask_build_time",
-          "duration_seconds": 8.223431
+          "duration_seconds": 9.509758
         },
         {
           "name": "rdm_interaction_core_after_cache",
-          "duration_seconds": 20.774109
+          "duration_seconds": 23.138265
         },
         {
           "name": "rdm_density_after_cache",
-          "duration_seconds": 19.601476
+          "duration_seconds": 21.937228
         },
         {
           "name": "rdm_true_lifecycle",
-          "duration_seconds": 10.51312
+          "duration_seconds": 11.603105
+        },
+        {
+          "name": "rdm_v16_numeric_foundation",
+          "duration_seconds": 5.638164
         },
         {
           "name": "rdm_timeline_lifecycle",
-          "duration_seconds": 1.057202
+          "duration_seconds": 1.372837
         },
         {
           "name": "rdm_birth_death_memory",
-          "duration_seconds": 2.509634
+          "duration_seconds": 3.996532
         },
         {
           "name": "rdm_evolution_chart",
-          "duration_seconds": 1.054996
+          "duration_seconds": 1.600689
         },
         {
           "name": "rdm_summary_notes_build",
-          "duration_seconds": 1.378847
+          "duration_seconds": 1.770268
         },
         {
           "name": "csv_write_rdm_outputs",
-          "duration_seconds": 17.700275
+          "duration_seconds": 20.050261
         },
         {
           "name": "text_json_write_rdm_outputs",
-          "duration_seconds": 0.286117
+          "duration_seconds": 0.245915
         }
       ],
       "step_totals": {
-        "rdm_live_evolution_after_cache": 59.128079,
-        "rdm_interaction_core_after_cache": 20.774109,
-        "rdm_density_after_cache": 19.601476,
-        "csv_write_rdm_outputs": 17.700275,
-        "rdm_base_mechanics": 14.484707,
-        "rdm_true_lifecycle": 10.51312,
-        "interaction_mask_build_time": 8.223431,
-        "rdm_birth_death_memory": 2.509634,
-        "rdm_summary_notes_build": 1.378847,
-        "rdm_case_cache_build_time": 1.207696,
-        "rdm_timeline_lifecycle": 1.057202,
-        "rdm_evolution_chart": 1.054996,
-        "rdm_result_summaries": 0.882206,
-        "csv_read_rdm_inputs": 0.667659,
-        "rdm_capacity": 0.632059,
-        "rdm_real_geometry_tracking": 0.607871,
-        "rdm_sigma": 0.39595,
-        "rdm_verestchaguine": 0.365671,
-        "rdm_sigma_evolution": 0.342476,
-        "jsonl_read_lifecycle_events": 0.303728,
-        "text_json_write_rdm_outputs": 0.286117,
-        "pandas_dataset_build": 0.132127,
-        "pandas_dataframe_build": 0.028503
+        "rdm_live_evolution_after_cache": 59.24864,
+        "rdm_interaction_core_after_cache": 23.138265,
+        "rdm_density_after_cache": 21.937228,
+        "csv_write_rdm_outputs": 20.050261,
+        "rdm_base_mechanics": 15.267788,
+        "rdm_true_lifecycle": 11.603105,
+        "interaction_mask_build_time": 9.509758,
+        "rdm_v16_numeric_foundation": 5.638164,
+        "rdm_birth_death_memory": 3.996532,
+        "rdm_summary_notes_build": 1.770268,
+        "rdm_evolution_chart": 1.600689,
+        "rdm_timeline_lifecycle": 1.372837,
+        "rdm_case_cache_build_time": 1.235586,
+        "rdm_result_summaries": 0.890754,
+        "csv_read_rdm_inputs": 0.833385,
+        "rdm_real_geometry_tracking": 0.597851,
+        "rdm_capacity": 0.507448,
+        "rdm_verestchaguine": 0.367048,
+        "rdm_sigma_evolution": 0.329827,
+        "jsonl_read_lifecycle_events": 0.284652,
+        "rdm_sigma": 0.280886,
+        "text_json_write_rdm_outputs": 0.245915,
+        "pandas_dataset_build": 0.151878,
+        "pandas_dataframe_build": 0.023958
       },
       "metrics": {
         "rdm_case_cache_count": 634,
@@ -266,8 +271,8 @@
       "csv_file_sizes": [
         {
           "path": "research\\zone_mechanics_cycle3_results.csv",
-          "size_bytes": 1964728,
-          "size_mb": 1.874
+          "size_bytes": 2126344,
+          "size_mb": 2.028
         },
         {
           "path": "research\\zone_mechanics_cycle3_summary.csv",
@@ -351,8 +356,8 @@
         }
       ],
       "memory": {
-        "current_python_heap_mb": 81.916,
-        "peak_python_heap_mb": 167.345
+        "current_python_heap_mb": 82.654,
+        "peak_python_heap_mb": 167.357
       }
     },
     "historical_replay_generation": {
@@ -73596,5 +73601,5 @@
       }
     }
   },
-  "updated_utc": "2026-06-01 12:03:18"
+  "updated_utc": "2026-06-01 15:12:02"
 }

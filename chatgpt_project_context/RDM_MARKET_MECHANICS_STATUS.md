@@ -258,3 +258,92 @@ Validator result:
 Conclusion:
 
 Historical replay mode is isolated. Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode. Replay, RDM, Dashboard, and Overlay rendering are traceable to explicit historical replay sources.
+
+## V1.6
+
+RDM V1.6 is the first phase of active development beyond the replay consistency lock.
+
+Philosophy:
+
+Numerical First. No HIGH/LOW labels only. Numbers, deltas, percentages alongside all existing categorical labels. The research layer becomes quantitatively inspectable.
+
+### V1.6-A Numerical Foundation
+
+Status:
+
+COMPLETED
+
+Scope:
+
+Research only. Additive extension of RDM V1.5. Zero formula changes. Zero lifecycle changes. Zero scoring changes.
+
+Implemented:
+
+- 42 new `rdm_v16_*` columns added to `zone_mechanics_cycle3_results.csv`
+- Numerical Foundation layer
+- Birth / Current / Live / Final absolute metric values
+- Delta from Birth for all tracked metric families
+- Percentage Change from Birth for all tracked metric families
+
+Metric Families:
+
+- Rigidity
+- Sigma
+- Flèche
+- Capacity
+- Fatigue
+- Recovery
+- Stress Utilization (current state)
+- Moment Utilization (current state)
+- Interaction Density
+
+Validation:
+
+- py_compile passed
+- zone_mechanics_calculator.py executed successfully
+- 634 rows generated
+
+Example — Episode 622:
+
+Rigidity: Birth=50.0 / Current=50.0 / Delta=0.0
+
+Sigma: Birth=19.194501 / Current=7.276244 / Delta=-11.918257 / Change=-62.092039%
+
+Rules Preserved:
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+
+### V1.6-B — Next Target
+
+RDM V1.6-B Attacker Definition
+
+Goal:
+
+Define the attacker as a first-class object. Measure attacker force from zone_live_rdm_evolution data. Track attacker force trend and persistence. Build toward Zone vs Attacker comparative framework.
+
+Status:
+
+DESIGN PHASE — Not yet implemented.
+
+## Current RDM Active Phase
+
+PHASE 1B+ Research Expansion
+
+Active work:
+
+RDM V1.6 Development
+
+Completed:
+
+- V1.6-A Numerical Foundation
+
+Next:
+
+- V1.6-B Attacker Definition

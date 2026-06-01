@@ -153,6 +153,8 @@ def main() -> None:
                 case_cache=rdm_case_cache,
             )
             results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
+        with profiler.step("rdm_v16_numeric_foundation"):
+            results_df = add_rdm_v16_numeric_foundation(results_df)
         profiler.add_metric("interaction_mask_reuse_count", rdm_case_cache.mask_reuse_count)
         with profiler.step("rdm_timeline_lifecycle"):
             timeline_df = build_mechanics_timeline(results_df, run_utc)
@@ -2875,6 +2877,128 @@ def merge_true_lifecycle_into_results(results: pd.DataFrame, lifecycle: pd.DataF
         return results
     columns = [column for column in lifecycle.columns if column not in {"analysis_run_utc", "research_only", "zone_id"}]
     return results.merge(lifecycle[columns], on=["case_id", "episode_id"], how="left")
+
+
+def add_rdm_v16_numeric_foundation(results: pd.DataFrame) -> pd.DataFrame:
+    if results.empty:
+        return results
+
+    enriched = results.copy()
+    metric_sources = {
+        "rigidity": {
+            "birth": "rigidity_birth",
+            "current": "rigidity_current",
+            "live": "rigidity_live",
+            "final": "rigidity_final",
+        },
+        "sigma": {
+            "birth": "sigma_birth",
+            "current": "sigma_current",
+            "live": "sigma_live",
+            "final": "sigma_final",
+        },
+        "fleche": {
+            "birth": "fleche_birth",
+            "current": "fleche_current",
+            "live": "fleche_live",
+            "final": "fleche_final",
+        },
+        "capacity": {
+            "birth": "capacity_birth",
+            "current": "capacity_current",
+            "live": "capacity_live",
+            "final": "capacity_final",
+        },
+        "fatigue": {
+            "birth": "fatigue_birth",
+            "current": "fatigue_current",
+            "live": "fatigue_live",
+            "final": "fatigue_final",
+        },
+        "recovery": {
+            "birth": "recovery_birth",
+            "current": "recovery_current",
+            "live": "recovery_live",
+            "final": "recovery_final",
+        },
+    }
+
+    for metric_name, source_fields in metric_sources.items():
+        birth_column = source_fields["birth"]
+        current_column = source_fields["current"]
+        add_v16_value_column(enriched, metric_name, "birth", birth_column)
+        add_v16_value_column(enriched, metric_name, "current", current_column)
+        add_v16_value_column(enriched, metric_name, "live", source_fields["live"])
+        add_v16_value_column(enriched, metric_name, "final", source_fields["final"])
+        add_v16_delta_columns(
+            enriched,
+            metric_name,
+            birth_column=birth_column,
+            current_column=current_column,
+        )
+
+    current_only_sources = {
+        "stress_utilization": "stress_utilization",
+        "moment_utilization": "moment_utilization_ratio",
+        "interaction_density_score": "interaction_density_score",
+        "interaction_density_width": "interaction_density_width",
+        "interaction_density_efficiency_ratio": "interaction_density_efficiency_ratio",
+        "interaction_density_points": "interaction_density_points_count",
+    }
+
+    for metric_name, source_column in current_only_sources.items():
+        add_v16_value_column(enriched, metric_name, "current", source_column)
+
+    return enriched
+
+
+def add_v16_value_column(
+    dataframe: pd.DataFrame,
+    metric_name: str,
+    value_name: str,
+    source_column: str,
+) -> None:
+    output_column = f"rdm_v16_{metric_name}_{value_name}"
+    if source_column in dataframe.columns:
+        dataframe[output_column] = dataframe[source_column].map(round_float)
+    else:
+        dataframe[output_column] = ""
+
+
+def add_v16_delta_columns(
+    dataframe: pd.DataFrame,
+    metric_name: str,
+    birth_column: str,
+    current_column: str,
+) -> None:
+    delta_column = f"rdm_v16_{metric_name}_delta"
+    pct_column = f"rdm_v16_{metric_name}_change_pct"
+
+    if birth_column not in dataframe.columns or current_column not in dataframe.columns:
+        dataframe[delta_column] = ""
+        dataframe[pct_column] = ""
+        return
+
+    dataframe[delta_column] = dataframe.apply(
+        lambda row: round_float(
+            change_from_birth(row.get(birth_column), row.get(current_column))
+        ),
+        axis=1,
+    )
+    dataframe[pct_column] = dataframe.apply(
+        lambda row: round_float(
+            percent_change_from_birth(row.get(birth_column), row.get(current_column))
+        ),
+        axis=1,
+    )
+
+
+def percent_change_from_birth(birth: Any, current: Any) -> float | None:
+    birth_value = to_float(birth)
+    current_value = to_float(current)
+    if birth_value is None or current_value is None or birth_value == 0:
+        return None
+    return ((current_value - birth_value) / abs(birth_value)) * 100.0
 
 
 def build_interaction_core_notes(core: pd.DataFrame, lifecycle: pd.DataFrame, run_utc: str) -> str:

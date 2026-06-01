@@ -1396,3 +1396,163 @@ Next step:
 - False positive review
 - Live observation
 - DO NOT ADVANCE PHASES
+
+
+==================================================
+PHASE1B_RDM_VISUALIZATION_STABLE
+==================================================
+
+Status:
+
+STABLE CHECKPOINT
+
+Completed after RDM V1.5:
+
+1. Preparation Watch Fix
+
+- Research coverage expanded from 93 rows to 634 rows.
+- Coverage: 2026-05-25 -> 2026-06-01.
+- Preparation candidates: 338.
+- Research coverage: 100%.
+
+2. RDM Coverage Fix
+
+- RDM coverage increased from 35.48% to 100%.
+- 634 / 634 Dashboard V2 episodes mapped.
+- Dashboard RDM None / N/A coverage issue resolved for mapped episodes.
+
+3. Dashboard Improvements
+
+- Show All controls added.
+- Row limit controls added.
+- Date filters added.
+- Sort order controls added.
+- Preparation Watch display supports multi-day research rows.
+- Dashboard V2 Research Mapping panels support multi-day rows across:
+  PREPARATION, EXPANSION, REVERSAL, COMPARISON, HYPOTHESIS.
+
+4. Timezone Support
+
+- Algeria UTC+1 display support added.
+- UTC display remains available.
+- Display only; stored timestamps remain unchanged.
+- No calculation changes.
+
+5. RDM Mapping Fix
+
+- resistance_live mapping added.
+- Dashboard RDM fields now map to regenerated full research/RDM coverage.
+- None / N/A coverage issue resolved for the full replay episode set.
+
+6. RDM Visualization Discovery
+
+Formation Range
+!=
+Active RDM Zone
+!=
+Interaction Density
+
+Current interpretation:
+
+- Formation Range = Context Layer.
+- Active Core = Operational Zone.
+- Density Band = Interaction Heart.
+
+7. Episode 622 Validation
+
+Birth Price:
+
+72698.42
+
+Formation:
+
+72612.24 -> 72864.36
+
+Width:
+
+252.12
+
+Active Core:
+
+72787.66 -> 72850.70
+
+Width:
+
+63.03
+
+Density Band:
+
+72823.68 -> 72832.69
+
+Width:
+
+9.00
+
+Core / Formation:
+
+0.2500
+
+Density / Formation:
+
+0.0357
+
+8. New Dashboard Component
+
+RDM Price Overlay - Research Only
+
+Uses:
+
+- Formation Range
+- Active Core
+- Density Band
+- Birth Price
+
+Display:
+
+- Absolute Price Axis
+- Direct chart-comparison prices
+- Reference table with exact lower / upper / width values
+- Research only
+
+9. Important Observation
+
+Binance comparison suggests that Active Core and Density Band match visually
+observed market zones significantly better than the full Formation Range.
+
+10. No Changes To
+
+- RDM formulas
+- Dashboard scoring
+- Replay generation
+- Research logic
+- Downloads
+- Binance pulls
+
+Rules:
+
+- Research only
+- Observation only
+- No Phase 2
+- No execution
+- No entries
+- No live signals
+- No scoring changes
+- No Dashboard V2 scoring changes
+- Mechanics-first
+- Cases reference-only
+
+Next step:
+
+Validate:
+
+- Formation
+- Active Core
+- Density Band
+
+Across multiple episodes.
+
+Then return to:
+
+- Prepare Zone TRUE > 4
+- Continue RDM Market Mechanics:
+  Rigidity, Fatigue, Recovery, Attacker

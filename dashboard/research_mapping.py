@@ -17,6 +17,9 @@ RESEARCH_FIELDS = [
     "hypothesis02_state",
 ]
 
+PREPARATION_NOT_ANALYZED = "NOT_ANALYZED"
+PREPARATION_UNKNOWN = "UNKNOWN"
+
 RESEARCH_CASE_FIELDS = [
     "case_id",
     "episode_id",
@@ -46,6 +49,14 @@ RESEARCH_CASE_FIELDS = [
     "hypothesis02_state",
     "classification",
     "classification_reason",
+    # Preparation Family V1
+    "pre_equil_rows",
+    "pre_delta_sum",
+    "prep_family",
+    "prep_family_confidence",
+    "prep_family_rule",
+    "prep_delta_alignment",
+    "prep_family_lean",
 ]
 
 RDM_MECHANICS_FIELDS = [
@@ -171,6 +182,7 @@ RDM_LIVE_EVOLUTION_FIELDS = [
     "capacity_live_status",
     "rigidity_live",
     "rigidity_live_status",
+    "resistance_live",
     "fleche_live",
     "dynamic_fleche_live",
     "fleche_live_status",
@@ -749,12 +761,66 @@ def map_research_to_dashboard_episodes(episodes, research_mapping):
     mapping = research_mapping.copy()
     mapping["episode_id"] = mapping["episode_id"].astype(str)
 
-    return mapped.merge(
+    mapped = mapped.merge(
         mapping,
         on="episode_id",
         how="left",
         suffixes=("", "_research"),
     )
+
+    return normalize_preparation_status(mapped)
+
+
+def normalize_preparation_status(mapped):
+    mapped = mapped.copy()
+
+    if "preparation_candidate" not in mapped.columns:
+        mapped["preparation_candidate"] = PREPARATION_NOT_ANALYZED
+        return mapped
+
+    # Cast to object so a bool column can safely receive string sentinels.
+    # The CSV stores preparation_candidate as bool (True/False).  After a
+    # left-join some rows have no match and the column keeps dtype=bool.
+    # Assigning 'NOT_ANALYZED' or 'UNKNOWN' to a bool column raises
+    # TypeError in pandas ≥ 2.0.  Casting to object beforehand prevents
+    # that while preserving True / False values for all matched rows.
+    mapped["preparation_candidate"] = mapped["preparation_candidate"].astype(
+        object
+    )
+
+    if "case_id" in mapped.columns:
+        analyzed_mask = mapped["case_id"].apply(has_display_value)
+    else:
+        analyzed_mask = pd.Series(False, index=mapped.index)
+
+    missing_preparation_mask = mapped["preparation_candidate"].apply(
+        lambda value: not has_display_value(value)
+    )
+
+    mapped.loc[
+        ~analyzed_mask,
+        "preparation_candidate",
+    ] = PREPARATION_NOT_ANALYZED
+
+    mapped.loc[
+        analyzed_mask & missing_preparation_mask,
+        "preparation_candidate",
+    ] = PREPARATION_UNKNOWN
+
+    return mapped
+
+
+def has_display_value(value):
+    if value is None:
+        return False
+
+    try:
+        if pd.isna(value):
+            return False
+    except (TypeError, ValueError):
+        pass
+
+    return str(value).strip() != ""
 
 
 def comparison_case_fields(comparison_log):

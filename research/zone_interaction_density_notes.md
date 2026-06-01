@@ -1,21 +1,21 @@
 # Interaction Density Map
 
-Run UTC: 2026-05-28T14:58:29+00:00
+Run UTC: 2026-06-01T12:03:18+00:00
 
 Research-only map of weighted interaction density inside Active RDM Zone.
 
-Rows: 27
+Rows: 634
 
 ## Density States
 
-- HIGH_DENSITY: 2
-- EXTREME_DENSITY: 20
-- LOW_DENSITY: 4
-- NORMAL_DENSITY: 1
+- LOW_DENSITY: 166
+- NORMAL_DENSITY: 83
+- HIGH_DENSITY: 27
+- EXTREME_DENSITY: 358
 
 ## Dominant Locations
 
-- MULTI_NODE: 12
-- UPPER_CORE: 2
-- LOWER_CORE: 3
-- MIDDLE_CORE: 10
+- MIDDLE_CORE: 215
+- MULTI_NODE: 257
+- LOWER_CORE: 87
+- UPPER_CORE: 75

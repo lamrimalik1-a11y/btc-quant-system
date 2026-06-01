@@ -77,6 +77,8 @@ REQUEST_SLEEP_SECONDS = 0.5
 REQUEST_TIMEOUT_SECONDS = 120
 MAX_RETRIES = 10
 RETRY_BACKOFF_SECONDS = [5, 10, 20, 40, 60]
+WARMUP_TARGET_ROWS = 500
+WARMUP_LOOKBACK_MS = 24 * 60 * 60 * 1000
 
 
 def parse_args():
@@ -109,6 +111,11 @@ def main():
         if start_ms >= end_ms:
             raise SystemExit("--start must be before --end")
 
+        warmup_start_ms = max(
+            0,
+            start_ms - WARMUP_LOOKBACK_MS,
+        )
+
         if args.overwrite:
             clear_download_checkpoint()
 
@@ -139,7 +146,7 @@ def main():
         with profiler.step("download_total"):
             agg_trades = download_agg_trades(
                 symbol=args.symbol,
-                start_ms=start_ms,
+                start_ms=warmup_start_ms,
                 end_ms=end_ms,
                 start_date=args.start,
                 end_date=args.end,
@@ -151,15 +158,37 @@ def main():
             profiler.add_metric("download_paused", True)
             return
 
+        warmup_agg_trades, target_agg_trades = split_warmup_and_target_trades(
+            agg_trades=agg_trades,
+            target_start_ms=start_ms,
+            target_end_ms=end_ms,
+        )
+
         with profiler.step("aggregation_replay_row_build"):
+            warmup_rows = build_historical_rows(
+                agg_trades=warmup_agg_trades,
+                row_size=args.row_size,
+            )
+            warmup_rows = warmup_rows[
+                -WARMUP_TARGET_ROWS:
+            ]
             historical_rows = build_historical_rows(
-                agg_trades=agg_trades,
+                agg_trades=target_agg_trades,
                 row_size=args.row_size,
             )
 
+        if len(warmup_rows) < WARMUP_TARGET_ROWS:
+            print(
+                "WARNING: Fewer than 500 warmup rows available. "
+                f"Available warmup rows: {len(warmup_rows)}"
+            )
+
+        print(f"WARMUP_ROWS_USED = {len(warmup_rows)}")
+
         with profiler.step("observation_row_build"):
             historical_observation_rows = build_historical_observation_rows(
-                historical_rows
+                historical_rows=historical_rows,
+                warmup_rows=warmup_rows,
             )
 
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -216,11 +245,13 @@ def main():
 
         if args.save_raw:
             with profiler.step("csv_write_raw_aggtrades"):
-                write_raw_agg_trades(agg_trades)
+                write_raw_agg_trades(target_agg_trades)
 
         clear_download_checkpoint()
 
-        profiler.add_metric("trades_processed", len(agg_trades))
+        profiler.add_metric("trades_processed", len(target_agg_trades))
+        profiler.add_metric("warmup_trades_processed", len(warmup_agg_trades))
+        profiler.add_metric("warmup_rows_used", len(warmup_rows))
         profiler.add_metric("rows_processed", len(historical_rows))
         profiler.add_metric("observation_rows_processed", len(historical_observation_rows))
         profiler.add_metric("v1_events", len(replay_events))
@@ -229,7 +260,9 @@ def main():
         profiler.add_metric("v2_episodes", len(replay_v2_episodes))
 
         print(f"Trades downloaded: {len(agg_trades)}")
+        print(f"Target trades processed: {len(target_agg_trades)}")
         print(f"Rows built: {len(historical_rows)}")
+        print(f"TARGET_ROWS_WRITTEN = {len(historical_observation_rows)}")
         print(
             "Historical observation rows written: "
             f"{len(historical_observation_rows)}"
@@ -377,6 +410,21 @@ def fetch_agg_trades_batch_with_retries(symbol, start_ms, end_ms, profiler=None)
     return None
 
 
+def split_warmup_and_target_trades(agg_trades, target_start_ms, target_end_ms):
+    warmup_trades = []
+    target_trades = []
+
+    for trade in agg_trades:
+        trade_timestamp = int(trade["T"])
+
+        if trade_timestamp < target_start_ms:
+            warmup_trades.append(trade)
+        elif trade_timestamp <= target_end_ms:
+            target_trades.append(trade)
+
+    return warmup_trades, target_trades
+
+
 def build_historical_rows(agg_trades, row_size):
     rows = []
 
@@ -400,25 +448,26 @@ def build_historical_rows(agg_trades, row_size):
     return rows
 
 
-def build_historical_observation_rows(historical_rows):
+def build_historical_observation_rows(historical_rows, warmup_rows=None):
     reset_observation_state()
 
     statistics_engine = StatisticsEngine()
     renko_engine = RenkoEngine()
     observation_rows = []
 
-    for row in historical_rows:
-        row = dict(row)
-        update_history(row)
-        row["adaptive_window"] = calculate_adaptive_window(
-            row["velocity"],
-            velocity_history,
+    for row in warmup_rows or []:
+        process_historical_row(
+            row=row,
+            statistics_engine=statistics_engine,
+            renko_engine=renko_engine,
         )
 
-        context = SimpleNamespace(row=row)
-        renko_engine.process(context)
-        statistics = statistics_engine.process(context)
-        row = context.row
+    for row in historical_rows:
+        row, statistics = process_historical_row(
+            row=row,
+            statistics_engine=statistics_engine,
+            renko_engine=renko_engine,
+        )
 
         observation_rows.append(
             build_observation_row(
@@ -429,6 +478,21 @@ def build_historical_observation_rows(historical_rows):
         )
 
     return observation_rows
+
+
+def process_historical_row(row, statistics_engine, renko_engine):
+    row = dict(row)
+    update_history(row)
+    row["adaptive_window"] = calculate_adaptive_window(
+        row["velocity"],
+        velocity_history,
+    )
+
+    context = SimpleNamespace(row=row)
+    renko_engine.process(context)
+    statistics = statistics_engine.process(context)
+
+    return context.row, statistics
 
 
 def build_observation_row(row, statistics, row_id):

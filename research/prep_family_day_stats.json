@@ -1,0 +1,446 @@
+{
+  "2026-05-29": {
+    "date": "2026-05-29",
+    "total_episodes": 93,
+    "families": {
+      "EQUILIBRIUM_COMPRESSION": {
+        "n": 20,
+        "expansion_pct": 80.0,
+        "fake_pct": 5.0,
+        "survival_pct": 10.0,
+        "mean_move_4h": 598.7,
+        "mean_equil_rows": 30.1,
+        "min_equil_rows": 2,
+        "max_equil_rows": 67,
+        "mean_confidence": 0.816,
+        "rules": {
+          "E1": 10,
+          "E3": 8,
+          "E2": 2
+        },
+        "delta_alignment": {
+          "COUNTER": 11,
+          "NEUTRAL": 5,
+          "ALIGNED": 4
+        }
+      },
+      "EXTREME_COMPRESSION": {
+        "n": 18,
+        "expansion_pct": 55.6,
+        "fake_pct": 5.6,
+        "survival_pct": 38.9,
+        "mean_move_4h": 868.9,
+        "mean_equil_rows": 2.2,
+        "min_equil_rows": 0,
+        "max_equil_rows": 9,
+        "mean_confidence": 0.832,
+        "rules": {
+          "X1": 14,
+          "X2": 4
+        },
+        "delta_alignment": {
+          "ALIGNED": 14,
+          "COUNTER": 3,
+          "NEUTRAL": 1
+        }
+      },
+      "AMBIGUOUS": {
+        "n": 55,
+        "expansion_pct": 63.6,
+        "fake_pct": 23.6,
+        "survival_pct": 12.7,
+        "mean_move_4h": 805.3,
+        "mean_equil_rows": 15.5,
+        "min_equil_rows": 0,
+        "max_equil_rows": 27,
+        "mean_confidence": 0.543,
+        "rules": {
+          "AMBIGUOUS": 55
+        },
+        "delta_alignment": {
+          "ALIGNED": 39,
+          "COUNTER": 12,
+          "NEUTRAL": 4
+        }
+      },
+      "UNKNOWN": {
+        "n": 0
+      }
+    },
+    "episode_rules": {
+      "AMBIGUOUS": 55,
+      "X1": 14,
+      "E1": 10,
+      "E3": 8,
+      "X2": 4,
+      "E2": 2
+    },
+    "prep_family_dist": {
+      "AMBIGUOUS": 55,
+      "EQUILIBRIUM_COMPRESSION": 20,
+      "EXTREME_COMPRESSION": 18
+    },
+    "future_direction": {
+      "DOWN": 52,
+      "UP": 41
+    },
+    "pre_equil_all_mean": 16.1
+  },
+  "2026-05-26": {
+    "date": "2026-05-26",
+    "total_episodes": 114,
+    "families": {
+      "EQUILIBRIUM_COMPRESSION": {
+        "n": 15,
+        "expansion_pct": 26.7,
+        "fake_pct": 20.0,
+        "survival_pct": 33.3,
+        "mean_move_4h": 368.5,
+        "mean_equil_rows": 25.7,
+        "min_equil_rows": 3,
+        "max_equil_rows": 33,
+        "mean_confidence": 0.809,
+        "rules": {
+          "E3": 10,
+          "E1": 5
+        },
+        "delta_alignment": {
+          "ALIGNED": 12,
+          "NEUTRAL": 2,
+          "COUNTER": 1
+        }
+      },
+      "EXTREME_COMPRESSION": {
+        "n": 25,
+        "expansion_pct": 72.0,
+        "fake_pct": 8.0,
+        "survival_pct": 20.0,
+        "mean_move_4h": 736.8,
+        "mean_equil_rows": 3.5,
+        "min_equil_rows": 0,
+        "max_equil_rows": 9,
+        "mean_confidence": 0.83,
+        "rules": {
+          "X1": 15,
+          "X2": 10
+        },
+        "delta_alignment": {
+          "ALIGNED": 16,
+          "NEUTRAL": 7,
+          "COUNTER": 2
+        }
+      },
+      "AMBIGUOUS": {
+        "n": 74,
+        "expansion_pct": 64.9,
+        "fake_pct": 17.6,
+        "survival_pct": 14.9,
+        "mean_move_4h": 790.4,
+        "mean_equil_rows": 9.2,
+        "min_equil_rows": 0,
+        "max_equil_rows": 29,
+        "mean_confidence": 0.531,
+        "rules": {
+          "AMBIGUOUS": 74
+        },
+        "delta_alignment": {
+          "ALIGNED": 50,
+          "NEUTRAL": 14,
+          "COUNTER": 10
+        }
+      },
+      "UNKNOWN": {
+        "n": 0
+      }
+    },
+    "episode_rules": {
+      "AMBIGUOUS": 74,
+      "X1": 15,
+      "X2": 10,
+      "E3": 10,
+      "E1": 5
+    },
+    "prep_family_dist": {
+      "AMBIGUOUS": 74,
+      "EXTREME_COMPRESSION": 25,
+      "EQUILIBRIUM_COMPRESSION": 15
+    },
+    "future_direction": {
+      "DOWN": 61,
+      "UP": 52,
+      "RANGE": 1
+    },
+    "pre_equil_all_mean": 10.1
+  },
+  "2026-05-27": {
+    "date": "2026-05-27",
+    "total_episodes": 116,
+    "families": {
+      "EQUILIBRIUM_COMPRESSION": {
+        "n": 50,
+        "expansion_pct": 56.0,
+        "fake_pct": 22.0,
+        "survival_pct": 18.0,
+        "mean_move_4h": 689.5,
+        "mean_equil_rows": 37.6,
+        "min_equil_rows": 8,
+        "max_equil_rows": 65,
+        "mean_confidence": 0.863,
+        "rules": {
+          "E1": 21,
+          "E3": 21,
+          "E2": 8
+        },
+        "delta_alignment": {
+          "ALIGNED": 21,
+          "COUNTER": 21,
+          "NEUTRAL": 8
+        }
+      },
+      "EXTREME_COMPRESSION": {
+        "n": 15,
+        "expansion_pct": 53.3,
+        "fake_pct": 0.0,
+        "survival_pct": 46.7,
+        "mean_move_4h": 540.1,
+        "mean_equil_rows": 1.2,
+        "min_equil_rows": 0,
+        "max_equil_rows": 9,
+        "mean_confidence": 0.838,
+        "rules": {
+          "X1": 14,
+          "X2": 1
+        },
+        "delta_alignment": {
+          "ALIGNED": 15
+        }
+      },
+      "AMBIGUOUS": {
+        "n": 50,
+        "expansion_pct": 52.0,
+        "fake_pct": 28.0,
+        "survival_pct": 16.0,
+        "mean_move_4h": 558.8,
+        "mean_equil_rows": 17.1,
+        "min_equil_rows": 0,
+        "max_equil_rows": 29,
+        "mean_confidence": 0.524,
+        "rules": {
+          "AMBIGUOUS": 50
+        },
+        "delta_alignment": {
+          "ALIGNED": 30,
+          "NEUTRAL": 13,
+          "COUNTER": 7
+        }
+      },
+      "UNKNOWN": {
+        "n": 1,
+        "expansion_pct": 100.0,
+        "fake_pct": 0.0,
+        "survival_pct": 0.0,
+        "mean_move_4h": 352.3,
+        "mean_equil_rows": null,
+        "min_equil_rows": null,
+        "max_equil_rows": null,
+        "mean_confidence": null,
+        "rules": {
+          "NONE": 1
+        },
+        "delta_alignment": {
+          "NEUTRAL": 1
+        }
+      }
+    },
+    "episode_rules": {
+      "AMBIGUOUS": 50,
+      "E1": 21,
+      "E3": 21,
+      "X1": 14,
+      "E2": 8,
+      "NONE": 1,
+      "X2": 1
+    },
+    "prep_family_dist": {
+      "EQUILIBRIUM_COMPRESSION": 50,
+      "AMBIGUOUS": 50,
+      "EXTREME_COMPRESSION": 15,
+      "UNKNOWN": 1
+    },
+    "future_direction": {
+      "DOWN": 73,
+      "UP": 42,
+      "RANGE": 1
+    },
+    "pre_equil_all_mean": 23.9
+  },
+  "2026-05-28": {
+    "date": "2026-05-28",
+    "total_episodes": 98,
+    "families": {
+      "EQUILIBRIUM_COMPRESSION": {
+        "n": 38,
+        "expansion_pct": 68.4,
+        "fake_pct": 13.2,
+        "survival_pct": 15.8,
+        "mean_move_4h": 774.2,
+        "mean_equil_rows": 36.6,
+        "min_equil_rows": 6,
+        "max_equil_rows": 59,
+        "mean_confidence": 0.849,
+        "rules": {
+          "E3": 18,
+          "E1": 12,
+          "E2": 8
+        },
+        "delta_alignment": {
+          "ALIGNED": 20,
+          "COUNTER": 12,
+          "NEUTRAL": 6
+        }
+      },
+      "EXTREME_COMPRESSION": {
+        "n": 17,
+        "expansion_pct": 70.6,
+        "fake_pct": 5.9,
+        "survival_pct": 5.9,
+        "mean_move_4h": 543.1,
+        "mean_equil_rows": 1.8,
+        "min_equil_rows": 0,
+        "max_equil_rows": 4,
+        "mean_confidence": 0.817,
+        "rules": {
+          "X1": 17
+        },
+        "delta_alignment": {
+          "ALIGNED": 17
+        }
+      },
+      "AMBIGUOUS": {
+        "n": 43,
+        "expansion_pct": 69.8,
+        "fake_pct": 16.3,
+        "survival_pct": 11.6,
+        "mean_move_4h": 775.5,
+        "mean_equil_rows": 15.5,
+        "min_equil_rows": 0,
+        "max_equil_rows": 29,
+        "mean_confidence": 0.538,
+        "rules": {
+          "AMBIGUOUS": 43
+        },
+        "delta_alignment": {
+          "ALIGNED": 20,
+          "COUNTER": 18,
+          "NEUTRAL": 5
+        }
+      },
+      "UNKNOWN": {
+        "n": 0
+      }
+    },
+    "episode_rules": {
+      "AMBIGUOUS": 43,
+      "E3": 18,
+      "X1": 17,
+      "E1": 12,
+      "E2": 8
+    },
+    "prep_family_dist": {
+      "AMBIGUOUS": 43,
+      "EQUILIBRIUM_COMPRESSION": 38,
+      "EXTREME_COMPRESSION": 17
+    },
+    "future_direction": {
+      "DOWN": 56,
+      "UP": 42
+    },
+    "pre_equil_all_mean": 21.3
+  },
+  "2026-05-30": {
+    "date": "2026-05-30",
+    "total_episodes": 47,
+    "families": {
+      "EQUILIBRIUM_COMPRESSION": {
+        "n": 24,
+        "expansion_pct": 87.5,
+        "fake_pct": 4.2,
+        "survival_pct": 0.0,
+        "mean_move_4h": 251.8,
+        "mean_equil_rows": 27.9,
+        "min_equil_rows": 8,
+        "max_equil_rows": 39,
+        "mean_confidence": 0.841,
+        "rules": {
+          "E1": 11,
+          "E3": 10,
+          "E2": 3
+        },
+        "delta_alignment": {
+          "ALIGNED": 14,
+          "NEUTRAL": 8,
+          "COUNTER": 2
+        }
+      },
+      "EXTREME_COMPRESSION": {
+        "n": 5,
+        "expansion_pct": 40.0,
+        "fake_pct": 0.0,
+        "survival_pct": 60.0,
+        "mean_move_4h": 237.3,
+        "mean_equil_rows": 2.8,
+        "min_equil_rows": 0,
+        "max_equil_rows": 9,
+        "mean_confidence": 0.874,
+        "rules": {
+          "X1": 4,
+          "X2": 1
+        },
+        "delta_alignment": {
+          "ALIGNED": 5
+        }
+      },
+      "AMBIGUOUS": {
+        "n": 18,
+        "expansion_pct": 66.7,
+        "fake_pct": 22.2,
+        "survival_pct": 5.6,
+        "mean_move_4h": 305.0,
+        "mean_equil_rows": 14.1,
+        "min_equil_rows": 0,
+        "max_equil_rows": 29,
+        "mean_confidence": 0.539,
+        "rules": {
+          "AMBIGUOUS": 18
+        },
+        "delta_alignment": {
+          "ALIGNED": 14,
+          "NEUTRAL": 2,
+          "COUNTER": 2
+        }
+      },
+      "UNKNOWN": {
+        "n": 0
+      }
+    },
+    "episode_rules": {
+      "AMBIGUOUS": 18,
+      "E1": 11,
+      "E3": 10,
+      "X1": 4,
+      "E2": 3,
+      "X2": 1
+    },
+    "prep_family_dist": {
+      "EQUILIBRIUM_COMPRESSION": 24,
+      "AMBIGUOUS": 18,
+      "EXTREME_COMPRESSION": 5
+    },
+    "future_direction": {
+      "UP": 24,
+      "DOWN": 21,
+      "RANGE": 2
+    },
+    "pre_equil_all_mean": 20.0
+  }
+}

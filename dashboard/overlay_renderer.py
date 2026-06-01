@@ -44,6 +44,7 @@ def render_rdm_visual_overlay(row: pd.Series, observation_rows: pd.DataFrame, li
     html = build_overlay_svg(row, chart_data, live_rows_for_case(row, live_rows))
     components.html(html, height=620, scrolling=False)
     render_overlay_summary(row)
+    render_rdm_price_overlay(row)
 
 
 def overlay_chart_data(row: pd.Series, observation_rows: pd.DataFrame, live_rows: pd.DataFrame) -> pd.DataFrame:
@@ -291,6 +292,256 @@ def render_overlay_summary(row: pd.Series) -> None:
     ]
     for index, (label, field) in enumerate(summary_items):
         columns[index % 4].metric(label, display_value(row.get(field)))
+
+
+def render_rdm_price_overlay(row: pd.Series) -> None:
+    import streamlit as st
+    import streamlit.components.v1 as components
+
+    st.subheader("RDM Price Overlay - Research Only")
+    st.caption(
+        "Absolute BTC price view for comparing RDM zones directly with chart "
+        "prices. Display only; it does not affect calculations, scoring, or signals."
+    )
+
+    required_fields = [
+        "formation_lower_edge",
+        "formation_upper_edge",
+        "interaction_core_lower_edge",
+        "interaction_core_upper_edge",
+        "interaction_density_lower_band",
+        "interaction_density_upper_band",
+    ]
+    if any(numeric(row.get(field)) is None for field in required_fields):
+        st.info("No complete price overlay geometry is mapped for this case yet.")
+        return
+
+    components.html(build_price_overlay_html(row), height=560, scrolling=False)
+    st.dataframe(
+        build_price_overlay_table(row),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def build_price_overlay_html(row: pd.Series) -> str:
+    width = 920
+    height = 390
+    pad_left = 150
+    pad_right = 40
+    pad_top = 36
+    pad_bottom = 40
+    plot_h = height - pad_top - pad_bottom
+    band_x = pad_left + 170
+    band_w = width - band_x - pad_right
+
+    formation_lower = numeric(row.get("formation_lower_edge"))
+    formation_upper = numeric(row.get("formation_upper_edge"))
+    core_lower = numeric(row.get("interaction_core_lower_edge"))
+    core_upper = numeric(row.get("interaction_core_upper_edge"))
+    density_lower = numeric(row.get("interaction_density_lower_band"))
+    density_upper = numeric(row.get("interaction_density_upper_band"))
+    birth_price = numeric(row.get("real_birth_price")) or numeric(row.get("birth_price"))
+
+    prices = [
+        formation_lower,
+        formation_upper,
+        core_lower,
+        core_upper,
+        density_lower,
+        density_upper,
+        birth_price,
+    ]
+    valid_prices = [price for price in prices if price is not None]
+    price_min = min(valid_prices)
+    price_max = max(valid_prices)
+    if price_max == price_min:
+        price_max += 1
+        price_min -= 1
+    margin = max((price_max - price_min) * 0.10, 10)
+    price_min -= margin
+    price_max += margin
+
+    def sy(price: Any) -> float:
+        number = numeric(price)
+        if number is None:
+            return pad_top + plot_h
+        return pad_top + ((price_max - number) / (price_max - price_min)) * plot_h
+
+    axis_ticks = price_axis_ticks(price_min, price_max, 6)
+    tick_shapes = []
+    for tick in axis_ticks:
+        y = sy(tick)
+        tick_shapes.append(
+            f'<line x1="{pad_left - 8}" y1="{y:.2f}" x2="{width - pad_right}" y2="{y:.2f}" '
+            f'stroke="#E2E8F0" stroke-width="1"/>'
+            f'<text x="{pad_left - 14}" y="{y + 4:.2f}" text-anchor="end" '
+            f'fill="#475569" font-size="12">{format_price(tick)}</text>'
+        )
+
+    bands = [
+        price_band(
+            sy,
+            band_x,
+            band_w,
+            formation_lower,
+            formation_upper,
+            "#94A3B8",
+            0.22,
+            "Formation Range",
+        ),
+        price_band(
+            sy,
+            band_x + 34,
+            band_w - 68,
+            core_lower,
+            core_upper,
+            "#22C55E",
+            0.52,
+            "Active RDM Zone / Interaction Core",
+        ),
+        price_band(
+            sy,
+            band_x + 76,
+            band_w - 152,
+            density_lower,
+            density_upper,
+            "#A855F7",
+            0.66,
+            "Interaction Density Band",
+        ),
+    ]
+
+    birth_line = ""
+    if birth_price is not None:
+        y = sy(birth_price)
+        birth_line = (
+            f'<line x1="{pad_left}" y1="{y:.2f}" x2="{width - pad_right}" y2="{y:.2f}" '
+            f'stroke="#0891B2" stroke-width="3" stroke-dasharray="7 5"/>'
+            f'<text x="{pad_left + 8}" y="{y - 8:.2f}" fill="#0E7490" '
+            f'font-size="12" font-weight="700">Birth Price {format_price(birth_price)}</text>'
+        )
+
+    episode_id = escape(display_value(row.get("episode_id")))
+    case_id = escape(display_value(row.get("case_id")))
+    utc_time = display_value(row.get("episode_start_time_utc"))
+    algeria_time = algeria_time_from_utc(row.get("episode_start_time_utc"))
+    core_ratio = ratio_value(row.get("interaction_core_width"), row.get("formation_width"))
+    density_ratio = ratio_value(row.get("interaction_density_width"), row.get("formation_width"))
+
+    return f"""
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;border:1px solid #E5E7EB;border-radius:8px;padding:12px;background:#FFFFFF;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <strong>RDM Price Overlay</strong>
+        <span style="background:#E0F2FE;padding:2px 8px;border-radius:999px;">Episode {episode_id}</span>
+        <span style="background:#F1F5F9;padding:2px 8px;border-radius:999px;">{case_id}</span>
+        <span style="background:#ECFDF5;padding:2px 8px;border-radius:999px;">Core / Formation: {format_ratio(core_ratio)}</span>
+        <span style="background:#F3E8FF;padding:2px 8px;border-radius:999px;">Density / Formation: {format_ratio(density_ratio)}</span>
+      </div>
+      <div style="color:#475569;font-size:12px;margin-bottom:8px;">
+        UTC: {escape(utc_time)} | Algeria: {escape(algeria_time)}
+      </div>
+      <svg width="100%" viewBox="0 0 {width} {height}" role="img" aria-label="Absolute price RDM overlay">
+        <rect x="0" y="0" width="{width}" height="{height}" fill="#FFFFFF"/>
+        <text x="{pad_left}" y="22" fill="#334155" font-size="13" font-weight="700">Absolute Price Axis</text>
+        <line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{height - pad_bottom}" stroke="#64748B" stroke-width="2"/>
+        {''.join(tick_shapes)}
+        {''.join(bands)}
+        {birth_line}
+      </svg>
+    </div>
+    """
+
+
+def price_band(sy, x: float, width: float, lower: Any, upper: Any, color: str, opacity: float, label: str) -> str:
+    lower_value = numeric(lower)
+    upper_value = numeric(upper)
+    if lower_value is None or upper_value is None:
+        return ""
+    y_top = sy(max(lower_value, upper_value))
+    y_bottom = sy(min(lower_value, upper_value))
+    height = max(y_bottom - y_top, 3)
+    return (
+        f'<rect x="{x:.2f}" y="{y_top:.2f}" width="{width:.2f}" height="{height:.2f}" '
+        f'fill="{color}" opacity="{opacity}" stroke="{color}" stroke-width="2"/>'
+        f'<text x="{x + 10:.2f}" y="{max(y_top - 7, 18):.2f}" fill="{color}" '
+        f'font-size="12" font-weight="700">{escape(label)} '
+        f'{format_price(lower_value)} -> {format_price(upper_value)}</text>'
+    )
+
+
+def build_price_overlay_table(row: pd.Series) -> pd.DataFrame:
+    formation_width = numeric(row.get("formation_width"))
+    core_width = numeric(row.get("interaction_core_width"))
+    density_width = numeric(row.get("interaction_density_width"))
+
+    rows = [
+        {
+            "Layer": "Formation Range",
+            "Lower": format_price(row.get("formation_lower_edge")),
+            "Upper": format_price(row.get("formation_upper_edge")),
+            "Width": format_price(formation_width),
+            "Compression Ratio": "1.0000",
+        },
+        {
+            "Layer": "Active RDM Zone / Interaction Core",
+            "Lower": format_price(row.get("interaction_core_lower_edge")),
+            "Upper": format_price(row.get("interaction_core_upper_edge")),
+            "Width": format_price(core_width),
+            "Compression Ratio": format_ratio(ratio_value(core_width, formation_width)),
+        },
+        {
+            "Layer": "Interaction Density Band",
+            "Lower": format_price(row.get("interaction_density_lower_band")),
+            "Upper": format_price(row.get("interaction_density_upper_band")),
+            "Width": format_price(density_width),
+            "Compression Ratio": format_ratio(ratio_value(density_width, formation_width)),
+        },
+        {
+            "Layer": "Birth Price",
+            "Lower": "",
+            "Upper": "",
+            "Width": format_price(numeric(row.get("real_birth_price")) or numeric(row.get("birth_price"))),
+            "Compression Ratio": "",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
+def price_axis_ticks(price_min: float, price_max: float, count: int) -> list[float]:
+    if count <= 1:
+        return [price_min, price_max]
+    step = (price_max - price_min) / (count - 1)
+    return [price_min + step * index for index in range(count)]
+
+
+def ratio_value(numerator: Any, denominator: Any) -> float | None:
+    numerator_value = numeric(numerator)
+    denominator_value = numeric(denominator)
+    if numerator_value is None or denominator_value in [None, 0]:
+        return None
+    return numerator_value / denominator_value
+
+
+def format_ratio(value: Any) -> str:
+    number = numeric(value)
+    if number is None:
+        return "N/A"
+    return f"{number:.4f}"
+
+
+def format_price(value: Any) -> str:
+    number = numeric(value)
+    if number is None:
+        return "N/A"
+    return f"{number:.2f}"
+
+
+def algeria_time_from_utc(value: Any) -> str:
+    parsed = pd.to_datetime(value, utc=True, errors="coerce")
+    if pd.isna(parsed):
+        return display_value(value)
+    return (parsed + pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def numeric(value: Any) -> float | None:

@@ -39,6 +39,44 @@ REVERSAL_MEDIUM_THRESHOLD = 100
 REVERSAL_HIGH_THRESHOLD = 250
 REVERSAL_EXTREME_THRESHOLD = 500
 
+# ==================================================
+# ZONE CLASSIFICATION V1 — CONSTANTS
+# ==================================================
+
+ZONE_PRESSURE_THRESHOLD = 0.20        # bottom/top 20% of zone range = pressure zone
+ZONE_FAILED_BREAKOUT_ROWS = 5         # run must be shorter than this to count as failed
+ZONE_DELTA_TRAP_ZSCORE = 2.0          # |delta_zscore| threshold for trap detection
+ZONE_DECAY_MIN_SAMPLES = 3            # minimum pressure events needed for slope
+ZONE_CLEAN_MAX_RETURNS = 2
+ZONE_CLEAN_MAX_PENETRATION_RATIO = 0.10   # at most 10% of rows in pressure zone
+ZONE_CLEAN_MAX_DEPTH = 0.10               # max depth ratio for CLEAN classification
+ZONE_BATTLE_MIN_RETURNS = 3
+ZONE_EXHAUSTION_DECAY_THRESHOLD = -0.003  # negative slope = declining depth
+ZONE_MANIPULATION_HIGH = 0.75
+ZONE_MANIPULATION_MODERATE = 0.55
+
+# ==================================================
+# PREPARATION FAMILY CLASSIFIER V1 — CONSTANTS
+# ==================================================
+
+PREP_FAMILY_EQUIL_PZ = 0.50           # |pz| ≤ this at trigger → pure equilibrium (E1)
+PREP_FAMILY_EQUIL_EXT_PZ = 1.00       # |pz| ≤ this + pre_equil ≥ 20 → extended equil (E2)
+PREP_FAMILY_EQUIL_EXT_EQ = 20         # pre_equil_rows threshold for E2
+PREP_FAMILY_EQUIL_DEEP_EQ = 30        # pre_equil_rows ≥ this → deep equil (E3)
+PREP_FAMILY_EXTREME_PZ = 1.50         # |pz| ≥ this + pre_equil ≤ 5 → extreme (X1)
+PREP_FAMILY_EXTREME_EQ = 5            # pre_equil_rows ≤ this for X1
+PREP_FAMILY_EXTREME_DEEP_PZ = 2.50    # |pz| ≥ this + pre_equil ≤ 10 → deep extreme (X2)
+PREP_FAMILY_EXTREME_DEEP_EQ = 10      # pre_equil_rows ≤ this for X2
+PREP_FAMILY_DELTA_MIN = 30.0          # |pre_delta_sum| must exceed this for alignment signal
+
+_PREP_FAMILY_DEFAULTS = {
+    "prep_family": "UNKNOWN",
+    "prep_family_confidence": None,
+    "prep_family_rule": "NONE",
+    "prep_delta_alignment": "NEUTRAL",
+    "prep_family_lean": "NONE",
+}
+
 HORIZONS = {
     "1m": timedelta(minutes=1),
     "5m": timedelta(minutes=5),
@@ -469,6 +507,480 @@ def add_preparation_baselines(rows):
     return prepared
 
 
+def _linear_slope(values):
+    """Least-squares slope of a sequence of floats. Returns None if fewer than 2 values."""
+    n = len(values)
+    if n < 2:
+        return None
+    x_mean = (n - 1) / 2.0
+    y_mean = sum(values) / n
+    numerator = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(values))
+    denominator = sum((i - x_mean) ** 2 for i in range(n))
+    if denominator == 0:
+        return None
+    return numerator / denominator
+
+
+def classify_preparation_zone(previous_rows, zone_low, zone_high):
+    """
+    V1 Preparation Zone Classification.
+
+    Classifies the structural behaviour of the preparation window using
+    pressure-zone mechanics.  Operates on the same previous_rows window
+    used by find_preparation_zone.
+
+    Returns a dict of 14 new observation fields.
+    Does NOT change detection, scoring, or any existing field.
+    Falls back to UNKNOWN / None safely on insufficient or missing data.
+    """
+    defaults = {
+        "zone_return_count": None,
+        "zone_penetration_count": None,
+        "zone_failed_breakout_count": None,
+        "max_penetration_depth_ratio": None,
+        "time_inside_zone_ratio": None,
+        "attacker_persistence_max": None,
+        "penetration_depth_decay": None,
+        "volume_decay_on_attempts": None,
+        "recovery_speed_mean_rows": None,
+        "delta_trap_count": None,
+        "manipulation_risk_score": None,
+        "zone_type": "UNKNOWN",
+        "zone_type_confidence": None,
+        "zone_health_grade": "UNKNOWN",
+    }
+    try:
+        if (
+            previous_rows is None
+            or previous_rows.empty
+            or zone_low is None
+            or zone_high is None
+        ):
+            return defaults
+
+        zone_width = float(zone_high) - float(zone_low)
+        if zone_width <= 0:
+            return defaults
+
+        n_rows = len(previous_rows)
+        zone_lower_pressure = float(zone_low) + ZONE_PRESSURE_THRESHOLD * zone_width
+        zone_upper_pressure = float(zone_high) - ZONE_PRESSURE_THRESHOLD * zone_width
+
+        work = previous_rows.reset_index(drop=True)
+        closes = pd.to_numeric(work["close"], errors="coerce")
+
+        if "volume" in work.columns:
+            volumes = pd.to_numeric(work["volume"], errors="coerce")
+        else:
+            volumes = pd.Series([float("nan")] * n_rows)
+
+        if "delta_zscore" in work.columns:
+            delta_zscores = pd.to_numeric(work["delta_zscore"], errors="coerce")
+        else:
+            delta_zscores = pd.Series([float("nan")] * n_rows)
+
+        if closes.isna().all():
+            return defaults
+
+        # --- Label each row as bottom / top / center pressure ---
+        labels = []
+        for i in range(n_rows):
+            c = closes.iloc[i]
+            if pd.isna(c):
+                labels.append("center")
+            elif c < zone_lower_pressure:
+                labels.append("bottom")
+            elif c > zone_upper_pressure:
+                labels.append("top")
+            else:
+                labels.append("center")
+
+        n_pressure = sum(1 for lb in labels if lb != "center")
+        zone_penetration_count = n_pressure
+        time_inside_zone_ratio = (
+            round_float((n_rows - n_pressure) / n_rows)
+            if n_rows > 0
+            else None
+        )
+
+        # Transitions pressure → center = returns
+        zone_return_count = 0
+        for i in range(1, n_rows):
+            if labels[i] == "center" and labels[i - 1] != "center":
+                zone_return_count += 1
+
+        # --- Build pressure runs ---
+        pressure_runs = []
+        current_run = []
+        for i in range(n_rows):
+            if labels[i] != "center":
+                current_run.append(i)
+            else:
+                if current_run:
+                    pressure_runs.append(current_run)
+                    current_run = []
+        if current_run:
+            pressure_runs.append(current_run)
+
+        attacker_persistence_max = (
+            max(len(run) for run in pressure_runs)
+            if pressure_runs
+            else 0
+        )
+
+        # Depth per run (max depth within each run, normalised by zone_width)
+        depth_per_run = []
+        volume_per_run = []
+        for run in pressure_runs:
+            run_depths = []
+            run_vols = []
+            for idx in run:
+                c = closes.iloc[idx]
+                if pd.isna(c):
+                    continue
+                if labels[idx] == "bottom":
+                    d = (zone_lower_pressure - c) / zone_width
+                else:
+                    d = (c - zone_upper_pressure) / zone_width
+                run_depths.append(max(0.0, d))
+                v = volumes.iloc[idx]
+                if not pd.isna(v):
+                    run_vols.append(float(v))
+            if run_depths:
+                depth_per_run.append(max(run_depths))
+            if run_vols:
+                volume_per_run.append(sum(run_vols) / len(run_vols))
+
+        max_penetration_depth_ratio = (
+            round_float(max(depth_per_run))
+            if depth_per_run
+            else None
+        )
+
+        pressure_run_lengths = [len(run) for run in pressure_runs]
+        recovery_speed_mean_rows = (
+            round_float(
+                sum(pressure_run_lengths) / len(pressure_run_lengths)
+            )
+            if pressure_run_lengths
+            else None
+        )
+
+        # --- Failed breakouts ---
+        # A pressure run is "failed" when it returns to centre quickly
+        zone_failed_breakout_count = 0
+        for run in pressure_runs:
+            run_end = run[-1]
+            returned = (
+                (run_end + 1) < n_rows
+                and labels[run_end + 1] == "center"
+            )
+            if returned and len(run) < ZONE_FAILED_BREAKOUT_ROWS:
+                zone_failed_breakout_count += 1
+
+        # --- Delta trap count ---
+        # Short pressure run + high |delta_zscore| + fast return
+        delta_trap_count = 0
+        for run in pressure_runs:
+            if len(run) >= ZONE_FAILED_BREAKOUT_ROWS:
+                continue
+            run_end = run[-1]
+            returned = (
+                (run_end + 1) < n_rows
+                and labels[run_end + 1] == "center"
+            )
+            if not returned:
+                continue
+            has_high_delta = any(
+                not pd.isna(delta_zscores.iloc[idx])
+                and abs(delta_zscores.iloc[idx]) >= ZONE_DELTA_TRAP_ZSCORE
+                for idx in run
+            )
+            if has_high_delta:
+                delta_trap_count += 1
+
+        # --- Decay slopes ---
+        penetration_depth_decay = (
+            round_float(_linear_slope(depth_per_run))
+            if len(depth_per_run) >= ZONE_DECAY_MIN_SAMPLES
+            else None
+        )
+        volume_decay_on_attempts = (
+            round_float(_linear_slope(volume_per_run))
+            if len(volume_per_run) >= ZONE_DECAY_MIN_SAMPLES
+            else None
+        )
+
+        # --- Manipulation risk score ---
+        trap_score = min(delta_trap_count / 3.0, 1.0)
+
+        speed_score = 0.0
+        if recovery_speed_mean_rows is not None and recovery_speed_mean_rows > 0:
+            speed_score = max(0.0, 1.0 - recovery_speed_mean_rows / 10.0)
+
+        fb_score = 0.0
+        if zone_penetration_count > 0:
+            fb_ratio = zone_failed_breakout_count / max(zone_penetration_count, 1)
+            if fb_ratio >= 0.5 and speed_score >= 0.4:
+                fb_score = min(fb_ratio, 1.0)
+
+        manipulation_risk_score = round_float(
+            0.40 * trap_score + 0.35 * speed_score + 0.25 * fb_score
+        )
+
+        # --- Zone type ---
+        max_allowed_pressure = max(
+            int(n_rows * ZONE_CLEAN_MAX_PENETRATION_RATIO), 2
+        )
+        depth_ok = (
+            max_penetration_depth_ratio is None
+            or max_penetration_depth_ratio <= ZONE_CLEAN_MAX_DEPTH
+        )
+        manip_score = manipulation_risk_score or 0.0
+
+        if (
+            zone_return_count <= ZONE_CLEAN_MAX_RETURNS
+            and zone_penetration_count <= max_allowed_pressure
+            and depth_ok
+        ):
+            zone_type = "CLEAN"
+        elif manip_score >= ZONE_MANIPULATION_MODERATE:
+            zone_type = "MANIPULATED"
+        elif (
+            penetration_depth_decay is not None
+            and penetration_depth_decay <= ZONE_EXHAUSTION_DECAY_THRESHOLD
+            and zone_return_count >= ZONE_BATTLE_MIN_RETURNS
+            and zone_penetration_count >= ZONE_BATTLE_MIN_RETURNS
+        ):
+            zone_type = "EXHAUSTION"
+        elif (
+            zone_return_count >= ZONE_BATTLE_MIN_RETURNS
+            and zone_penetration_count >= ZONE_BATTLE_MIN_RETURNS
+        ):
+            zone_type = "BATTLE"
+        elif zone_penetration_count >= 2 or zone_return_count >= 2:
+            zone_type = "MIXED"
+        else:
+            zone_type = "UNKNOWN"
+
+        # --- Zone type confidence ---
+        data_score = min(n_rows / 50.0, 1.0)
+
+        if zone_type == "CLEAN":
+            factor = 0.95 if zone_penetration_count == 0 else 0.80
+            zone_type_confidence = round_float(data_score * factor)
+        elif zone_type == "MANIPULATED":
+            factor = min(manip_score * 1.3, 1.0)
+            zone_type_confidence = round_float(data_score * factor)
+        elif zone_type == "EXHAUSTION":
+            factor = 0.85 if (penetration_depth_decay or 0) <= -0.005 else 0.65
+            zone_type_confidence = round_float(data_score * factor)
+        elif zone_type == "BATTLE":
+            factor = min(zone_return_count / 6.0, 1.0) * 0.85
+            zone_type_confidence = round_float(data_score * factor)
+        elif zone_type == "MIXED":
+            zone_type_confidence = round_float(data_score * 0.50)
+        else:
+            zone_type_confidence = round_float(data_score * 0.25)
+
+        # --- Zone health grade ---
+        if zone_type == "CLEAN":
+            zone_health_grade = "A"
+        elif zone_type == "EXHAUSTION":
+            both_decaying = (
+                penetration_depth_decay is not None
+                and penetration_depth_decay < ZONE_EXHAUSTION_DECAY_THRESHOLD
+                and volume_decay_on_attempts is not None
+                and volume_decay_on_attempts < 0
+            )
+            zone_health_grade = "B" if both_decaying else "C"
+        elif zone_type == "BATTLE":
+            zone_health_grade = (
+                "B"
+                if (
+                    volume_decay_on_attempts is not None
+                    and volume_decay_on_attempts < 0
+                )
+                else "C"
+            )
+        elif zone_type == "MANIPULATED":
+            zone_health_grade = "D" if manip_score >= ZONE_MANIPULATION_HIGH else "C"
+        elif zone_type == "MIXED":
+            zone_health_grade = "C"
+        else:
+            zone_health_grade = "D"
+
+        return {
+            "zone_return_count": zone_return_count,
+            "zone_penetration_count": zone_penetration_count,
+            "zone_failed_breakout_count": zone_failed_breakout_count,
+            "max_penetration_depth_ratio": max_penetration_depth_ratio,
+            "time_inside_zone_ratio": time_inside_zone_ratio,
+            "attacker_persistence_max": attacker_persistence_max,
+            "penetration_depth_decay": penetration_depth_decay,
+            "volume_decay_on_attempts": volume_decay_on_attempts,
+            "recovery_speed_mean_rows": recovery_speed_mean_rows,
+            "delta_trap_count": delta_trap_count,
+            "manipulation_risk_score": manipulation_risk_score,
+            "zone_type": zone_type,
+            "zone_type_confidence": zone_type_confidence,
+            "zone_health_grade": zone_health_grade,
+        }
+
+    except Exception:
+        return defaults
+
+
+def classify_preparation_family(trigger_pzscore, pre_equil_rows, pre_delta_sum):
+    """
+    Preparation Family Classifier V1.
+
+    Labels the structural type of the preparation window:
+      EQUILIBRIUM_COMPRESSION  — compression near the statistical mean.
+      EXTREME_COMPRESSION      — compression at a statistical extreme.
+      AMBIGUOUS                — insufficient evidence for a clean label.
+
+    Inputs
+    ------
+    trigger_pzscore : price_zscore at the episode trigger row.
+    pre_equil_rows  : count of pre-window rows where |price_zscore| < 0.5.
+    pre_delta_sum   : cumulative delta over the preparation window.
+
+    Does not change any detection, scoring, or replay logic.
+    Returns safely with UNKNOWN on any error or missing data.
+    """
+    try:
+        return _classify_preparation_family(
+            trigger_pzscore, pre_equil_rows, pre_delta_sum
+        )
+    except Exception:
+        return dict(_PREP_FAMILY_DEFAULTS)
+
+
+def _classify_preparation_family(trigger_pzscore, pre_equil_rows, pre_delta_sum):
+    pz_abs = abs(float(trigger_pzscore)) if trigger_pzscore is not None else None
+    eq = int(pre_equil_rows) if pre_equil_rows is not None else 0
+    ds = float(pre_delta_sum) if pre_delta_sum is not None else None
+
+    # Delta alignment: counter-directional flow vs price displacement
+    delta_alignment = "NEUTRAL"
+    lean = "NONE"
+    if (
+        ds is not None
+        and trigger_pzscore is not None
+        and abs(ds) >= PREP_FAMILY_DELTA_MIN
+        and trigger_pzscore != 0.0
+    ):
+        pz_sign = 1 if trigger_pzscore > 0 else -1
+        ds_sign = 1 if ds > 0 else -1
+        if pz_sign != ds_sign:
+            delta_alignment = "COUNTER"
+            lean = "EQUILIBRIUM"
+        else:
+            delta_alignment = "ALIGNED"
+            lean = "EXTREME"
+
+    # ── EQUILIBRIUM RULES ────────────────────────────────────────────────────
+
+    # E1: price essentially at statistical mean at trigger moment
+    if pz_abs is not None and pz_abs <= PREP_FAMILY_EQUIL_PZ:
+        if eq >= 15:
+            conf = 0.85
+        elif eq >= 5:
+            conf = 0.75
+        else:
+            conf = 0.65   # delta-spike-at-equilibrium (brief visit, no sustained residency)
+        if delta_alignment == "COUNTER":
+            conf = min(1.0, conf + 0.05)
+        elif delta_alignment == "ALIGNED":
+            conf = max(0.0, conf - 0.03)
+        return {
+            "prep_family": "EQUILIBRIUM_COMPRESSION",
+            "prep_family_confidence": round_float(conf),
+            "prep_family_rule": "E1",
+            "prep_delta_alignment": delta_alignment,
+            "prep_family_lean": "EQUILIBRIUM",
+        }
+
+    # E2: slight displacement but sustained residency near mean
+    if (
+        pz_abs is not None
+        and pz_abs <= PREP_FAMILY_EQUIL_EXT_PZ
+        and eq >= PREP_FAMILY_EQUIL_EXT_EQ
+    ):
+        conf = 0.87 if eq >= PREP_FAMILY_EQUIL_DEEP_EQ else 0.82
+        if delta_alignment == "COUNTER":
+            conf = min(1.0, conf + 0.05)
+        return {
+            "prep_family": "EQUILIBRIUM_COMPRESSION",
+            "prep_family_confidence": round_float(conf),
+            "prep_family_rule": "E2",
+            "prep_delta_alignment": delta_alignment,
+            "prep_family_lean": "EQUILIBRIUM",
+        }
+
+    # E3: deep equilibrium residency — preparation window dominated by near-mean rows
+    if eq >= PREP_FAMILY_EQUIL_DEEP_EQ:
+        conf = 0.85
+        if delta_alignment == "COUNTER":
+            conf = min(1.0, conf + 0.05)
+        return {
+            "prep_family": "EQUILIBRIUM_COMPRESSION",
+            "prep_family_confidence": round_float(conf),
+            "prep_family_rule": "E3",
+            "prep_delta_alignment": delta_alignment,
+            "prep_family_lean": "EQUILIBRIUM",
+        }
+
+    # ── EXTREME RULES ────────────────────────────────────────────────────────
+
+    # X1: displaced price + near-zero equilibrium residency
+    if (
+        pz_abs is not None
+        and pz_abs >= PREP_FAMILY_EXTREME_PZ
+        and eq <= PREP_FAMILY_EXTREME_EQ
+    ):
+        conf = 0.82 if pz_abs >= 2.0 else 0.72
+        if delta_alignment == "COUNTER":
+            conf = max(0.0, conf - 0.05)
+        elif delta_alignment == "ALIGNED":
+            conf = min(1.0, conf + 0.05)
+        return {
+            "prep_family": "EXTREME_COMPRESSION",
+            "prep_family_confidence": round_float(conf),
+            "prep_family_rule": "X1",
+            "prep_delta_alignment": delta_alignment,
+            "prep_family_lean": "EXTREME",
+        }
+
+    # X2: severe displacement with limited equilibrium residency
+    if (
+        pz_abs is not None
+        and pz_abs >= PREP_FAMILY_EXTREME_DEEP_PZ
+        and eq <= PREP_FAMILY_EXTREME_DEEP_EQ
+    ):
+        conf = 0.84 if pz_abs >= 3.0 else 0.78
+        if delta_alignment == "ALIGNED":
+            conf = min(1.0, conf + 0.05)
+        return {
+            "prep_family": "EXTREME_COMPRESSION",
+            "prep_family_confidence": round_float(conf),
+            "prep_family_rule": "X2",
+            "prep_delta_alignment": delta_alignment,
+            "prep_family_lean": "EXTREME",
+        }
+
+    # ── AMBIGUOUS ────────────────────────────────────────────────────────────
+    conf = 0.55 if lean != "NONE" else 0.45
+    return {
+        "prep_family": "AMBIGUOUS",
+        "prep_family_confidence": round_float(conf),
+        "prep_family_rule": "AMBIGUOUS",
+        "prep_delta_alignment": delta_alignment,
+        "prep_family_lean": lean,
+    }
+
+
 def find_preparation_zone(rows, start_row_id):
     defaults = {
         "preparation_zone_found": False,
@@ -499,6 +1011,29 @@ def find_preparation_zone(rows, start_row_id):
         "preparation_mid_price": "",
         "_preparation_zone_low": "",
         "_preparation_zone_high": "",
+        # V1 classification fields — populated by classify_preparation_zone
+        "zone_return_count": None,
+        "zone_penetration_count": None,
+        "zone_failed_breakout_count": None,
+        "max_penetration_depth_ratio": None,
+        "time_inside_zone_ratio": None,
+        "attacker_persistence_max": None,
+        "penetration_depth_decay": None,
+        "volume_decay_on_attempts": None,
+        "recovery_speed_mean_rows": None,
+        "delta_trap_count": None,
+        "manipulation_risk_score": None,
+        "zone_type": "UNKNOWN",
+        "zone_type_confidence": None,
+        "zone_health_grade": "UNKNOWN",
+        # Preparation Family V1
+        "pre_equil_rows": None,
+        "pre_delta_sum": None,
+        "prep_family": "UNKNOWN",
+        "prep_family_confidence": None,
+        "prep_family_rule": "NONE",
+        "prep_delta_alignment": "NEUTRAL",
+        "prep_family_lean": "NONE",
     }
 
     if start_row_id is None or "row_id" not in rows.columns:
@@ -526,6 +1061,44 @@ def find_preparation_zone(rows, start_row_id):
         if close_low is not None and close_high is not None
         else None
     )
+    zone_classification = classify_preparation_zone(
+        previous_rows, close_low, close_high
+    )
+
+    # ── PREPARATION FAMILY V1 INPUTS ─────────────────────────────────────────
+    # pre_equil_rows: rows in the preparation window where |price_zscore| < 0.5
+    pre_equil_rows_val = 0
+    if "price_zscore" in previous_rows.columns:
+        _pz = pd.to_numeric(previous_rows["price_zscore"], errors="coerce")
+        pre_equil_rows_val = int((_pz.abs() < 0.5).sum())
+
+    # pre_delta_sum: cumulative net delta over the preparation window
+    pre_delta_sum_val = None
+    if "delta" in previous_rows.columns:
+        _dl = pd.to_numeric(previous_rows["delta"], errors="coerce").dropna()
+        if not _dl.empty:
+            pre_delta_sum_val = round_float(float(_dl.sum()))
+
+    # trigger row price_zscore via ResearchRowIndex
+    trigger_pzscore = None
+    if (
+        hasattr(rows, "row_ids")
+        and len(rows.row_ids) > 0
+        and "price_zscore" in rows.rows.columns
+    ):
+        try:
+            _rid = float(start_row_id)
+            _pos = int(rows.row_ids.searchsorted(_rid, side="left"))
+            if _pos < len(rows.rows) and float(rows.row_ids.iloc[_pos]) == _rid:
+                trigger_pzscore = to_float(rows.rows.iloc[_pos].get("price_zscore"))
+        except Exception:
+            pass
+
+    family_result = classify_preparation_family(
+        trigger_pzscore, pre_equil_rows_val, pre_delta_sum_val
+    )
+    # ─────────────────────────────────────────────────────────────────────────
+
     entropy_values = numeric_series(previous_rows, "entropy")
     price_zscore_values = numeric_series(previous_rows, "price_zscore")
 
@@ -568,6 +1141,10 @@ def find_preparation_zone(rows, start_row_id):
         "preparation_mid_price": round_float(close_mid) if candidate else "",
         "_preparation_zone_low": round_float(close_low) if candidate else "",
         "_preparation_zone_high": round_float(close_high) if candidate else "",
+        **zone_classification,
+        "pre_equil_rows": pre_equil_rows_val,
+        "pre_delta_sum": pre_delta_sum_val,
+        **family_result,
     }
 
 
@@ -1590,6 +2167,29 @@ def build_preparation_zones_log(research_log):
         "pre_range_mean",
         "pre_volume_mean",
         "pre_market_state",
+        # V1 classification fields
+        "zone_return_count",
+        "zone_penetration_count",
+        "zone_failed_breakout_count",
+        "max_penetration_depth_ratio",
+        "time_inside_zone_ratio",
+        "attacker_persistence_max",
+        "penetration_depth_decay",
+        "volume_decay_on_attempts",
+        "recovery_speed_mean_rows",
+        "delta_trap_count",
+        "manipulation_risk_score",
+        "zone_type",
+        "zone_type_confidence",
+        "zone_health_grade",
+        # Preparation Family V1
+        "pre_equil_rows",
+        "pre_delta_sum",
+        "prep_family",
+        "prep_family_confidence",
+        "prep_family_rule",
+        "prep_delta_alignment",
+        "prep_family_lean",
     ]
 
     if research_log.empty:

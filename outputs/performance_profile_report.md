@@ -1,132 +1,134 @@
 # Performance Profile Report
 
-Updated UTC: 2026-05-28 14:58:29
+Updated UTC: 2026-06-01 12:03:18
 
 ## phase1b_episode_research
 
-- Total runtime: 13.702289s
-- Slowest function / step: research_analysis_time_after_cache (12.386992s)
+- Total runtime: 361.652975s
+- Slowest function / step: research_analysis_time_after_cache (359.245182s)
 - Bottleneck likely: CPU_PROCESSING
-- Peak Python heap: 6.324 MB
+- Peak Python heap: 30.404 MB
 
 ### Top Bottlenecks
 
-- research_analysis_time_after_cache: 12.386992s
-- research_summary_build: 0.315861s
-- csv_read_observation_rows: 0.213658s
-- research_prepare_rows: 0.128s
-- research_journal_append: 0.125057s
-- csv_write_research_log: 0.122916s
-- csv_read_episodes: 0.089528s
-- jsonl_write_lifecycle_events: 0.072086s
-- research_lifecycle_memory: 0.04614s
-- csv_write_research_summary: 0.035162s
+- research_analysis_time_after_cache: 359.245182s
+- csv_read_observation_rows: 0.513443s
+- jsonl_write_lifecycle_events: 0.453346s
+- research_lifecycle_memory: 0.417165s
+- csv_write_research_log: 0.399368s
+- research_prepare_rows: 0.192862s
+- research_summary_build: 0.14198s
+- csv_write_preparation_zones: 0.066552s
+- research_journal_append: 0.062692s
+- pandas_dataframe_build: 0.042131s
 
 ### Metrics
 
-- indexed_episode_count: 27
-- indexed_case_count: 27
-- episodes_loaded: 86
-- rows_loaded: 1562
-- episodes_analyzed: 27
-- score4plus_episodes: 27
-- research_candidates: 27
+- indexed_episode_count: 634
+- indexed_case_count: 634
+- episodes_loaded: 634
+- rows_loaded: 11181
+- episodes_analyzed: 634
+- score4plus_episodes: 177
+- research_candidates: 305
 
 ### CSV File Sizes
 
-- outputs\historical_replay_dashboard_v2_episodes.csv: 0.038 MB
-- outputs\historical_observation_rows.csv: 1.969 MB
-- research\phase1b_episode_research_log.csv: 0.044 MB
-- research\phase1b_preparation_zones.csv: 0.005 MB
+- outputs\historical_replay_dashboard_v2_episodes.csv: 0.289 MB
+- outputs\historical_observation_rows.csv: 14.565 MB
+- research\phase1b_episode_research_log.csv: 0.986 MB
+- research\phase1b_preparation_zones.csv: 0.141 MB
 - research\phase1b_research_summary.csv: 0.002 MB
 
 ## rdm_zone_mechanics_calculator
 
-- Total runtime: 14.81261s
-- Slowest function / step: rdm_live_evolution_after_cache (4.62172s)
+- Total runtime: 162.444685s
+- Slowest function / step: rdm_live_evolution_after_cache (59.128079s)
 - Bottleneck likely: RDM_CALCULATOR
-- Peak Python heap: 14.015 MB
+- Peak Python heap: 167.345 MB
 
 ### Top Bottlenecks
 
-- rdm_live_evolution_after_cache: 4.62172s
-- rdm_density_after_cache: 1.976788s
-- rdm_interaction_core_after_cache: 1.729689s
-- csv_write_rdm_outputs: 1.618177s
-- rdm_base_mechanics: 0.959475s
-- rdm_true_lifecycle: 0.956875s
-- interaction_mask_build_time: 0.559864s
-- rdm_summary_notes_build: 0.343092s
-- csv_read_rdm_inputs: 0.321002s
-- rdm_birth_death_memory: 0.285867s
+- rdm_live_evolution_after_cache: 59.128079s
+- rdm_interaction_core_after_cache: 20.774109s
+- rdm_density_after_cache: 19.601476s
+- csv_write_rdm_outputs: 17.700275s
+- rdm_base_mechanics: 14.484707s
+- rdm_true_lifecycle: 10.51312s
+- interaction_mask_build_time: 8.223431s
+- rdm_birth_death_memory: 2.509634s
+- rdm_summary_notes_build: 1.378847s
+- rdm_case_cache_build_time: 1.207696s
 
 ### Metrics
 
-- rdm_case_cache_count: 27
-- interaction_mask_reuse_count: 27
-- rows_processed: 27
-- historical_rows_loaded: 1562
-- live_evolution_rows: 2739
-- interaction_core_rows: 27
-- interaction_density_rows: 27
-- timeline_rows: 27
-- lifecycle_rows: 79
+- rdm_case_cache_count: 634
+- interaction_mask_reuse_count: 634
+- rows_processed: 634
+- historical_rows_loaded: 11181
+- live_evolution_rows: 51824
+- interaction_core_rows: 634
+- interaction_density_rows: 634
+- timeline_rows: 634
+- lifecycle_rows: 1867
 
 ### CSV File Sizes
 
-- research\zone_mechanics_cycle3_results.csv: 0.087 MB
+- research\zone_mechanics_cycle3_results.csv: 1.874 MB
 - research\zone_mechanics_cycle3_summary.csv: 0.002 MB
-- research\zone_mechanics_timeline.csv: 0.007 MB
-- research\zone_mechanics_lifecycle.csv: 0.011 MB
-- research\zone_mechanics_capacity.csv: 0.009 MB
-- research\zone_mechanics_sigma.csv: 0.005 MB
-- research\zone_mechanics_sigma_evolution.csv: 0.005 MB
-- research\zone_mechanics_verestchaguine.csv: 0.005 MB
-- research\zone_real_geometry_tracking.csv: 0.019 MB
-- research\zone_live_rdm_evolution.csv: 1.457 MB
-- research\zone_interaction_core_geometry.csv: 0.011 MB
-- research\zone_interaction_density_map.csv: 0.006 MB
-- research\zone_true_lifecycle_tracking.csv: 0.009 MB
-- research\zone_birth_registry.csv: 0.012 MB
-- research\zone_death_registry.csv: 0.007 MB
-- research\zone_evolution_chart.csv: 0.01 MB
-- research\zone_evolution_history.csv: 0.019 MB
+- research\zone_mechanics_timeline.csv: 0.148 MB
+- research\zone_mechanics_lifecycle.csv: 0.263 MB
+- research\zone_mechanics_capacity.csv: 0.193 MB
+- research\zone_mechanics_sigma.csv: 0.121 MB
+- research\zone_mechanics_sigma_evolution.csv: 0.114 MB
+- research\zone_mechanics_verestchaguine.csv: 0.105 MB
+- research\zone_real_geometry_tracking.csv: 0.413 MB
+- research\zone_live_rdm_evolution.csv: 27.493 MB
+- research\zone_interaction_core_geometry.csv: 0.228 MB
+- research\zone_interaction_density_map.csv: 0.128 MB
+- research\zone_true_lifecycle_tracking.csv: 0.199 MB
+- research\zone_birth_registry.csv: 0.267 MB
+- research\zone_death_registry.csv: 0.147 MB
+- research\zone_evolution_chart.csv: 0.222 MB
+- research\zone_evolution_history.csv: 0.467 MB
 
 ## historical_replay_generation
 
-- Total runtime: 1251.143445s
-- Slowest function / step: download_total (1203.932634s)
-- Bottleneck likely: DOWNLOAD
-- Peak Python heap: 398.731 MB
+- Total runtime: 9444.718719s
+- Slowest function / step: download_total (9142.65846s)
+- Bottleneck likely: RAM_LIMIT
+- Peak Python heap: 3146.469 MB
 
 ### Top Bottlenecks
 
-- download_total: 1203.932634s
-- download_batch: 518.939626s
-- http_wait: 480.990828s
-- observation_row_build: 36.052476s
-- parse_batch: 34.832174s
-- aggregation_replay_row_build: 4.539065s
-- replay_v2_build: 2.961173s
-- replay_v1_build: 2.953453s
-- csv_write_observation_rows: 0.242973s
-- pandas_dataframe_build: 0.216071s
+- download_total: 9142.65846s
+- download_batch: 5771.607996s
+- http_wait: 2630.266995s
+- observation_row_build: 233.042138s
+- parse_batch: 112.366126s
+- aggregation_replay_row_build: 24.417337s
+- replay_v1_build: 12.555121s
+- replay_v2_build: 10.913124s
+- pandas_dataframe_build: 2.165273s
+- csv_write_observation_rows: 1.439666s
 
 ### Metrics
 
-- trades_processed: 780563
-- rows_processed: 1562
-- observation_rows_processed: 1562
-- v1_events: 497
-- v1_episodes: 61
-- v2_events: 517
-- v2_episodes: 86
+- trades_processed: 5590419
+- warmup_trades_processed: 496314
+- warmup_rows_used: 500
+- rows_processed: 11181
+- observation_rows_processed: 11181
+- v1_events: 3992
+- v1_episodes: 454
+- v2_events: 3795
+- v2_episodes: 634
 
 ### CSV File Sizes
 
-- outputs\historical_market_rows.csv: 0.279 MB
-- outputs\historical_observation_rows.csv: 1.969 MB
-- outputs\historical_replay_observation_events.csv: 0.104 MB
-- outputs\historical_replay_dashboard_episodes.csv: 0.011 MB
-- outputs\historical_replay_observation_v2_events.csv: 0.209 MB
-- outputs\historical_replay_dashboard_v2_episodes.csv: 0.038 MB
+- outputs\historical_market_rows.csv: 2.012 MB
+- outputs\historical_observation_rows.csv: 14.565 MB
+- outputs\historical_replay_observation_events.csv: 0.843 MB
+- outputs\historical_replay_dashboard_episodes.csv: 0.081 MB
+- outputs\historical_replay_observation_v2_events.csv: 1.569 MB
+- outputs\historical_replay_dashboard_v2_episodes.csv: 0.289 MB

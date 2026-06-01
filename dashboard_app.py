@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from dashboard.overlay_renderer import (
     load_rdm_overlay_data,
@@ -37,6 +38,12 @@ HISTORICAL_REPLAY_OBSERVATION_V2_EVENTS_FILE = (
 HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE = (
     OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
 )
+LIVE_HEARTBEAT_SECONDS = 5
+ALGERIA_TIMEZONE = timezone(timedelta(hours=1))
+TIME_DISPLAY_OPTIONS = ["Algeria (UTC+1)", "UTC"]
+
+RESEARCH_DIR = BASE_DIR / "research"
+PREPARATION_LOG_FILE = RESEARCH_DIR / "phase1b_episode_research_log.csv"
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
@@ -282,8 +289,9 @@ def render_replay_source_banner(market_rows, v2_episodes, file_sources):
     columns[3].metric("Episode Row Range", format_range(episode_row_start, episode_row_end))
 
     st.caption(
-        "Replay UTC Window: "
+        "Replay Display Window: "
         f"{replay_start or 'N/A'} -> {replay_end or 'N/A'} | "
+        f"Time Display: {current_time_display_mode()} | "
         f"Source file: {file_sources.get('market_rows')}"
     )
 
@@ -552,7 +560,18 @@ def has_display_value(value):
     return text != ""
 
 
-def format_market_time(value):
+def current_time_display_mode():
+    return st.session_state.get("time_display_mode", "Algeria (UTC+1)")
+
+
+def display_timezone_for_mode(display_mode=None):
+    mode = display_mode or current_time_display_mode()
+    if mode == "UTC":
+        return timezone.utc, "UTC"
+    return ALGERIA_TIMEZONE, "Algeria"
+
+
+def format_market_time(value, display_mode=None, include_utc=False):
     if not has_display_value(value):
         return ""
 
@@ -561,7 +580,17 @@ def format_market_time(value):
     if parsed_datetime is None:
         return str(value)
 
-    return parsed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    target_timezone, label = display_timezone_for_mode(display_mode)
+    display_datetime = parsed_datetime.astimezone(target_timezone)
+    display_value = display_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
+    if include_utc and label != "UTC":
+        utc_value = parsed_datetime.astimezone(timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        return f"{label}: {display_value} | UTC: {utc_value}"
+
+    return display_value
 
 
 def parse_market_datetime(value):
@@ -594,6 +623,8 @@ def parse_market_datetime(value):
 
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone.utc)
+    else:
+        parsed = parsed.replace(tzinfo=timezone.utc)
 
     return parsed
 
@@ -955,6 +986,7 @@ def render_latest_row(latest_market_row):
         return
 
     fields = [
+        "market_timestamp",
         "close",
         "volume",
         "delta",
@@ -986,7 +1018,14 @@ def render_latest_row(latest_market_row):
                 {
                     "field": available_fields,
                     "value": [
-                        latest_market_row[field]
+                        (
+                            format_market_time(
+                                latest_market_row[field],
+                                include_utc=True,
+                            )
+                            if field == "market_timestamp"
+                            else latest_market_row[field]
+                        )
                         for field in available_fields
                     ],
                 }
@@ -1252,6 +1291,12 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_source
         "peak_active_layers = layers involved | "
         "peak_observation_confidence = confidence / caution label"
     )
+    st.caption(
+        "Preparation status: True = preparation detected | "
+        "False = analyzed, no preparation detected | "
+        "NOT_ANALYZED = episode was not included in research analysis | "
+        "UNKNOWN = research row exists but preparation value is missing"
+    )
 
     if v2_episodes.empty:
         st.info("No Dashboard V2 episodes available yet.")
@@ -1410,6 +1455,146 @@ def render_dashboard_v2_summary(display_episodes):
         st.write(f"V2 Count by Layer Count: {count_by_layer_count}")
 
 
+def add_episode_time_columns(dataframe, source_column="episode_start_time_utc"):
+    if dataframe.empty or source_column not in dataframe.columns:
+        return dataframe
+
+    enriched = dataframe.copy()
+    values = enriched[source_column]
+    if pd.api.types.is_numeric_dtype(values):
+        parsed = pd.to_datetime(values, unit="ms", utc=True, errors="coerce")
+    else:
+        parsed = pd.to_datetime(values, utc=True, errors="coerce")
+    enriched["_episode_start_dt"] = parsed
+    enriched["_episode_date"] = parsed.dt.strftime("%Y-%m-%d")
+    return enriched
+
+
+def apply_research_mapping_display_controls(
+    dataframe,
+    key_prefix,
+    default_limit=20,
+    show_all_label="Show all research mapping rows",
+):
+    if dataframe.empty:
+        return dataframe, {
+            "total_rows": 0,
+            "filtered_rows": 0,
+            "displayed_rows": 0,
+            "date_range": "No rows",
+            "first_displayed": "N/A",
+            "last_displayed": "N/A",
+        }
+
+    working = add_episode_time_columns(dataframe)
+    control_columns = st.columns([1, 1, 1, 1])
+
+    available_dates = []
+    if "_episode_date" in working.columns:
+        available_dates = sorted(
+            date for date in working["_episode_date"].dropna().unique()
+        )
+
+    with control_columns[0]:
+        show_all_rows = st.checkbox(
+            show_all_label,
+            value=False,
+            key=f"{key_prefix}_show_all_rows",
+        )
+
+    row_limit_options = ["20", "50", "100", "200", "500", "ALL"]
+    default_index = (
+        row_limit_options.index(str(default_limit))
+        if str(default_limit) in row_limit_options
+        else 0
+    )
+    with control_columns[1]:
+        selected_limit = st.selectbox(
+            "Row limit",
+            row_limit_options,
+            index=default_index,
+            key=f"{key_prefix}_row_limit",
+        )
+
+    with control_columns[2]:
+        selected_date = st.selectbox(
+            "Date",
+            ["ALL DATES"] + available_dates,
+            key=f"{key_prefix}_date_filter",
+        )
+
+    with control_columns[3]:
+        sort_order = st.selectbox(
+            "Sort order",
+            ["Newest first", "Oldest first"],
+            key=f"{key_prefix}_sort_order",
+        )
+
+    if selected_date != "ALL DATES" and "_episode_date" in working.columns:
+        working = working[working["_episode_date"] == selected_date].copy()
+
+    if "_episode_start_dt" in working.columns:
+        working = working.sort_values(
+            "_episode_start_dt",
+            ascending=(sort_order == "Oldest first"),
+            na_position="last",
+        )
+    elif "episode_id" in working.columns:
+        working = working.assign(
+            _episode_id_numeric=pd.to_numeric(
+                working["episode_id"], errors="coerce"
+            ).fillna(0)
+        ).sort_values(
+            "_episode_id_numeric",
+            ascending=(sort_order == "Oldest first"),
+        ).drop(columns=["_episode_id_numeric"])
+
+    filtered_rows = len(working)
+    if show_all_rows or selected_limit == "ALL":
+        displayed = working
+    else:
+        displayed = working.head(int(selected_limit))
+
+    full_time = working.get("_episode_start_dt")
+    display_time = displayed.get("_episode_start_dt")
+    date_range = "N/A"
+    first_displayed = "N/A"
+    last_displayed = "N/A"
+    if full_time is not None and full_time.notna().any():
+        date_range = (
+            f"{full_time.min().strftime('%Y-%m-%d')} to "
+            f"{full_time.max().strftime('%Y-%m-%d')}"
+        )
+    if display_time is not None and display_time.notna().any():
+        first_displayed = display_time.min().strftime("%Y-%m-%d %H:%M:%S UTC")
+        last_displayed = display_time.max().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    metadata = {
+        "total_rows": len(dataframe),
+        "filtered_rows": filtered_rows,
+        "displayed_rows": len(displayed),
+        "date_range": date_range,
+        "first_displayed": first_displayed,
+        "last_displayed": last_displayed,
+    }
+    display_columns = [
+        column
+        for column in ["_episode_start_dt", "_episode_date"]
+        if column in displayed.columns
+    ]
+    return displayed.drop(columns=display_columns), metadata
+
+
+def render_research_mapping_metrics(metadata, total_label="Total research mapping rows"):
+    metric_columns = st.columns(5)
+    metric_columns[0].metric(total_label, metadata["total_rows"])
+    metric_columns[1].metric("Displayed rows", metadata["displayed_rows"])
+    metric_columns[2].metric("Rows after date filter", metadata["filtered_rows"])
+    metric_columns[3].metric("First displayed time", metadata["first_displayed"])
+    metric_columns[4].metric("Last displayed time", metadata["last_displayed"])
+    st.caption(f"Available date range: {metadata['date_range']}")
+
+
 def render_dashboard_v2_research_panel(filtered_episodes):
     st.subheader("Dashboard V2 Research Mapping")
     st.caption(
@@ -1441,11 +1626,19 @@ def render_dashboard_v2_research_panel(filtered_episodes):
         st.info("No Research Agent V1 fields are mapped for these episodes yet.")
         return
 
+    mapping_rows, mapping_metadata = apply_research_mapping_display_controls(
+        filtered_episodes,
+        key_prefix="dashboard_v2_research_mapping",
+        default_limit=20,
+    )
+    render_preparation_status_counts(filtered_episodes)
+    render_research_mapping_metrics(mapping_metadata)
+
     panel_columns = st.columns(5)
     panel_columns[0].markdown("**PREPARATION**")
     panel_columns[0].dataframe(
         sanitize_dataframe_for_display(
-            filtered_episodes[
+            mapping_rows[
                 [
                     field
                     for field in [
@@ -1456,7 +1649,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
                     ]
                     if field in filtered_episodes.columns
                 ]
-            ].tail(20)
+            ]
         ),
         use_container_width=True,
         hide_index=True,
@@ -1465,7 +1658,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
     panel_columns[1].markdown("**EXPANSION**")
     panel_columns[1].dataframe(
         sanitize_dataframe_for_display(
-            filtered_episodes[
+            mapping_rows[
                 [
                     field
                     for field in [
@@ -1475,7 +1668,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
                     ]
                     if field in filtered_episodes.columns
                 ]
-            ].tail(20)
+            ]
         ),
         use_container_width=True,
         hide_index=True,
@@ -1484,7 +1677,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
     panel_columns[2].markdown("**REVERSAL**")
     panel_columns[2].dataframe(
         sanitize_dataframe_for_display(
-            filtered_episodes[
+            mapping_rows[
                 [
                     field
                     for field in [
@@ -1494,7 +1687,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
                     ]
                     if field in filtered_episodes.columns
                 ]
-            ].tail(20)
+            ]
         ),
         use_container_width=True,
         hide_index=True,
@@ -1503,7 +1696,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
     panel_columns[3].markdown("**COMPARISON**")
     panel_columns[3].dataframe(
         sanitize_dataframe_for_display(
-            filtered_episodes[
+            mapping_rows[
                 [
                     field
                     for field in [
@@ -1513,7 +1706,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
                     ]
                     if field in filtered_episodes.columns
                 ]
-            ].tail(20)
+            ]
         ),
         use_container_width=True,
         hide_index=True,
@@ -1522,7 +1715,7 @@ def render_dashboard_v2_research_panel(filtered_episodes):
     panel_columns[4].markdown("**HYPOTHESIS**")
     panel_columns[4].dataframe(
         sanitize_dataframe_for_display(
-            filtered_episodes[
+            mapping_rows[
                 [
                     field
                     for field in [
@@ -1531,11 +1724,65 @@ def render_dashboard_v2_research_panel(filtered_episodes):
                     ]
                     if field in filtered_episodes.columns
                 ]
-            ].tail(20)
+            ]
         ),
         use_container_width=True,
         hide_index=True,
     )
+
+
+def render_preparation_status_counts(filtered_episodes):
+    status_counts = preparation_status_counts(filtered_episodes)
+    columns = st.columns(5)
+    columns[0].metric("Total V2 Episodes", len(filtered_episodes))
+    columns[1].metric("True", status_counts["True"])
+    columns[2].metric("False", status_counts["False"])
+    columns[3].metric("NOT_ANALYZED", status_counts["NOT_ANALYZED"])
+    columns[4].metric("UNKNOWN", status_counts["UNKNOWN"])
+
+
+def preparation_status_counts(dataframe):
+    counts = {
+        "True": 0,
+        "False": 0,
+        "NOT_ANALYZED": 0,
+        "UNKNOWN": 0,
+    }
+
+    if "preparation_candidate" not in dataframe.columns:
+        counts["NOT_ANALYZED"] = len(dataframe)
+        return counts
+
+    for value in dataframe["preparation_candidate"]:
+        status = normalize_preparation_display_status(value)
+        counts[status] = counts.get(status, 0) + 1
+
+    return counts
+
+
+def normalize_preparation_display_status(value):
+    if isinstance(value, bool):
+        return "True" if value else "False"
+
+    if pd.isna(value):
+        return "UNKNOWN"
+
+    text = str(value).strip()
+    lowered = text.lower()
+
+    if text == "NOT_ANALYZED":
+        return "NOT_ANALYZED"
+
+    if text == "UNKNOWN" or text == "":
+        return "UNKNOWN"
+
+    if lowered == "true":
+        return "True"
+
+    if lowered == "false":
+        return "False"
+
+    return "UNKNOWN"
 
 
 def render_dashboard_v2_research_case_lookup(filtered_episodes):
@@ -3078,7 +3325,22 @@ def safe_research_panel_value(row, field):
         pass
 
     text = str(value).strip()
+    if is_time_display_field(field):
+        formatted_time = format_market_time(text, include_utc=True)
+        if formatted_time:
+            return formatted_time
+
     return text if text else "N/A"
+
+
+def is_time_display_field(field):
+    normalized = str(field).lower()
+    return (
+        normalized.endswith("_time")
+        or normalized.endswith("_timestamp")
+        or "_time_" in normalized
+        or "timestamp" in normalized
+    )
 
 
 def format_research_label(value):
@@ -3349,7 +3611,12 @@ def has_research_case_data(row):
         if pd.isna(value):
             continue
 
-        if str(value).strip():
+        text = str(value).strip()
+
+        if text in ["NOT_ANALYZED"]:
+            continue
+
+        if text:
             return True
 
     return False
@@ -3804,6 +4071,117 @@ def render_recent_events(observation_events):
     )
 
 
+def render_preparation_watch_panel():
+    """
+    Preparation Watch Panel — research display only.
+    Shows episodes where a preparation zone was detected so the researcher
+    can cross-reference timestamps with the price chart.
+    """
+    st.subheader("Preparation Watch")
+    st.caption(
+        "Episodes where a preparation zone was identified by the research analysis. "
+        "Use episode_id or episode_start_time_utc to locate the zone on the price chart. "
+        "Research observation only — not a signal."
+    )
+
+    if not PREPARATION_LOG_FILE.exists():
+        st.info(
+            "No preparation zone data found. "
+            "Run tools/analyze_phase1b_episode_research.py first."
+        )
+        return
+
+    try:
+        df = pd.read_csv(PREPARATION_LOG_FILE)
+    except Exception as err:
+        st.warning(f"Could not read preparation log: {err}")
+        return
+
+    if df.empty:
+        st.info("Research log is empty.")
+        return
+
+    # Keep only preparation candidates
+    if "preparation_candidate" in df.columns:
+        df = df[
+            df["preparation_candidate"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .isin(["true", "1", "yes"])
+        ].copy()
+
+    if df.empty:
+        st.info("No preparation zone candidates in the current research log.")
+        return
+
+    # ── Filters ──────────────────────────────────────────────────────────────
+    filter_col, detail_col = st.columns([2, 1])
+
+    family_options = [
+        "ALL",
+        "EQUILIBRIUM_COMPRESSION",
+        "EXTREME_COMPRESSION",
+        "AMBIGUOUS",
+        "UNKNOWN",
+    ]
+    with filter_col:
+        selected_family = st.selectbox(
+            "Prep Family",
+            family_options,
+            key="prep_watch_family_filter",
+        )
+
+    with detail_col:
+        show_extra = st.checkbox(
+            "Extra columns",
+            value=False,
+            key="prep_watch_show_extra",
+            help="Show pre_equil_rows and prep_family_rule",
+        )
+
+    if selected_family != "ALL" and "prep_family" in df.columns:
+        df = df[df["prep_family"] == selected_family].copy()
+
+    if df.empty:
+        st.info(f"No episodes match prep family: {selected_family}")
+        return
+
+    # ── Sort newest first ─────────────────────────────────────────────────────
+    # ── Build display columns ─────────────────────────────────────────────────
+    core_columns = [
+        "episode_id",
+        "episode_start_time_utc",
+        "preparation_candidate",
+        "prep_family",
+        "prep_family_confidence",
+        "zone_type",
+        "manipulation_risk_score",
+    ]
+    extra_columns = ["pre_equil_rows", "prep_family_rule"]
+
+    display_columns = core_columns + (extra_columns if show_extra else [])
+    available = [c for c in display_columns if c in df.columns]
+
+    display_df, display_metadata = apply_research_mapping_display_controls(
+        df,
+        key_prefix="prep_watch",
+        default_limit=200,
+        show_all_label="Show all preparation rows",
+    )
+    display_df = display_df[available]
+    render_research_mapping_metrics(
+        display_metadata,
+        total_label="Total preparation rows",
+    )
+
+    st.dataframe(
+        sanitize_dataframe_for_display(display_df),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
 def render_live_observation_panels(
     observation_mode,
     file_sources,
@@ -3831,6 +4209,9 @@ def render_live_observation_panels(
     )
     v2_events = pd.DataFrame()
     v2_episodes = pd.DataFrame()
+
+    if observation_mode == "LIVE":
+        render_live_last_update_panel(market_rows, file_sources)
 
     if observation_mode == "HISTORICAL REPLAY":
         v2_events, v2_episodes = load_historical_dashboard_v2_data(
@@ -3919,9 +4300,66 @@ def render_live_observation_panels(
 
     render_active_source_footer(expected_mode)
 
+    if observation_mode == "HISTORICAL REPLAY":
+        st.divider()
+        render_preparation_watch_panel()
+
 
 def render_active_source_footer(source_mode):
     st.caption(f"ACTIVE SOURCE: {source_label_for_mode(source_mode)}")
+
+
+def render_live_last_update_panel(market_rows, file_sources):
+    latest_market_time = ""
+    latest_row_count = len(market_rows)
+
+    if not market_rows.empty and "market_timestamp" in market_rows.columns:
+        latest_market_time = format_market_time(
+            market_rows.iloc[-1].get("market_timestamp"),
+            include_utc=True,
+        )
+
+    market_file = file_sources.get("market_rows")
+    file_modified_time = format_file_modified_time(market_file)
+
+    columns = st.columns(4)
+    columns[0].metric("LIVE Status", "ALIVE")
+    columns[1].metric("Last Market Time", latest_market_time or "N/A")
+    columns[2].metric("Market Rows", latest_row_count)
+    columns[3].metric("File Updated UTC", file_modified_time or "N/A")
+
+    st.caption(
+        "LIVE heartbeat reads market_rows.csv, so the dashboard remains current "
+        "even when no statistical event is written."
+    )
+
+
+def format_file_modified_time(path):
+    if path is None or not path.exists():
+        return ""
+
+    try:
+        modified = datetime.fromtimestamp(
+            path.stat().st_mtime,
+            tz=timezone.utc,
+        )
+    except OSError:
+        return ""
+
+    return modified.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def render_live_heartbeat(interval_seconds):
+    components.html(
+        f"""
+        <script>
+        setTimeout(function() {{
+            window.parent.location.reload();
+        }}, {int(interval_seconds) * 1000});
+        </script>
+        """,
+        height=0,
+    )
 
 
 def main():
@@ -3931,10 +4369,10 @@ def main():
     )
 
     if "auto_refresh" not in st.session_state:
-        st.session_state["auto_refresh"] = False
+        st.session_state["auto_refresh"] = True
 
     if "refresh_seconds" not in st.session_state:
-        st.session_state["refresh_seconds"] = 5
+        st.session_state["refresh_seconds"] = LIVE_HEARTBEAT_SECONDS
     elif st.session_state["refresh_seconds"] not in [3, 5, 10, 30]:
         st.session_state["refresh_seconds"] = 5
 
@@ -3957,6 +4395,15 @@ def main():
             "Observation Mode",
             ["LIVE", "RECORDED REPLAY", "HISTORICAL REPLAY"],
             key="observation_mode",
+        )
+        st.selectbox(
+            "Time Display",
+            TIME_DISPLAY_OPTIONS,
+            index=0,
+            key="time_display_mode",
+        )
+        st.caption(
+            "Stored timestamps remain UTC. This option changes display only."
         )
         file_sources = OBSERVATION_FILE_SOURCES[observation_mode]
         sidebar_market_rows, _, sidebar_dashboard_episodes = load_dashboard_data(
@@ -4081,9 +4528,13 @@ def main():
     st.session_state["force_csv_refresh"] = False
 
     auto_refresh_enabled = st.session_state.get("auto_refresh") is True
+    live_heartbeat_enabled = observation_mode == "LIVE"
     fragment_runner = getattr(st, "fragment", None)
 
-    if auto_refresh_enabled and callable(fragment_runner):
+    if (
+        (auto_refresh_enabled or live_heartbeat_enabled)
+        and callable(fragment_runner)
+    ):
         refresh_interval = int(st.session_state["refresh_seconds"])
 
         @fragment_runner(run_every=f"{refresh_interval}s")
@@ -4109,7 +4560,11 @@ def main():
         live_observation_fragment()
         return
 
-    if auto_refresh_enabled and not callable(fragment_runner):
+    if live_heartbeat_enabled and not callable(fragment_runner):
+        render_live_heartbeat(
+            st.session_state["refresh_seconds"]
+        )
+    elif auto_refresh_enabled and not callable(fragment_runner):
         st.info(
             "Smooth Auto Refresh requires Streamlit fragment support. "
             "Use Refresh now to update this Streamlit version."

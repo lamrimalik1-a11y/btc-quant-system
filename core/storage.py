@@ -6,6 +6,23 @@ OUTPUT_FOLDER = "outputs"
 
 OUTPUT_FILE = "outputs/market_rows.csv"
 
+MARKET_ROW_COLUMNS = [
+    "close",
+    "volume",
+    "delta",
+    "velocity",
+    "rvi",
+    "adaptive_window",
+    "price_zone",
+    "volume_zone",
+    "delta_zone",
+    "velocity_zone",
+    "renko_direction",
+    "renko_event",
+    "renko_bricks",
+    "market_timestamp",
+]
+
 
 def initialize_storage():
 
@@ -17,9 +34,13 @@ def initialize_storage():
             OUTPUT_FOLDER
         )
 
-    if not os.path.exists(
+    if os.path.exists(
         OUTPUT_FILE
     ):
+
+        ensure_market_timestamp_column()
+
+    else:
 
         with open(
             OUTPUT_FILE,
@@ -31,34 +52,79 @@ def initialize_storage():
                 file
             )
 
-            writer.writerow([
+            writer.writerow(
+                MARKET_ROW_COLUMNS
+            )
 
-                "close",
 
-                "volume",
+def ensure_market_timestamp_column():
 
-                "delta",
+    with open(
+        OUTPUT_FILE,
+        mode="r",
+        newline=""
+    ) as file:
 
-                "velocity",
+        reader = csv.reader(
+            file
+        )
 
-                "rvi",
+        rows = list(
+            reader
+        )
 
-                "adaptive_window",
+    if not rows:
 
-                "price_zone",
+        with open(
+            OUTPUT_FILE,
+            mode="w",
+            newline=""
+        ) as file:
 
-                "volume_zone",
+            writer = csv.writer(
+                file
+            )
 
-                "delta_zone",
+            writer.writerow(
+                MARKET_ROW_COLUMNS
+            )
 
-                "velocity_zone",
+        return
 
-                "renko_direction",
+    header = rows[0]
 
-                "renko_event",
+    if "market_timestamp" in header:
+        return
 
-                "renko_bricks",
-            ])
+    updated_header = header + [
+        "market_timestamp"
+    ]
+
+    updated_rows = [
+        updated_header
+    ]
+
+    for row in rows[1:]:
+
+        updated_rows.append(
+            row + [
+                ""
+            ]
+        )
+
+    with open(
+        OUTPUT_FILE,
+        mode="w",
+        newline=""
+    ) as file:
+
+        writer = csv.writer(
+            file
+        )
+
+        writer.writerows(
+            updated_rows
+        )
 
 
 def save_row(row):
@@ -100,4 +166,12 @@ def save_row(row):
             row["renko_event"],
 
             row["renko_bricks"],
+
+            row.get(
+                "market_timestamp",
+                row.get(
+                    "end_ts",
+                    ""
+                )
+            ),
         ])

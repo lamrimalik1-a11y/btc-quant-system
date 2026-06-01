@@ -231,6 +231,47 @@ PREPARATION_COLUMNS = [
     "pre_entropy",
 ]
 
+FULL_PREPARE_ANALYSIS_COLUMNS = [
+    "case_id",
+    "episode_id",
+    "episode_start_time_utc",
+    "preparation_candidate",
+    "preparation_zone_found",
+    "preparation_strength",
+    "zone_type",
+    "zone_health_grade",
+    "manipulation_risk_score",
+    "zone_type_confidence",
+    "attacker_persistence_max",
+    "penetration_depth_decay",
+    "volume_decay_on_attempts",
+    "recovery_speed_mean_rows",
+    "delta_trap_count",
+    "classification",
+    "classification_reason",
+    "pre_setup_reason",
+    "manual_notes",
+]
+
+ZONE_CLASSIFICATION_COLUMNS = [
+    "case_id",
+    "episode_id",
+    "episode_start_time_utc",
+    "preparation_candidate",
+    "preparation_strength",
+    "zone_type",
+    "zone_health_grade",
+    "manipulation_risk_score",
+    "zone_type_confidence",
+    "attacker_persistence_max",
+    "penetration_depth_decay",
+    "volume_decay_on_attempts",
+    "recovery_speed_mean_rows",
+    "delta_trap_count",
+    "classification",
+    "classification_reason",
+]
+
 MOVE_COLUMNS = [
     "move_5m",
     "move_15m",
@@ -344,7 +385,7 @@ def main():
         render_comparison_lab(comparison_log)
 
     with tabs[7]:
-        render_preparation_zones(preparation_zones)
+        render_preparation_zones(filtered_log, preparation_zones)
 
     with tabs[8]:
         render_preparation_quality(preparation_quality)
@@ -645,11 +686,38 @@ def render_case_review(dataframe):
         render_key_value_block("Expansion Lab", row, CASE_EXPANSION_COLUMNS)
 
 
-def render_preparation_zones(dataframe):
+def render_preparation_zones(research_log, preparation_zones):
     st.subheader("Preparation Zones")
-    st.caption("Backward preparation zones detected from archived research fields.")
+    st.caption("Preparation review split into full True/False analysis and detected geometry.")
 
-    if dataframe.empty:
+    st.markdown("### Full Prepare Zone Analysis = True and False")
+    st.caption(
+        "All analyzed episodes from phase1b_episode_research_log.csv, including "
+        "cases where preparation was not detected."
+    )
+
+    if research_log.empty:
+        st.info("No analyzed research cases match the current filters.")
+    else:
+        full_analysis = select_existing_columns(
+            research_log,
+            FULL_PREPARE_ANALYSIS_COLUMNS,
+        )
+        st.dataframe(
+            sanitize_dataframe_for_display(full_analysis),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        render_preparation_zone_classification(research_log)
+
+    st.markdown("### Preparation Zone Geometry = True cases only")
+    st.caption(
+        "Detected preparation-zone geometry from phase1b_preparation_zones.csv. "
+        "This file intentionally contains True cases only."
+    )
+
+    if preparation_zones.empty:
         st.info(
             "Preparation zones may be unavailable if required historical fields are missing."
         )
@@ -657,11 +725,152 @@ def render_preparation_zones(dataframe):
 
     st.dataframe(
         sanitize_dataframe_for_display(
-            select_existing_columns(dataframe, PREPARATION_COLUMNS)
+            select_existing_columns(preparation_zones, PREPARATION_COLUMNS)
         ),
         use_container_width=True,
         hide_index=True,
     )
+
+
+def render_preparation_zone_classification(dataframe):
+    st.markdown("### Preparation Zone Classification V1")
+    st.caption(
+        "Classification fields already generated in phase1b_episode_research_log.csv. "
+        "Displayed for observation only."
+    )
+
+    if "zone_type" not in dataframe.columns:
+        missing_column_warning("zone_type")
+        return
+
+    render_zone_type_distribution(dataframe)
+    render_top_zone_classification_tables(dataframe)
+
+
+def render_zone_type_distribution(dataframe):
+    st.markdown("Zone Type Distribution")
+
+    zone_types = [
+        "BATTLE",
+        "EXHAUSTION",
+        "MANIPULATED",
+        "MIXED",
+        "CLEAN",
+    ]
+    rows = [
+        {
+            "zone_type": zone_type,
+            "count": count_value(dataframe, "zone_type", zone_type),
+        }
+        for zone_type in zone_types
+    ]
+
+    distribution = pd.DataFrame(rows)
+    st.dataframe(
+        sanitize_dataframe_for_display(distribution),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def render_top_zone_classification_tables(dataframe):
+    st.markdown("Top Manipulation Risk Cases")
+    manipulation_cases = sort_dataframe(
+        dataframe,
+        "manipulation_risk_score",
+        False,
+    )
+    render_zone_classification_table(manipulation_cases.head(10))
+
+    st.markdown("Top Battle Zones")
+    battle_zones = dataframe[
+        dataframe["zone_type"].astype(str) == "BATTLE"
+    ].copy()
+    battle_zones = sort_by_preparation_strength_and_confidence(battle_zones)
+    render_zone_classification_table(battle_zones.head(10))
+
+    st.markdown("Top Exhaustion Zones")
+    exhaustion_zones = dataframe[
+        dataframe["zone_type"].astype(str) == "EXHAUSTION"
+    ].copy()
+    exhaustion_zones = sort_by_preparation_strength(exhaustion_zones)
+    render_zone_classification_table(exhaustion_zones.head(10))
+
+
+def render_zone_classification_table(dataframe):
+    if dataframe.empty:
+        st.info("No cases available for this table.")
+        return
+
+    st.dataframe(
+        sanitize_dataframe_for_display(
+            round_numeric_dataframe(
+                select_existing_columns(dataframe, ZONE_CLASSIFICATION_COLUMNS)
+            )
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def sort_by_preparation_strength_and_confidence(dataframe):
+    sorted_dataframe = add_preparation_strength_rank(dataframe)
+    if "zone_type_confidence" in sorted_dataframe.columns:
+        sorted_dataframe["_zone_type_confidence_sort"] = pd.to_numeric(
+            sorted_dataframe["zone_type_confidence"],
+            errors="coerce",
+        )
+    else:
+        sorted_dataframe["_zone_type_confidence_sort"] = 0
+
+    sorted_dataframe = sorted_dataframe.sort_values(
+        ["_preparation_strength_rank", "_zone_type_confidence_sort"],
+        ascending=[False, False],
+        na_position="last",
+    )
+
+    return sorted_dataframe.drop(
+        columns=[
+            "_preparation_strength_rank",
+            "_zone_type_confidence_sort",
+        ],
+        errors="ignore",
+    )
+
+
+def sort_by_preparation_strength(dataframe):
+    sorted_dataframe = add_preparation_strength_rank(dataframe)
+    sorted_dataframe = sorted_dataframe.sort_values(
+        "_preparation_strength_rank",
+        ascending=False,
+        na_position="last",
+    )
+
+    return sorted_dataframe.drop(
+        columns=["_preparation_strength_rank"],
+        errors="ignore",
+    )
+
+
+def add_preparation_strength_rank(dataframe):
+    sorted_dataframe = dataframe.copy()
+    rank = {
+        "NONE": 0,
+        "LOW": 1,
+        "MEDIUM": 2,
+        "HIGH": 3,
+        "EXTREME": 4,
+    }
+    sorted_dataframe["_preparation_strength_rank"] = (
+        sorted_dataframe.get("preparation_strength", "NONE")
+        .fillna("NONE")
+        .astype(str)
+        .str.upper()
+        .map(rank)
+        .fillna(0)
+    )
+
+    return sorted_dataframe
 
 
 def render_movement_analysis(dataframe):

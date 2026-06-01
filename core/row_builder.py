@@ -70,6 +70,8 @@ def build_trade_row(tick_buffer):
 
         "end_ts": end_ts,
 
+        "market_timestamp": end_ts,
+
         "duration_ms": duration_ms,
 
         "duration_sec": duration_sec,

@@ -62,6 +62,7 @@ ZONE_TRUE_LIFECYCLE_TRACKING_FILE = RESEARCH_DIR / "zone_true_lifecycle_tracking
 ZONE_INTERACTION_CORE_NOTES_FILE = RESEARCH_DIR / "zone_interaction_core_notes.md"
 ZONE_INTERACTION_DENSITY_MAP_FILE = RESEARCH_DIR / "zone_interaction_density_map.csv"
 ZONE_INTERACTION_DENSITY_NOTES_FILE = RESEARCH_DIR / "zone_interaction_density_notes.md"
+ZONE_ATTACKER_EVOLUTION_FILE = RESEARCH_DIR / "zone_attacker_evolution.csv"
 
 NOTABLE_CASES = [
     "CASE_00021",
@@ -123,6 +124,13 @@ def main() -> None:
         with profiler.step("rdm_live_evolution_after_cache"):
             live_evolution_df = build_live_rdm_evolution(results_df, historical_rows, run_utc)
             results_df = merge_live_rdm_evolution_into_results(results_df, live_evolution_df)
+        with profiler.step("rdm_v16b_attacker_basics"):
+            attacker_df = build_attacker_evolution(
+                results_df,
+                live_evolution_df,
+                historical_rows,
+                run_utc,
+            )
         with profiler.step("rdm_case_cache_build_time"):
             rdm_case_cache = RdmCaseCache(live_evolution_df)
         with profiler.step("interaction_mask_build_time"):
@@ -198,6 +206,7 @@ def main() -> None:
             verestchaguine_df.to_csv(VERESTCHAGUINE_FILE, index=False)
             geometry_tracking_df.to_csv(ZONE_REAL_GEOMETRY_TRACKING_FILE, index=False)
             live_evolution_df.to_csv(ZONE_LIVE_RDM_EVOLUTION_FILE, index=False)
+            attacker_df.to_csv(ZONE_ATTACKER_EVOLUTION_FILE, index=False)
             interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
             density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
             true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
@@ -228,6 +237,7 @@ def main() -> None:
         profiler.add_metric("rows_processed", len(results_df))
         profiler.add_metric("historical_rows_loaded", len(historical_rows))
         profiler.add_metric("live_evolution_rows", len(live_evolution_df))
+        profiler.add_metric("attacker_evolution_rows", len(attacker_df))
         profiler.add_metric("interaction_core_rows", len(interaction_core_df))
         profiler.add_metric("interaction_density_rows", len(density_df))
         profiler.add_metric("timeline_rows", len(timeline_df))
@@ -250,6 +260,7 @@ def main() -> None:
         print(f"Verestchaguine notes: {relative_path(VERESTCHAGUINE_NOTES_FILE)}")
         print(f"Real geometry tracking: {relative_path(ZONE_REAL_GEOMETRY_TRACKING_FILE)}")
         print(f"Live RDM evolution: {relative_path(ZONE_LIVE_RDM_EVOLUTION_FILE)}")
+        print(f"Attacker evolution: {relative_path(ZONE_ATTACKER_EVOLUTION_FILE)}")
         print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
         print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
         print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
@@ -2180,6 +2191,136 @@ def build_live_rdm_evolution_notes(live: pd.DataFrame, run_utc: str) -> str:
     lines.extend(["", "## Live Breach Counts", ""])
     lines.extend(f"- {count_value}: {count}" for count_value, count in breach_counts.items())
     return "\n".join(lines) + "\n"
+
+
+def build_attacker_evolution(
+    results: pd.DataFrame,
+    live: pd.DataFrame,
+    historical_rows: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    rows = []
+    if results.empty:
+        return pd.DataFrame(rows)
+
+    live_with_delta = attach_historical_delta_to_live_rows(live, historical_rows)
+    grouped_live = (
+        {
+            str(case_id): group.copy()
+            for case_id, group in live_with_delta.groupby("case_id")
+        }
+        if not live_with_delta.empty and "case_id" in live_with_delta.columns
+        else {}
+    )
+
+    for _, result_row in results.iterrows():
+        case_id = str(result_row.get("case_id") or "")
+        case_live = grouped_live.get(case_id, pd.DataFrame())
+        interaction_rows = filter_attacker_interaction_rows(case_live)
+        force_values = pd.Series(dtype="float64")
+
+        if not interaction_rows.empty and "delta" in interaction_rows.columns:
+            force_values = pd.to_numeric(
+                interaction_rows["delta"],
+                errors="coerce",
+            ).abs().dropna()
+
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": result_row.get("case_id"),
+                "episode_id": result_row.get("episode_id"),
+                "zone_id": result_row.get("zone_id"),
+                "rdm_v16b_attacker_interaction_count": (
+                    len(interaction_rows) if not interaction_rows.empty else pd.NA
+                ),
+                "rdm_v16b_attacker_force_mean_at_touch": (
+                    round_float(force_values.mean()) if not force_values.empty else pd.NA
+                ),
+                "rdm_v16b_attacker_force_peak": (
+                    round_float(force_values.max()) if not force_values.empty else pd.NA
+                ),
+                "rdm_v16b_attacker_force_std": (
+                    round_float(force_values.std()) if len(force_values) > 1 else pd.NA
+                ),
+                "rdm_v16b_attacker_persistence_max": (
+                    max_consecutive_truthy(case_live.get("inside_zone_flag"))
+                    if not case_live.empty and "inside_zone_flag" in case_live.columns
+                    else pd.NA
+                ),
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def attach_historical_delta_to_live_rows(
+    live: pd.DataFrame,
+    historical_rows: pd.DataFrame,
+) -> pd.DataFrame:
+    if live.empty:
+        return live.copy()
+
+    enriched = live.copy()
+    if "delta" in enriched.columns:
+        return enriched
+
+    if (
+        historical_rows.empty
+        or "row_id" not in historical_rows.columns
+        or "delta" not in historical_rows.columns
+        or "row_index" not in enriched.columns
+    ):
+        enriched["delta"] = pd.NA
+        return enriched
+
+    delta_lookup = historical_rows[["row_id", "delta"]].copy()
+    delta_lookup["row_index_numeric"] = pd.to_numeric(
+        delta_lookup["row_id"],
+        errors="coerce",
+    )
+    delta_lookup = delta_lookup.dropna(
+        subset=["row_index_numeric"]
+    ).drop_duplicates("row_index_numeric", keep="last")
+    enriched["row_index_numeric"] = pd.to_numeric(
+        enriched["row_index"],
+        errors="coerce",
+    )
+    enriched = enriched.merge(
+        delta_lookup[["row_index_numeric", "delta"]],
+        on="row_index_numeric",
+        how="left",
+    )
+    return enriched.drop(columns=["row_index_numeric"])
+
+
+def filter_attacker_interaction_rows(live: pd.DataFrame) -> pd.DataFrame:
+    if live.empty:
+        return live
+
+    mask = pd.Series(False, index=live.index)
+    if "zone_touch_flag" in live.columns:
+        mask = mask | live["zone_touch_flag"].apply(truthy)
+    if "inside_zone_flag" in live.columns:
+        mask = mask | live["inside_zone_flag"].apply(truthy)
+    return live[mask].copy()
+
+
+def max_consecutive_truthy(values: Any) -> Any:
+    if values is None:
+        return pd.NA
+
+    max_count = 0
+    current_count = 0
+    for value in values:
+        if truthy(value):
+            current_count += 1
+            max_count = max(max_count, current_count)
+        else:
+            current_count = 0
+
+    return max_count if max_count > 0 else pd.NA
 
 
 class RdmCaseCache:

@@ -2092,3 +2092,131 @@ Next priorities:
 2. Continue RDM V1.6 on full dataset
 3. Zone intent framework research
 4. Per-cycle omega decomposition (future)
+
+==================================================
+PHASE1B_SYNTHESIS_ENGINE_STABLE
+==================================================
+
+STATUS: COMPLETED AND STABLE
+
+Phase 1 is now structurally coherent.
+The system no longer treats layers as isolated indicators.
+
+The Phase 1 Synthesis Engine connects all Phase 1 layers into
+one MarketInterpretation per zone case.
+
+--------------------------------------------------
+NEW FILE
+--------------------------------------------------
+
+research/synthesis_engine.py
+
+Components:
+- Simplified Taxonomy Register (role + scope per field)
+- Bundle Assembler (B10 + B11 + episode statistical context)
+- Priority Rules (STRUCTURAL > CURRENT, STRUCTURE > CONTEXT)
+- Genuine Conflict Check (binary flag)
+- 3-Gate Synthesis Check
+- 4-Level Coherence Label (STRONG / MODERATE / WEAK / INSUFFICIENT)
+- Field Compressors (6 threshold-based compressors)
+- Template Engine (3 templates + catch-all)
+
+--------------------------------------------------
+MODIFIED FILE (4 additive lines only)
+--------------------------------------------------
+
+research/zone_mechanics_calculator.py
+- ZONE_SYNTHESIS_FILE constant added
+- import build_zone_synthesis added
+- rdm_synthesis_engine profiler step added after B11
+- synthesis_df.to_csv() added to output block
+
+--------------------------------------------------
+NEW OUTPUT
+--------------------------------------------------
+
+research/zone_synthesis.csv
+
+Columns (13):
+  analysis_run_utc, case_id, episode_id, zone_id,
+  zone_mechanical_state, context, structure, engagement,
+  flow, prediction, coherence, interpretation, research_only
+
+Results (276-zone, 12-day archive):
+  Rows:               276
+  Duplicate case_id:  0
+  Null interpretation: 0
+  Max interpretation length: 68 chars (limit 80)
+  Runtime: 0.47s
+
+Coherence distribution:
+  STRONG:        126  (45.7%)
+  MODERATE:       35  (12.7%)
+  INSUFFICIENT:  115  (41.7%)
+
+Prediction distribution:
+  NO_PREDICTION:  115  (41.7%)
+  HOLD:            90  (32.6%)
+  FAIL:            65  (23.6%)
+  UNCERTAIN:        6   (2.2%)
+
+Example interpretation sentences:
+  "TERMINAL zone under opposing flow - failure confirmed."
+  "STRENGTHENING zone after 3 visits - hold confirmed."
+  "STABLE zone with zone dominant - hold expected."
+  "DEGRADING zone - trajectory developing, await further visits."
+  "Single-visit zone - insufficient evidence for structural prediction."
+
+--------------------------------------------------
+WHAT THE SYNTHESIS ENGINE DOES NOT DO
+--------------------------------------------------
+
+- Does not produce BUY / SELL signals
+- Does not produce entries or exits
+- Does not modify any RDM formula
+- Does not modify Dashboard V2 scoring
+- Does not modify lifecycle logic
+- Does not modify replay logic
+- Reads from existing CSVs, writes one new CSV
+- No Phase 2
+
+--------------------------------------------------
+POSTPONED (after B12 backtesting)
+--------------------------------------------------
+
+- Numeric Coherence Score (0-100) - needs B12 accuracy calibration
+- Redundancy Detection - needs inter-signal correlation data
+- Advanced Conflict Types - needs historical contradiction patterns
+
+--------------------------------------------------
+VALIDATION
+--------------------------------------------------
+
+python -m py_compile research/synthesis_engine.py research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py
+
+RESULT: ALL_COMPILE_OK
+
+python research/zone_mechanics_calculator.py
+-> Zone synthesis: research\zone_synthesis.csv produced successfully.
+-> Rows generated: 276
+
+--------------------------------------------------
+NEXT PHASE
+--------------------------------------------------
+
+Active checkpoint: PHASE1B_SYNTHESIS_ENGINE_STABLE
+
+Next task: Long data collection before backtesting.
+
+Target: 45-60 days of BTCUSDT historical data.
+
+Sequence after collection:
+1. Full pipeline rebuild (analyze + RDM calculator)
+2. B12: Prediction Validation (structural_prediction vs observed outcomes)
+3. Numeric Coherence Score calibration from B12 accuracy data
+4. Large-scale backtesting
+5. Synthesis Engine refinement based on real errors
+
+Do not advance to Phase 2.
+Do not modify formulas.
+Do not modify Dashboard scoring.

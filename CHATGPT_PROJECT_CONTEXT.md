@@ -220,26 +220,49 @@ python tools/generate_binance_historical_replay.py --start "2026-05-20 00:00:00"
 
 Use --slow-mode only for recent-date API fallback on unstable networks, not for historical downloads.
 
+## Phase 1 Synthesis Engine
+
+Status: COMPLETED
+
+File:    research/synthesis_engine.py (NEW)
+Output:  research/zone_synthesis.csv (276 rows, 13 columns)
+
+Phase 1 is now structurally coherent. The Synthesis Engine connects all
+Phase 1 layers (Statistical Engine, Dashboard V2, RDM B1-B11) into one
+MarketInterpretation per zone case:
+
+    context | structure | engagement | flow | prediction | coherence | interpretation
+
+Architecture (6 components, minimal professional version):
+    Taxonomy Register (role + scope per field)
+    Bundle Assembler (B10 + B11 + episode context)
+    Priority Rules (STRUCTURAL > CURRENT, STRUCTURE > CONTEXT)
+    Genuine Conflict Check (binary flag)
+    3-Gate Synthesis Check
+    4-Level Coherence Label (STRONG / MODERATE / WEAK / INSUFFICIENT)
+
+Example: "TERMINAL zone under opposing flow - failure confirmed."
+Example: "STRENGTHENING zone after 3 visits - hold confirmed."
+
 ## Current Active Phase
 
 PHASE 1B+ Research Expansion
 
-Current checkpoint:
-
-PHASE1B_HYBRID_DOWNLOADER_STABLE
+Current checkpoint: PHASE1B_SYNTHESIS_ENGINE_STABLE
 
 Prior checkpoints:
-
+- PHASE1B_HYBRID_DOWNLOADER_STABLE
 - PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
 - PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 
 Rules preserved:
-
 - No scoring changes
 - No lifecycle changes
 - No Dashboard V2 scoring impact
 - No RDM formula changes
 - No replay formula changes
 - No Phase 2 / No execution / No entries / No live signals
+
+Next task: 45-60 day data collection, then B12 prediction validation.
 
 Do not advance to Phase 2.

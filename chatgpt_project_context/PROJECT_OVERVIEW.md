@@ -4,73 +4,92 @@
 
 This repository is currently a Phase 1B / Phase 1B+ observation and research system.
 
-The system studies market rarity, abnormality, confluence, replay behavior, and research-only mechanical interpretations of market zones. It is not a trading bot. It does not create entries, exits, BUY / SELL signals, execution actions, or live trading decisions.
+The system studies market rarity, abnormality, confluence, replay behavior, and
+research-only mechanical interpretations of market zones. It is not a trading bot.
+It does not create entries, exits, BUY / SELL signals, execution actions, or live
+trading decisions.
 
 Core philosophy:
 
 - Observe before deciding.
 - Preserve replay compatibility.
-- Keep Dashboard V2 locked unless explicitly calibrating research-only outputs.
+- Keep Dashboard V2 locked.
 - Keep research modules separate from live calculations and scoring.
-- Treat all hypotheses as unproven until validated across larger replay windows.
-- Mechanics-first classification: variables -> family -> subtype -> state -> case examples.
+- Treat all hypotheses as unproven until validated across larger data windows.
+- Mechanics-first: variables -> family -> subtype -> state -> case examples.
 - Cases are reference-only, never hardcoded classification rules.
+- Phase 1 must be coherent before any backtesting begins.
+
+## Phase 1 Is Now Structurally Coherent
+
+As of PHASE1B_SYNTHESIS_ENGINE_STABLE, the system produces a single unified
+interpretation per zone case instead of 100+ isolated fields.
+
+The Phase 1 Synthesis Engine connects:
+
+    Statistical Engine (9 Dashboard V2 layers)
+    RDM B1-B11 (structural zone mechanics)
+    Preparation Research
+    Zone / Field Lifecycle
+
+...into one MarketInterpretation object:
+
+    context | structure | engagement | flow | prediction | coherence | interpretation
 
 ## Global Architecture
 
-Major areas:
+```
+STRATUM 1 — OBSERVATION (real-time, per bar)
+    core/row_builder.py, engines/phase1_engine.py
+    OHLCV, delta, velocity, volume, spread, RVI
 
-- Dashboard V2 statistical context layer
-- Historical replay generation (3-tier hybrid downloader)
-- Phase 1B Episode Research Assistant
-- Research dashboard / observation UI
-- Dashboard V2 research mapping layer
-- Context memory and lifecycle memory
-- RDM Market Mechanics research layer (V1.1 through V1.6-B7.7)
-- Streamlit dashboard for replay and research observation
+STRATUM 2 — CONTEXT (statistical significance, per bar/session)
+    core/statistics.py, engines/statistics_engine.py
+    Distribution, Gaussian, ZScores, Tail, Extreme Events
+    Volatility Regime, Velocity, Delta, Dashboard V2
 
-Important files:
+STRATUM 3 — STRUCTURE (zone mechanics, multi-session)
+    context_memory.py (ZoneLifecycleMemory, FieldLifecycleMemory)
+    research/zone_mechanics_calculator.py (RDM B1-B11)
+    Zone geometry, mechanical state, omega, sigma_barre
 
-- `tools/generate_binance_historical_replay.py` — 3-tier downloader (local cache / ZIP / API)
-- `dashboard_app.py`
-- `dashboard/research_mapping.py`
-- `dashboard/overlay_renderer.py`
-- `research/zone_mechanics_calculator.py`
-- `tools/analyze_phase1b_episode_research.py`
-- `context_memory.py`
-- `MASTER_STATUS.md`
+STRATUM 4 — ENGAGEMENT (zone interaction, per visit)
+    RDM B8: Zone Visit Timeline
+    RDM B9: Zone Health Evolution
+    RDM B10: Structural Trajectory Classification
+    RDM B11: Structural Engagement Prediction
 
-## Current Phase
+STRATUM 5 — SYNTHESIS (unified interpretation, per zone case)
+    research/synthesis_engine.py
+    MarketInterpretation -> research/zone_synthesis.csv
 
-PHASE 1B+ Research Expansion
+STRATUM 6 — VALIDATION (prediction accuracy, future)
+    B12: Prediction Validation (not yet implemented)
+    Requires 45-60 day data collection first
+```
 
-Current focus:
+## Important Files
 
-- Historical dataset rebuild using new hybrid downloader
-- RDM V1.6 development (series A through B7.7 complete, next steps pending full dataset)
+- `research/synthesis_engine.py` — Phase 1 Synthesis Engine
+- `research/zone_mechanics_calculator.py` — RDM B1-B11 + Synthesis
+- `research/zone_synthesis.csv` — MarketInterpretation output
+- `tools/generate_binance_historical_replay.py` — 3-tier hybrid downloader
+- `core/statistics.py` — Full statistical engine
+- `context_memory.py` — Zone / Field lifecycle memory
+- `dashboard_app.py` — Observation dashboard
 
 ## Current Checkpoint
 
-PHASE1B_HYBRID_DOWNLOADER_STABLE
-
-Prior:
-
-- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
-- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
-- PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
+PHASE1B_SYNTHESIS_ENGINE_STABLE
 
 ## Hard Rules
 
 Do not advance to Phase 2.
 
 Do not add:
-
-- Execution
-- Entries / Exits
+- Execution / Entries / Exits
 - BUY / SELL logic
 - Live signals
-- Decision engine
-- Risk engine
 - Scoring changes
 - Dashboard V2 scoring changes
 - RDM formula changes
@@ -78,3 +97,4 @@ Do not add:
 - Replay formula changes
 
 All current work remains research-only.
+The next task is data collection, then B12 backtesting validation.

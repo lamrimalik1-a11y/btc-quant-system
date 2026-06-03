@@ -2,104 +2,106 @@
 
 ## What To Upload
 
-Upload these files into ChatGPT Project knowledge:
-
-- `chatgpt_project_context/PROJECT_OVERVIEW.md`
-- `chatgpt_project_context/MASTER_STATUS_COMPACT.md`
-- `chatgpt_project_context/RDM_MARKET_MECHANICS_STATUS.md`
-- `chatgpt_project_context/HOW_TO_CONTINUE.md`
-- `chatgpt_project_context/RUN_COMMANDS.md`
-- `chatgpt_project_context/CURRENT_CHECKPOINT.md`
-- `README_CHATGPT_PROJECT.md`
+Upload these files:
+- chatgpt_project_context/PROJECT_OVERVIEW.md
+- chatgpt_project_context/MASTER_STATUS_COMPACT.md
+- chatgpt_project_context/RDM_MARKET_MECHANICS_STATUS.md
+- chatgpt_project_context/HOW_TO_CONTINUE.md
+- chatgpt_project_context/RUN_COMMANDS.md
+- chatgpt_project_context/CURRENT_CHECKPOINT.md
 
 Recommended additional source files:
-
-- `MASTER_STATUS.md`
-- `research/zone_mechanics_calculator.py`
-- `tools/generate_binance_historical_replay.py`
-- `tools/analyze_phase1b_episode_research.py`
-- `dashboard_app.py`
-- `context_memory.py`
+- MASTER_STATUS.md
+- research/synthesis_engine.py
+- research/zone_mechanics_calculator.py
+- tools/generate_binance_historical_replay.py
+- core/statistics.py
+- context_memory.py
 
 ## First Message
 
 ```text
 You are working on my BTC Quant repo in PHASE 1B+ Research Expansion.
-Load the uploaded project context files first.
-Current checkpoint: PHASE1B_HYBRID_DOWNLOADER_STABLE.
-Rules: research only, no Phase 2, no execution, no entries, no live signals,
-no scoring changes, no RDM formula changes, no lifecycle changes.
-Completed: RDM V1.6-A through B7.7 (exposure physics) + 3-tier hybrid downloader.
-Key finding: omega ~ sigma x penetration (r=0.9935).
-Downloader now uses: Tier 1 local cache / Tier 2 Binance ZIP / Tier 3 API fallback.
-Next: run historical replay to rebuild 634-row RDM research dataset.
+Current checkpoint: PHASE1B_SYNTHESIS_ENGINE_STABLE.
+
+Rules:
+- Research only, no Phase 2, no execution, no entries, no live signals
+- No scoring changes, no RDM formula changes, no lifecycle changes
+
+Current state:
+- Phase 1 is now structurally coherent
+- Synthesis Engine (research/synthesis_engine.py) connects all B1-B11 outputs
+  into one MarketInterpretation per zone case (research/zone_synthesis.csv)
+- 276 zones, 12-day archive, prediction distribution: HOLD=90, FAIL=65,
+  NO_PREDICTION=115, UNCERTAIN=6
+
+Next task:
+- Long data collection: 45-60 days of BTCUSDT historical data
+- After collection: full pipeline rebuild + B12 prediction validation
+- B12 validates structural_prediction vs observed market outcomes
+- Only then: large-scale backtesting
+
+Key validated finding:
+- Omega = sigma x penetration (r=0.9935)
+- Structural engagement chain confirmed (Force -> sigma_barre -> Omega -> Outcome)
+- Surface damage rejected (temporal decay formula only)
 ```
 
-## Priority Next Steps
+## Priority Workflow (next session)
 
-1. Run historical replay for 2026-05-20 to 2026-06-02
+### Step 1: Extended Data Collection (45-60 days)
 
 ```powershell
-python tools/generate_binance_historical_replay.py --start "2026-05-20 00:00:00" --end "2026-06-02 00:00:00" --symbol BTCUSDT --row-size 500
+python tools/generate_binance_historical_replay.py \
+  --start "2026-05-01 00:00:00" \
+  --end "2026-07-01 00:00:00" \
+  --symbol BTCUSDT --row-size 500
 ```
 
-Most days will be served by ZIP (Tier 2) or local cache (Tier 1). Recent days fall back to API. After the first run, all days are cached locally — re-runs complete in ~5 seconds.
+The 3-tier downloader will:
+- Use Tier 1 local cache for any days already downloaded
+- Use Tier 2 Binance ZIP for older dates (2+ days)
+- Use Tier 3 API only for very recent dates
 
-2. Run RDM calculator to rebuild 634-row research base
+### Step 2: Rebuild Research Dataset
 
 ```powershell
+python tools/analyze_phase1b_episode_research.py --mode score4plus
 python research/zone_mechanics_calculator.py
 ```
 
-3. Continue RDM V1.6 development (B8 or later) on the full 634-row dataset.
+After 45+ days: expect 1000+ zone cases instead of 276.
 
-## Command Sequence (new session)
+### Step 3: B12 Implementation (future)
 
-Validate everything compiles:
-
-```powershell
-python -m py_compile tools/generate_binance_historical_replay.py research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py
-```
-
-Run historical replay:
-
-```powershell
-python tools/generate_binance_historical_replay.py --start "2026-05-20 00:00:00" --end "2026-06-02 00:00:00" --symbol BTCUSDT --row-size 500
-```
-
-Run RDM calculator:
-
-```powershell
-python research/zone_mechanics_calculator.py
-```
-
-Run dashboard:
-
-```powershell
-streamlit run dashboard_app.py
-```
+B12 = Prediction Validation:
+- Compare structural_prediction from zone_synthesis.csv against actual market outcomes
+- Compute accuracy per trajectory class, confidence level, regime
+- Use B12 accuracy data to calibrate numeric coherence score
 
 ## What Not To Do
 
-Do not:
-
-- Add Phase 2
-- Add execution / entries / exits / BUY / SELL
+- Phase 2 (execution, entries, exits, BUY/SELL, live signals)
 - Change Dashboard V2 scoring
-- Change replay scoring
 - Change RDM formulas
 - Change lifecycle logic
-- Add live signals
-- Treat RDM results as trade signals
+- Add new indicators before validating existing ones
 
-## Downloader Notes
+## Synthesis Engine Notes
 
-The new 3-tier downloader eliminates WinError 10060 for historical dates by using:
-- Tier 2 ZIP: one HTTP request per day (~3-10 sec) instead of 200-500 API calls
-- Tier 1 cache: zero requests on repeat runs
+The synthesis engine is research/synthesis_engine.py.
+It reads from:
+    zone_structural_trajectory.csv (B10)
+    zone_structural_prediction.csv (B11)
+    outputs/historical_replay_dashboard_v2_episodes.csv (statistical context)
 
-Use `--slow-mode` only when downloading very recent dates (< 2 days old) on an unstable network. For all historical dates, ZIP and cache handle it without slow-mode.
+It writes to:
+    research/zone_synthesis.csv (276 rows, 13 columns)
 
-## Replay Source Rule
+It is called automatically by zone_mechanics_calculator.py as the final step.
+No separate command needed.
 
-In HISTORICAL_REPLAY_MODE, Dashboard, overlays, RDM, lifecycle, density, cases, and summaries must read explicit historical replay sources only. Do not silently fallback to live/default files.
+Postponed components (after B12):
+- Numeric Coherence Score (0-100) with calibrated weights
+- Redundancy Detection between correlated statistical signals
+- Advanced Conflict Classification (4-type instead of binary)

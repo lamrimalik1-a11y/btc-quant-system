@@ -22,6 +22,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from tools.performance_profile import PerfProfiler
+from research.synthesis_engine import build_zone_synthesis
 
 OUTPUT_DIR = ROOT_DIR / "outputs"
 RESEARCH_DIR = ROOT_DIR / "research"
@@ -69,6 +70,11 @@ ZONE_ANOMALY_FILE          = RESEARCH_DIR / "zone_anomaly_profile.csv"
 ZONE_REINFORCEMENT_FILE    = RESEARCH_DIR / "zone_reinforcement_profile.csv"
 ATTACKER_CONVERSION_FILE   = RESEARCH_DIR / "attacker_conversion_profile.csv"
 FORCE_ALLOCATION_FILE      = RESEARCH_DIR / "force_allocation_profile.csv"
+ZONE_VISIT_TIMELINE_FILE      = RESEARCH_DIR / "zone_visit_timeline.csv"
+ZONE_HEALTH_EVOLUTION_FILE       = RESEARCH_DIR / "zone_health_evolution.csv"
+ZONE_STRUCTURAL_TRAJECTORY_FILE   = RESEARCH_DIR / "zone_structural_trajectory.csv"
+ZONE_STRUCTURAL_PREDICTION_FILE   = RESEARCH_DIR / "zone_structural_prediction.csv"
+ZONE_SYNTHESIS_FILE               = RESEARCH_DIR / "zone_synthesis.csv"
 
 # ==================================================
 # RDM V1.6-B3.5-B — FORCE LULL SEGMENTATION CONSTANTS
@@ -199,6 +205,26 @@ def main() -> None:
             force_alloc_df = build_force_allocation_profile(
                 results_df, attacker_df, run_utc
             )
+        with profiler.step("rdm_v16b8_zone_visit_timeline"):
+            visit_timeline_df = build_zone_visit_timeline(
+                results_df, live_evolution_df, attacker_df, run_utc
+            )
+        with profiler.step("rdm_v16b9_zone_health_evolution"):
+            health_evolution_df = build_zone_health_evolution(
+                results_df, visit_timeline_df, run_utc
+            )
+        with profiler.step("rdm_v16b10_zone_structural_trajectory"):
+            trajectory_df = build_zone_structural_trajectory(
+                results_df, health_evolution_df, run_utc
+            )
+        with profiler.step("rdm_v16b11_zone_structural_prediction"):
+            prediction_df = build_zone_structural_prediction(
+                results_df, trajectory_df, vs_attacker_df, run_utc
+            )
+        with profiler.step("rdm_synthesis_engine"):
+            synthesis_df = build_zone_synthesis(
+                results_df, trajectory_df, prediction_df, episodes, run_utc
+            )
         profiler.add_metric("interaction_mask_reuse_count", rdm_case_cache.mask_reuse_count)
         with profiler.step("rdm_timeline_lifecycle"):
             timeline_df = build_mechanics_timeline(results_df, run_utc)
@@ -249,6 +275,11 @@ def main() -> None:
             reinforcement_df.to_csv(ZONE_REINFORCEMENT_FILE, index=False)
             conversion_df.to_csv(ATTACKER_CONVERSION_FILE, index=False)
             force_alloc_df.to_csv(FORCE_ALLOCATION_FILE, index=False)
+            visit_timeline_df.to_csv(ZONE_VISIT_TIMELINE_FILE, index=False)
+            health_evolution_df.to_csv(ZONE_HEALTH_EVOLUTION_FILE, index=False)
+            trajectory_df.to_csv(ZONE_STRUCTURAL_TRAJECTORY_FILE, index=False)
+            prediction_df.to_csv(ZONE_STRUCTURAL_PREDICTION_FILE, index=False)
+            synthesis_df.to_csv(ZONE_SYNTHESIS_FILE, index=False)
             interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
             density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
             true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
@@ -286,6 +317,11 @@ def main() -> None:
         profiler.add_metric("zone_reinforcement_rows", len(reinforcement_df))
         profiler.add_metric("attacker_conversion_rows", len(conversion_df))
         profiler.add_metric("force_allocation_rows", len(force_alloc_df))
+        profiler.add_metric("zone_visit_timeline_rows", len(visit_timeline_df))
+        profiler.add_metric("zone_health_evolution_rows", len(health_evolution_df))
+        profiler.add_metric("zone_structural_trajectory_rows", len(trajectory_df))
+        profiler.add_metric("zone_structural_prediction_rows", len(prediction_df))
+        profiler.add_metric("zone_synthesis_rows", len(synthesis_df))
         profiler.add_metric("interaction_core_rows", len(interaction_core_df))
         profiler.add_metric("interaction_density_rows", len(density_df))
         profiler.add_metric("timeline_rows", len(timeline_df))
@@ -315,6 +351,11 @@ def main() -> None:
         print(f"Zone reinforcement profile: {relative_path(ZONE_REINFORCEMENT_FILE)}")
         print(f"Attacker conversion profile: {relative_path(ATTACKER_CONVERSION_FILE)}")
         print(f"Force allocation profile: {relative_path(FORCE_ALLOCATION_FILE)}")
+        print(f"Zone visit timeline: {relative_path(ZONE_VISIT_TIMELINE_FILE)}")
+        print(f"Zone health evolution: {relative_path(ZONE_HEALTH_EVOLUTION_FILE)}")
+        print(f"Zone structural trajectory: {relative_path(ZONE_STRUCTURAL_TRAJECTORY_FILE)}")
+        print(f"Zone structural prediction: {relative_path(ZONE_STRUCTURAL_PREDICTION_FILE)}")
+        print(f"Zone synthesis: {relative_path(ZONE_SYNTHESIS_FILE)}")
         print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
         print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
         print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
@@ -3317,6 +3358,1245 @@ def build_force_allocation_profile(
             "rdm_v16b75b_force_allocation_balance":    round_float(balance),
             "rdm_v16b75b_force_allocation_mode":       mode,
             "research_only":                           True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+# ==================================================
+# RDM V1.6-B8 — Zone Visit Timeline helpers
+# ==================================================
+
+def _parse_visit_spans(atk_row: dict) -> list:
+    """Parse force-lull or attacker attempt row spans into (start, end) tuples.
+
+    Uses rdm_v16b_force_lull_attempt_row_spans (finest segmentation) as primary.
+    Falls back to rdm_v16b_attacker_attempt_row_spans when lull data is absent.
+    Span format stored as string: "start-end|start-end|..."
+    Returns empty list when both fields are NaN or absent.
+    """
+    for key in ("rdm_v16b_force_lull_attempt_row_spans",
+                "rdm_v16b_attacker_attempt_row_spans"):
+        raw = str(atk_row.get(key) or "").strip()
+        if raw and raw.lower() not in ("", "nan", "none"):
+            spans = []
+            for part in raw.split("|"):
+                part = part.strip()
+                if "-" in part:
+                    try:
+                        lo, hi = part.split("-", 1)
+                        spans.append((int(lo), int(hi)))
+                    except ValueError:
+                        continue
+            if spans:
+                return spans
+    return []
+
+
+def _compute_touch_spans(evo_case: pd.DataFrame, lull_gap: int = 3) -> list:
+    """Derive visit spans from live evolution activity signals.
+
+    Priority 1: rows where zone_touch_flag OR inside_zone_flag is True
+    Priority 2: rows where evolution_state is not LIVE_DORMANT
+    (covers cases where zones are active / ruptured but touch flags are not set)
+
+    Groups consecutive active rows into visit windows.  A visit boundary is
+    declared when there is a gap of at least lull_gap rows with no activity,
+    matching the B3.5-B lull threshold.
+
+    This is the fallback when pre-computed span strings are NaN.
+    Returns list of (start_row, end_row) tuples.
+    """
+    # Build activity mask: touch/inside flags first, then evolution state
+    touch_series   = pd.to_numeric(evo_case["zone_touch_flag"],  errors="coerce").fillna(0).astype(bool)
+    inside_series  = pd.to_numeric(evo_case["inside_zone_flag"], errors="coerce").fillna(0).astype(bool)
+    dormant_states = {"LIVE_DORMANT", ""}
+    active_series  = ~evo_case["evolution_state"].astype(str).isin(dormant_states)
+
+    activity_mask = touch_series | inside_series | active_series
+
+    active_rows = (
+        evo_case.loc[activity_mask, "row_index"]
+        .dropna()
+        .astype(int)
+        .sort_values()
+        .tolist()
+    )
+    if not active_rows:
+        return []
+
+    spans: list = []
+    span_start = active_rows[0]
+    span_end   = active_rows[0]
+
+    for i in range(1, len(active_rows)):
+        gap = active_rows[i] - active_rows[i - 1]
+        if gap > lull_gap:
+            spans.append((span_start, span_end))
+            span_start = active_rows[i]
+        span_end = active_rows[i]
+
+    spans.append((span_start, span_end))
+    return spans
+
+
+def _classify_visit(
+    rig_v: float,
+    cap_v: float,
+    fat_v: float,
+    rig_birth: float,
+    cap_birth: float,
+    fat_birth: float,
+    prev_rig: float,
+    prev_cap: float,
+    prev_fat: float,
+    inside_count: int,
+    max_pen: float,
+    reclaim: bool,
+) -> str:
+    """Classify a single zone visit for research purposes.
+
+    Priority order: BREAKDOWN > GROWTH > DAMAGE > RECLAIM > REFLECTION > ABSORPTION > UNKNOWN
+
+    Classification is research-only — no signal, entry, or execution logic.
+    """
+    # BREAKDOWN: severe structural loss (rigidity or capacity < 50% of birth)
+    if (rig_birth > 0 and rig_v < rig_birth * 0.50) or \
+       (cap_birth > 0 and cap_v < cap_birth * 0.50):
+        return "BREAKDOWN"
+
+    # GROWTH: zone structurally grew beyond birth baseline (ELASTIC reinforcement)
+    if rig_v > rig_birth and cap_v > cap_birth:
+        return "GROWTH"
+
+    # DAMAGE: meaningful new fatigue accumulated during this visit
+    if fat_v > prev_fat + 0.5:
+        return "DAMAGE"
+
+    # RECLAIM: price returned to zone from outside (return_to_zone_flag seen)
+    if reclaim:
+        return "RECLAIM"
+
+    # REFLECTION: zone touched/approached but not meaningfully entered
+    if inside_count == 0 or max_pen < 0.05:
+        return "REFLECTION"
+
+    # ABSORPTION: entered zone with measurable penetration, structural state held
+    if max_pen >= 0.05:
+        return "ABSORPTION"
+
+    return "UNKNOWN"
+
+
+def build_zone_visit_timeline(
+    results_df: pd.DataFrame,
+    evolution_df: pd.DataFrame,
+    attacker_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B8 — Zone Visit Timeline.
+
+    Creates a per-visit structural record for every zone interaction episode.
+    Each row corresponds to one distinct attacker attempt (force-lull segmented),
+    exposing structural state at the end of each visit and delta comparisons
+    against birth state and the previous visit.
+
+    Visit segmentation
+    ------------------
+    Primary:  rdm_v16b_force_lull_attempt_row_spans  (B3.5-B finest segmentation)
+    Fallback: rdm_v16b_attacker_attempt_row_spans    (B3.5-A coarser segmentation)
+
+    Structural metrics at visit
+    ---------------------------
+    Taken from the last live-evolution row within each span.
+    Penetration is reconstructed as fleche_live * real_zone_width.
+    omega_at_visit is approximated as sigma_at_visit * penetration_at_visit
+    (validated in B7.6-D: r = 0.9935 with true omega).
+    attacker_force_at_visit is the peak load_live observed in the span.
+
+    Visit result classification (research-only, no signals)
+    -------------------------------------------------------
+    BREAKDOWN    rigidity or capacity < 50% of birth
+    GROWTH       rigidity and capacity both exceed birth (ELASTIC reinforcement)
+    DAMAGE       fatigue > previous visit + 0.5 (new structural fatigue)
+    RECLAIM      return_to_zone_flag seen — price returned from outside zone
+    REFLECTION   inside_count == 0 or max penetration < 0.05 units
+    ABSORPTION   penetration >= 0.05 with no meaningful damage
+    UNKNOWN      insufficient data for classification
+
+    Research only. No scores, signals, entries, exits, or lifecycle changes.
+    """
+    if results_df.empty or evolution_df.empty or attacker_df.empty:
+        return pd.DataFrame()
+
+    # ── Index data for O(1) lookup ────────────────────────────────────────────
+    evo_by_case: dict = {}
+    for case_id, grp in evolution_df.groupby("case_id"):
+        evo_by_case[case_id] = grp.sort_values("row_index").reset_index(drop=True)
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+
+    atk_idx = attacker_df.set_index("case_id").to_dict("index") if (
+        "case_id" in attacker_df.columns
+    ) else {}
+
+    rows: list = []
+
+    for case_id, r in res_idx.items():
+        evo_case = evo_by_case.get(case_id)
+        if evo_case is None or evo_case.empty:
+            continue
+
+        a = atk_idx.get(case_id, {})
+        spans = _parse_visit_spans(a)
+        span_source = "force_lull_segments"
+        if not spans:
+            # Pre-computed spans are absent (NaN) — derive from live evolution
+            # touch/inside flags using the B3.5-B lull gap threshold.
+            spans = _compute_touch_spans(evo_case)
+            span_source = "touch_flag_derived"
+        if not spans:
+            continue
+
+        # Birth state
+        rig_birth = to_float(r.get("rigidity_birth"))  or 35.0
+        cap_birth = to_float(r.get("capacity_birth"))  or 30.0
+        fat_birth = to_float(r.get("fatigue_birth"))   or 0.0
+        rec_birth = to_float(r.get("recovery_birth"))  or 0.0
+        hlt_birth = to_float(r.get("health_birth"))    or 70.0
+        sig_birth = to_float(r.get("sigma_birth"))     or 0.0
+
+        # Previous-visit state (starts at birth)
+        prev_rig = rig_birth
+        prev_cap = cap_birth
+        prev_fat = fat_birth
+        prev_hlt = hlt_birth
+
+        for visit_idx, (span_start, span_end) in enumerate(spans, start=1):
+            visit_rows = evo_case[
+                (evo_case["row_index"] >= span_start) &
+                (evo_case["row_index"] <= span_end)
+            ]
+
+            if visit_rows.empty:
+                # No evolution data for this span — emit a minimal record
+                rows.append({
+                    "analysis_run_utc":          run_utc,
+                    "case_id":                   case_id,
+                    "episode_id":                r.get("episode_id"),
+                    "zone_id":                   r.get("zone_id"),
+                    "zone_mechanical_state":     r.get("zone_mechanical_state"),
+                    "visit_index":               visit_idx,
+                    "visit_start_row":           span_start,
+                    "visit_end_row":             span_end,
+                    "visit_start_time":          pd.NA,
+                    "visit_end_time":            pd.NA,
+                    "visit_duration_rows":       span_end - span_start + 1,
+                    "rigidity_at_visit":         pd.NA,
+                    "capacity_at_visit":         pd.NA,
+                    "fatigue_at_visit":          pd.NA,
+                    "recovery_at_visit":         pd.NA,
+                    "sigma_at_visit":            pd.NA,
+                    "health_at_visit":           pd.NA,
+                    "penetration_at_visit":      pd.NA,
+                    "max_penetration_at_visit":  pd.NA,
+                    "omega_at_visit":            pd.NA,
+                    "attacker_force_at_visit":   pd.NA,
+                    "rigidity_change_from_birth":   pd.NA,
+                    "capacity_change_from_birth":   pd.NA,
+                    "fatigue_change_from_birth":    pd.NA,
+                    "recovery_change_from_birth":   pd.NA,
+                    "rigidity_change_from_previous":  pd.NA,
+                    "capacity_change_from_previous":  pd.NA,
+                    "fatigue_change_from_previous":   pd.NA,
+                    "health_change_from_previous":    pd.NA,
+                    "inside_zone_rows":          0,
+                    "evolution_state_at_visit":  "NO_DATA",
+                    "span_source":               span_source,
+                    "visit_result":              "UNKNOWN",
+                    "research_only":             True,
+                })
+                continue
+
+            last_row  = visit_rows.iloc[-1]
+            first_row = visit_rows.iloc[0]
+
+            # Structural state at end of visit (last row in span)
+            rig_v = to_float(last_row.get("rigidity_live"))  or rig_birth
+            cap_v = to_float(last_row.get("capacity_live"))  or cap_birth
+            fat_v = to_float(last_row.get("fatigue_live"))   or 0.0
+            rec_v = to_float(last_row.get("recovery_live"))  or 0.0
+            hlt_v = to_float(last_row.get("health_live"))    or hlt_birth
+            sig_v = to_float(last_row.get("sigma_live"))     or sig_birth
+            fle_v = to_float(last_row.get("fleche_live"))    or 0.0
+            zone_w = to_float(last_row.get("real_zone_width")) or 1.0
+
+            penetration_v = fle_v * zone_w
+
+            # Peak values during the visit
+            fle_max  = pd.to_numeric(visit_rows["fleche_live"], errors="coerce").max()
+            max_pen  = (float(fle_max) if pd.notna(fle_max) else 0.0) * zone_w
+            sig_max  = pd.to_numeric(visit_rows["sigma_live"], errors="coerce").max()
+            load_max = pd.to_numeric(visit_rows["load_live"], errors="coerce").max()
+            load_max = float(load_max) if pd.notna(load_max) else 0.0
+
+            # omega approximation: sigma_peak * max_penetration (from B7.6-D, r=0.9935)
+            sig_max_f = float(sig_max) if pd.notna(sig_max) else sig_v
+            omega_approx = sig_max_f * max_pen
+
+            inside_count = int(
+                pd.to_numeric(visit_rows["inside_zone_flag"], errors="coerce")
+                .fillna(0).astype(bool).sum()
+            )
+            reclaim_flag = bool(
+                pd.to_numeric(visit_rows["return_to_zone_flag"], errors="coerce")
+                .fillna(0).astype(bool).any()
+            )
+            evo_state_v = str(last_row.get("evolution_state") or "")
+
+            visit_result = _classify_visit(
+                rig_v=rig_v, cap_v=cap_v, fat_v=fat_v,
+                rig_birth=rig_birth, cap_birth=cap_birth, fat_birth=fat_birth,
+                prev_rig=prev_rig, prev_cap=prev_cap, prev_fat=prev_fat,
+                inside_count=inside_count,
+                max_pen=max_pen,
+                reclaim=reclaim_flag,
+            )
+
+            rows.append({
+                "analysis_run_utc":          run_utc,
+                "case_id":                   case_id,
+                "episode_id":                r.get("episode_id"),
+                "zone_id":                   r.get("zone_id"),
+                "zone_mechanical_state":     r.get("zone_mechanical_state"),
+                "visit_index":               visit_idx,
+                "visit_start_row":           span_start,
+                "visit_end_row":             span_end,
+                "visit_start_time":          str(first_row.get("timestamp", "")),
+                "visit_end_time":            str(last_row.get("timestamp", "")),
+                "visit_duration_rows":       span_end - span_start + 1,
+                "rigidity_at_visit":         round_float(rig_v),
+                "capacity_at_visit":         round_float(cap_v),
+                "fatigue_at_visit":          round_float(fat_v),
+                "recovery_at_visit":         round_float(rec_v),
+                "sigma_at_visit":            round_float(sig_v),
+                "health_at_visit":           round_float(hlt_v),
+                "penetration_at_visit":      round_float(penetration_v),
+                "max_penetration_at_visit":  round_float(max_pen),
+                "omega_at_visit":            round_float(omega_approx),
+                "attacker_force_at_visit":   round_float(load_max),
+                "rigidity_change_from_birth":   round_float(rig_v - rig_birth),
+                "capacity_change_from_birth":   round_float(cap_v - cap_birth),
+                "fatigue_change_from_birth":    round_float(fat_v - fat_birth),
+                "recovery_change_from_birth":   round_float(rec_v - rec_birth),
+                "rigidity_change_from_previous":  round_float(rig_v - prev_rig),
+                "capacity_change_from_previous":  round_float(cap_v - prev_cap),
+                "fatigue_change_from_previous":   round_float(fat_v - prev_fat),
+                "health_change_from_previous":    round_float(hlt_v - prev_hlt),
+                "inside_zone_rows":          inside_count,
+                "evolution_state_at_visit":  evo_state_v,
+                "span_source":               span_source,
+                "visit_result":              visit_result,
+                "research_only":             True,
+            })
+
+            prev_rig = rig_v
+            prev_cap = cap_v
+            prev_fat = fat_v
+            prev_hlt = hlt_v
+
+    return pd.DataFrame(rows)
+
+
+# ==================================================
+# RDM V1.6-B9 — Zone Health Evolution
+# ==================================================
+
+def _health_state(
+    slope: float,
+    total_change: float,
+    damage_count: int,
+    growth_count: int,
+    breakdown_count: int,
+    visit_count: int,
+) -> str:
+    """Classify zone health trajectory from structural variables only.
+
+    Uses conservative thresholds that do not reference price outcomes.
+    Priority order: COLLAPSING > DEGRADING_FAST > WEAKENING >
+                    RECOVERING > STRENGTHENING > STABLE > UNKNOWN
+    """
+    if visit_count == 0:
+        return "UNKNOWN"
+
+    if breakdown_count > 0 and damage_count >= growth_count:
+        return "HEALTH_COLLAPSING"
+
+    slope_known = slope is not None and not (slope != slope)  # NaN-safe check
+
+    if slope_known and slope < -3.0:
+        return "HEALTH_DEGRADING_FAST"
+
+    if (slope_known and slope < -0.5) or total_change < -10.0:
+        return "HEALTH_WEAKENING"
+
+    if damage_count > 0 and growth_count > damage_count and (
+        not slope_known or slope > 0.0
+    ):
+        return "HEALTH_RECOVERING"
+
+    if (slope_known and slope > 0.5) and growth_count >= damage_count:
+        return "HEALTH_STRENGTHENING"
+
+    if slope_known and abs(slope) <= 0.5 and abs(total_change) < 5.0:
+        return "HEALTH_STABLE"
+
+    return "UNKNOWN"
+
+
+def build_zone_health_evolution(
+    results_df: pd.DataFrame,
+    visit_timeline_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B9 — Zone Health Evolution.
+
+    One row per zone case.  Aggregates the B8 zone_visit_timeline into a
+    zone-level health trajectory summary.
+
+    health_slope
+        Linear regression slope of health_at_visit over visit_index.
+        Positive = health improving visit-over-visit.
+        Negative = health declining.
+        NaN for single-visit zones (slope undefined with one point).
+
+    health_state
+        HEALTH_STRENGTHENING   slope > 0.5  AND  growth >= damage visits
+        HEALTH_STABLE          |slope| <= 0.5  AND  |total_change| < 5
+        HEALTH_RECOVERING      prior damage  AND  currently positive trend
+        HEALTH_WEAKENING       slope < -0.5  OR  total_change < -10
+        HEALTH_DEGRADING_FAST  slope < -3.0
+        HEALTH_COLLAPSING      breakdown occurred  AND  damage >= growth
+        UNKNOWN                insufficient data
+
+    Classification uses only structural variables already computed by the
+    B8 visit timeline.  No price outcome, no forecast, no signal.
+
+    Research only.  No scoring, lifecycle, replay, or dashboard changes.
+    """
+    if results_df.empty or visit_timeline_df.empty:
+        return pd.DataFrame()
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+
+    rows: list = []
+
+    for case_id, r in res_idx.items():
+        visits = visit_timeline_df[
+            visit_timeline_df["case_id"] == case_id
+        ].sort_values("visit_index").copy()
+
+        visit_count = len(visits)
+
+        # ── Birth state from results ──────────────────────────────────────────
+        health_birth  = to_float(r.get("health_birth"))  or 0.0
+        rig_birth     = to_float(r.get("rigidity_birth")) or 0.0
+        cap_birth     = to_float(r.get("capacity_birth")) or 0.0
+        fat_birth     = to_float(r.get("fatigue_birth"))  or 0.0
+        rec_birth     = to_float(r.get("recovery_birth")) or 0.0
+
+        if visit_count == 0:
+            # Zone has no visit data — emit minimal row
+            rows.append({
+                "analysis_run_utc":         run_utc,
+                "case_id":                  case_id,
+                "episode_id":               r.get("episode_id"),
+                "zone_id":                  r.get("zone_id"),
+                "zone_mechanical_state":    r.get("zone_mechanical_state"),
+                "visit_count":              0,
+                "health_birth":             round_float(health_birth),
+                "health_first_visit":       pd.NA,
+                "health_last_visit":        pd.NA,
+                "health_min":               pd.NA,
+                "health_max":               pd.NA,
+                "health_mean":              pd.NA,
+                "health_std":               pd.NA,
+                "health_slope":             pd.NA,
+                "health_total_change":      pd.NA,
+                "health_change_pct_from_birth": pd.NA,
+                "rigidity_total_change":    pd.NA,
+                "capacity_total_change":    pd.NA,
+                "fatigue_total_change":     pd.NA,
+                "recovery_total_change":    pd.NA,
+                "omega_total":              pd.NA,
+                "omega_max":                pd.NA,
+                "omega_mean":               pd.NA,
+                "attacker_force_total":     pd.NA,
+                "attacker_force_max":       pd.NA,
+                "damage_visit_count":       0,
+                "growth_visit_count":       0,
+                "breakdown_visit_count":    0,
+                "absorption_visit_count":   0,
+                "dominant_visit_result":    "UNKNOWN",
+                "final_visit_result":       "UNKNOWN",
+                "health_state":             "UNKNOWN",
+                "research_only":            True,
+            })
+            continue
+
+        # ── Health series ─────────────────────────────────────────────────────
+        health_series = pd.to_numeric(visits["health_at_visit"], errors="coerce")
+        idx_series    = visits["visit_index"].astype(float)
+
+        h_first = float(health_series.iloc[0])  if health_series.notna().any() else health_birth
+        h_last  = float(health_series.iloc[-1]) if health_series.notna().any() else health_birth
+        h_min   = float(health_series.min())
+        h_max   = float(health_series.max())
+        h_mean  = float(health_series.mean())
+        h_std   = float(health_series.std()) if visit_count > 1 else 0.0
+
+        h_total_change = h_last - health_birth
+        h_change_pct   = (h_total_change / health_birth * 100.0) if health_birth != 0 else 0.0
+
+        # Linear slope — requires at least 2 valid pairs
+        valid_mask = health_series.notna() & idx_series.notna()
+        if valid_mask.sum() >= 2:
+            try:
+                import numpy as _np
+                slope_val = float(_np.polyfit(
+                    idx_series[valid_mask].values,
+                    health_series[valid_mask].values,
+                    deg=1
+                )[0])
+            except Exception:
+                slope_val = None
+        else:
+            slope_val = None
+
+        # ── Structural change accumulators ────────────────────────────────────
+        def _col_sum(col: str) -> float:
+            s = pd.to_numeric(visits[col], errors="coerce").fillna(0.0)
+            return float(s.sum())
+
+        def _col_max(col: str) -> float:
+            s = pd.to_numeric(visits[col], errors="coerce").dropna()
+            return float(s.max()) if not s.empty else 0.0
+
+        def _col_mean(col: str) -> float:
+            s = pd.to_numeric(visits[col], errors="coerce").dropna()
+            return float(s.mean()) if not s.empty else 0.0
+
+        rig_total = _col_sum("rigidity_change_from_previous")
+        cap_total = _col_sum("capacity_change_from_previous")
+        fat_total = _col_sum("fatigue_change_from_previous")
+        rec_total = float(
+            pd.to_numeric(visits["recovery_change_from_birth"], errors="coerce").iloc[-1]
+        ) if "recovery_change_from_birth" in visits.columns else 0.0
+
+        omega_total  = _col_sum("omega_at_visit")
+        omega_max    = _col_max("omega_at_visit")
+        omega_mean   = _col_mean("omega_at_visit")
+        force_total  = _col_sum("attacker_force_at_visit")
+        force_max    = _col_max("attacker_force_at_visit")
+
+        # ── Visit result counts ───────────────────────────────────────────────
+        vr = visits["visit_result"].astype(str)
+        damage_count    = int((vr == "DAMAGE").sum())
+        growth_count    = int((vr == "GROWTH").sum())
+        breakdown_count = int((vr == "BREAKDOWN").sum())
+        absorption_count= int((vr == "ABSORPTION").sum())
+
+        dominant = vr.value_counts().idxmax() if not vr.empty else "UNKNOWN"
+        final    = str(vr.iloc[-1]) if not vr.empty else "UNKNOWN"
+
+        # ── Health state classification ───────────────────────────────────────
+        state = _health_state(
+            slope=slope_val,
+            total_change=h_total_change,
+            damage_count=damage_count,
+            growth_count=growth_count,
+            breakdown_count=breakdown_count,
+            visit_count=visit_count,
+        )
+
+        rows.append({
+            "analysis_run_utc":             run_utc,
+            "case_id":                      case_id,
+            "episode_id":                   r.get("episode_id"),
+            "zone_id":                      r.get("zone_id"),
+            "zone_mechanical_state":        r.get("zone_mechanical_state"),
+            "visit_count":                  visit_count,
+            "health_birth":                 round_float(health_birth),
+            "health_first_visit":           round_float(h_first),
+            "health_last_visit":            round_float(h_last),
+            "health_min":                   round_float(h_min),
+            "health_max":                   round_float(h_max),
+            "health_mean":                  round_float(h_mean),
+            "health_std":                   round_float(h_std),
+            "health_slope":                 round_float(slope_val) if slope_val is not None else pd.NA,
+            "health_total_change":          round_float(h_total_change),
+            "health_change_pct_from_birth": round_float(h_change_pct),
+            "rigidity_total_change":        round_float(rig_total),
+            "capacity_total_change":        round_float(cap_total),
+            "fatigue_total_change":         round_float(fat_total),
+            "recovery_total_change":        round_float(rec_total),
+            "omega_total":                  round_float(omega_total),
+            "omega_max":                    round_float(omega_max),
+            "omega_mean":                   round_float(omega_mean),
+            "attacker_force_total":         round_float(force_total),
+            "attacker_force_max":           round_float(force_max),
+            "damage_visit_count":           damage_count,
+            "growth_visit_count":           growth_count,
+            "breakdown_visit_count":        breakdown_count,
+            "absorption_visit_count":       absorption_count,
+            "dominant_visit_result":        dominant,
+            "final_visit_result":           final,
+            "health_state":                 state,
+            "research_only":                True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+# ==================================================
+# RDM V1.6-B10 — Structural Trajectory Classification
+# ==================================================
+
+def _structural_trajectory_label(
+    health_state: str,
+    health_slope,
+    final_visit_result: str,
+    dominant_visit_result: str,
+    growth_count: int,
+    damage_count: int,
+    breakdown_count: int,
+    absorption_count: int,
+    visit_count: int,
+) -> str:
+    """Classify zone structural trajectory using only structural variables.
+
+    Priority order (highest to lowest):
+      TERMINAL > ACCELERATING_FAILURE > DEGRADING >
+      RECOVERY > STRENGTHENING > STABLE > TRANSITIONAL > UNKNOWN
+
+    No price outcome, no True/Fake Breakout, no Range labels.
+    """
+    if visit_count == 0:
+        return "UNKNOWN"
+
+    slope_ok   = health_slope is not None and health_slope == health_slope  # NaN-safe
+    slope_neg  = slope_ok and health_slope < 0
+    slope_pos  = slope_ok and health_slope > 0
+
+    # TERMINAL: structural end state reached
+    if final_visit_result == "BREAKDOWN" or breakdown_count >= 2:
+        return "TERMINAL"
+
+    # ACCELERATING_FAILURE: collapsing with confirmed negative slope + multiple damage
+    if (
+        health_state == "HEALTH_COLLAPSING"
+        and damage_count >= 2
+        and slope_neg
+    ):
+        return "ACCELERATING_FAILURE"
+
+    # STABLE (early check): B9 explicitly declared this zone structurally stable.
+    # Must fire BEFORE the damage_count > growth_count gate so that zones whose
+    # health barely moved despite damage visits are not misclassified as DEGRADING.
+    if health_state == "HEALTH_STABLE":
+        return "STABLE"
+
+    # DEGRADING: weakening health or more damage than growth
+    if health_state in ("HEALTH_WEAKENING", "HEALTH_COLLAPSING") or (
+        damage_count > growth_count
+    ):
+        return "DEGRADING"
+
+    # RECOVERY: improving after prior damage
+    if final_visit_result == "GROWTH" and damage_count > 0 and slope_pos:
+        return "RECOVERY"
+
+    # STRENGTHENING: consistent growth with no breakdown
+    if (
+        health_state == "HEALTH_STRENGTHENING"
+        and growth_count >= damage_count
+        and breakdown_count == 0
+    ):
+        return "STRENGTHENING"
+
+    # STABLE (second check): absorption-dominant with no damage or breakdown
+    if absorption_count > 0 and damage_count == 0 and breakdown_count == 0:
+        return "STABLE"
+
+    # TRANSITIONAL: mixed growth and damage without a terminal signal
+    if growth_count > 0 and damage_count > 0:
+        return "TRANSITIONAL"
+
+    # UNKNOWN: not enough information to classify
+    return "UNKNOWN"
+
+
+def _trajectory_score(
+    label: str,
+    health_slope,
+    health_total_change: float,
+    growth_count: int,
+    damage_count: int,
+    breakdown_count: int,
+) -> float:
+    """Return a continuous trajectory score [-100, +100].
+
+    Higher = structurally stronger / more likely to sustain.
+    Lower  = structurally weaker  / more likely to fail.
+    Does not represent price direction.
+    """
+    base = {
+        "STRENGTHENING":       65.0,
+        "RECOVERY":            35.0,
+        "STABLE":              15.0,
+        "TRANSITIONAL":         0.0,
+        "UNKNOWN":              0.0,
+        "DEGRADING":          -40.0,
+        "ACCELERATING_FAILURE":-70.0,
+        "TERMINAL":           -90.0,
+    }.get(label, 0.0)
+
+    slope_ok = health_slope is not None and health_slope == health_slope
+    if slope_ok:
+        if label in ("STRENGTHENING", "RECOVERY"):
+            base += min(float(health_slope) * 3.0,  25.0)
+        elif label in ("DEGRADING", "ACCELERATING_FAILURE", "TERMINAL"):
+            base += max(float(health_slope) * 3.0, -25.0)
+
+    # Small adjustment for growth/damage ratio
+    total = growth_count + damage_count
+    if total > 0:
+        ratio = (growth_count - damage_count) / total
+        base += ratio * 5.0
+
+    return float(max(-100.0, min(100.0, base)))
+
+
+def _trajectory_confidence(
+    health_state: str,
+    health_slope,
+    visit_count: int,
+) -> str:
+    """HIGH / MEDIUM / LOW based on data sufficiency."""
+    slope_ok = health_slope is not None and health_slope == health_slope
+    if visit_count >= 3 and slope_ok and health_state != "UNKNOWN":
+        return "HIGH"
+    if visit_count >= 2 or (visit_count >= 3 and not slope_ok):
+        return "MEDIUM"
+    return "LOW"
+
+
+def _trajectory_reason(
+    label: str,
+    health_state: str,
+    visit_count: int,
+    health_slope,
+    damage_count: int,
+    growth_count: int,
+    breakdown_count: int,
+    final_visit_result: str,
+) -> str:
+    """Short human-readable reason for the trajectory label."""
+    slope_str = (
+        f"slope={float(health_slope):.2f}" if (
+            health_slope is not None and health_slope == health_slope
+        ) else "slope=N/A"
+    )
+    if label == "TERMINAL":
+        if final_visit_result == "BREAKDOWN":
+            return f"breakdown reached on final visit; {breakdown_count} breakdown visit(s)"
+        return f"{breakdown_count} breakdown visit(s) observed"
+    if label == "ACCELERATING_FAILURE":
+        return f"health_state=COLLAPSING, {damage_count} damage visits, {slope_str}"
+    if label == "DEGRADING":
+        return f"{damage_count} damage > {growth_count} growth; health_state={health_state}"
+    if label == "RECOVERY":
+        return f"final=GROWTH after {damage_count} damage visit(s); {slope_str}"
+    if label == "STRENGTHENING":
+        return f"{growth_count} growth visits, 0 breakdown, health_state={health_state}"
+    if label == "STABLE":
+        return f"health_state={health_state}; no damage or breakdown"
+    if label == "TRANSITIONAL":
+        return f"mixed: {growth_count} growth, {damage_count} damage — no terminal state"
+    return f"visit_count={visit_count}; health_state={health_state}"
+
+
+def build_zone_structural_trajectory(
+    results_df: pd.DataFrame,
+    health_evolution_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B10 — Structural Trajectory Classification.
+
+    One row per zone case.  Synthesises the B9 health evolution summary into
+    a single structural trajectory label that describes what the zone is
+    becoming structurally over the observed visit sequence.
+
+    Trajectory labels (research-only — not trading signals):
+      STRENGTHENING       zone consistently gaining structural strength
+      STABLE              zone holding with minimal change
+      RECOVERY            zone improving after prior damage
+      TRANSITIONAL        mixed signals — no clear direction yet
+      DEGRADING           zone losing structural integrity progressively
+      ACCELERATING_FAILURE confirmed collapse trajectory with negative slope
+      TERMINAL            structural end-state: breakdown reached
+      UNKNOWN             insufficient visit data for classification
+
+    trajectory_score  [-100, +100]
+      Continuous measure: higher = structurally stronger.
+      Derived from label, health slope, and growth/damage ratio.
+
+    trajectory_direction
+      POSITIVE / NEUTRAL / NEGATIVE — directional grouping.
+
+    trajectory_confidence
+      HIGH   : 3+ visits with slope computed and non-UNKNOWN health_state
+      MEDIUM : 2 visits, or 3+ visits with missing slope
+      LOW    : 1 visit or UNKNOWN health_state
+
+    trajectory_reason
+      Short explanation of why the label was assigned.
+
+    Classification uses only structural variables (B8 / B9 outputs).
+    No price outcome, no True/Fake Breakout, no Range labels.
+
+    Research only.  No scoring, lifecycle, replay, or dashboard changes.
+    """
+    if results_df.empty or health_evolution_df.empty:
+        return pd.DataFrame()
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+    he_idx  = health_evolution_df.set_index("case_id").to_dict("index") if (
+        "case_id" in health_evolution_df.columns
+    ) else {}
+
+    _direction_map = {
+        "STRENGTHENING":       "POSITIVE",
+        "RECOVERY":            "POSITIVE",
+        "STABLE":              "NEUTRAL",
+        "TRANSITIONAL":        "NEUTRAL",
+        "UNKNOWN":             "NEUTRAL",
+        "DEGRADING":           "NEGATIVE",
+        "ACCELERATING_FAILURE":"NEGATIVE",
+        "TERMINAL":            "NEGATIVE",
+    }
+
+    rows: list = []
+
+    for case_id, r in res_idx.items():
+        he = he_idx.get(case_id, {})
+
+        # Pull all required fields from health_evolution
+        visit_count      = int(to_float(he.get("visit_count")) or 0)
+        health_state     = str(he.get("health_state") or "UNKNOWN")
+        health_slope_raw = to_float(he.get("health_slope"))
+        health_slope     = health_slope_raw  # may be None / NaN
+
+        h_total_change   = to_float(he.get("health_total_change")) or 0.0
+        h_last           = to_float(he.get("health_last_visit"))    or 0.0
+        h_birth          = to_float(he.get("health_birth"))         or 0.0
+
+        dominant_vr      = str(he.get("dominant_visit_result") or "UNKNOWN")
+        final_vr         = str(he.get("final_visit_result")    or "UNKNOWN")
+        growth_count     = int(to_float(he.get("growth_visit_count"))    or 0)
+        damage_count     = int(to_float(he.get("damage_visit_count"))    or 0)
+        breakdown_count  = int(to_float(he.get("breakdown_visit_count")) or 0)
+        absorption_count = int(to_float(he.get("absorption_visit_count"))or 0)
+        omega_total      = to_float(he.get("omega_total"))   or 0.0
+        omega_max        = to_float(he.get("omega_max"))     or 0.0
+        omega_mean       = to_float(he.get("omega_mean"))    or 0.0
+        force_total      = to_float(he.get("attacker_force_total")) or 0.0
+        force_max        = to_float(he.get("attacker_force_max"))   or 0.0
+
+        # ── Classify ──────────────────────────────────────────────────────────
+        label = _structural_trajectory_label(
+            health_state=health_state,
+            health_slope=health_slope,
+            final_visit_result=final_vr,
+            dominant_visit_result=dominant_vr,
+            growth_count=growth_count,
+            damage_count=damage_count,
+            breakdown_count=breakdown_count,
+            absorption_count=absorption_count,
+            visit_count=visit_count,
+        )
+
+        score      = _trajectory_score(
+            label, health_slope, h_total_change,
+            growth_count, damage_count, breakdown_count,
+        )
+        direction  = _direction_map.get(label, "NEUTRAL")
+        confidence = _trajectory_confidence(health_state, health_slope, visit_count)
+        reason     = _trajectory_reason(
+            label, health_state, visit_count, health_slope,
+            damage_count, growth_count, breakdown_count, final_vr,
+        )
+
+        rows.append({
+            "analysis_run_utc":       run_utc,
+            "case_id":                case_id,
+            "episode_id":             r.get("episode_id"),
+            "zone_id":                r.get("zone_id"),
+            "zone_mechanical_state":  r.get("zone_mechanical_state"),
+            "visit_count":            visit_count,
+            "health_state":           health_state,
+            "health_slope":           round_float(health_slope) if health_slope is not None else pd.NA,
+            "health_total_change":    round_float(h_total_change),
+            "health_last_visit":      round_float(h_last),
+            "dominant_visit_result":  dominant_vr,
+            "final_visit_result":     final_vr,
+            "growth_visit_count":     growth_count,
+            "damage_visit_count":     damage_count,
+            "breakdown_visit_count":  breakdown_count,
+            "absorption_visit_count": absorption_count,
+            "omega_total":            round_float(omega_total),
+            "omega_max":              round_float(omega_max),
+            "omega_mean":             round_float(omega_mean),
+            "attacker_force_total":   round_float(force_total),
+            "attacker_force_max":     round_float(force_max),
+            "trajectory_score":       round_float(score),
+            "trajectory_direction":   direction,
+            "structural_trajectory":  label,
+            "trajectory_confidence":  confidence,
+            "trajectory_reason":      reason,
+            "research_only":          True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+# ==================================================
+# RDM V1.6-B11 — Structural Engagement Prediction
+# ==================================================
+
+_HOLD_TRAJECTORIES  = {"STRENGTHENING", "STABLE", "RECOVERY"}
+_FAIL_TRAJECTORIES  = {"TERMINAL", "ACCELERATING_FAILURE"}
+_UNCERT_TRAJECTORIES = {"DEGRADING", "TRANSITIONAL"}
+_HEALTH_CRITICAL_LOW = 20.0   # health below this is structurally compromised
+
+
+def _structural_prediction_label(
+    structural_trajectory: str,
+    trajectory_confidence: str,
+    health_state: str,
+    health_last_visit: float,
+    breakdown_count: int,
+    damage_count: int,
+) -> str:
+    """Classify the structural expectation for the NEXT zone interaction.
+
+    Research-only: HOLD / FAIL / UNCERTAIN / NO_PREDICTION.
+
+    Priority: NO_PREDICTION (data gate) → FAIL → HOLD → UNCERTAIN → NO_PREDICTION
+
+    This is a structural expectation, not a price prediction.  No BUY/SELL,
+    no entry/exit, no range or breakout classification.
+    """
+    # NO_PREDICTION: data quality gate
+    if (structural_trajectory == "UNKNOWN"
+            or trajectory_confidence == "LOW"):
+        return "NO_PREDICTION"
+
+    # FAIL: structural failure signals present
+    if (structural_trajectory in _FAIL_TRAJECTORIES
+            or breakdown_count >= 1
+            or (health_state == "HEALTH_COLLAPSING" and damage_count >= 2)):
+        return "FAIL"
+
+    # HOLD: structural strength confirmed
+    if (structural_trajectory in _HOLD_TRAJECTORIES
+            and breakdown_count == 0
+            and (health_last_visit is None or health_last_visit >= _HEALTH_CRITICAL_LOW)):
+        return "HOLD"
+
+    # UNCERTAIN: trajectory is intermediate or mixed
+    if structural_trajectory in _UNCERT_TRAJECTORIES:
+        return "UNCERTAIN"
+
+    # Default fallback
+    return "UNCERTAIN"
+
+
+def _prediction_score(
+    structural_prediction: str,
+    trajectory_score: float,
+    breakdown_count: int,
+    health_last_visit: float,
+    force_ratio: float,
+    sigma_barre: float,
+    damage_count: int,
+    growth_count: int,
+) -> float:
+    """Continuous prediction score [-100, +100].
+
+    Positive → structural HOLD expectation.
+    Negative → structural FAIL expectation.
+    Near zero → UNCERTAIN.
+
+    Derived from trajectory_score with adjustments for zone defense capacity
+    and attacker force characteristics.  No price outcome used.
+    """
+    if structural_prediction == "NO_PREDICTION":
+        return 0.0
+
+    base = float(trajectory_score)
+
+    # Breakdown penalises strongly regardless of trajectory
+    base -= breakdown_count * 20.0
+
+    # Very low health signals structural compromise
+    if health_last_visit is not None and health_last_visit < _HEALTH_CRITICAL_LOW:
+        base -= 15.0
+
+    # High sigma_barre = harder for attacker to engage = HOLD-friendly
+    if sigma_barre is not None and sigma_barre > 0:
+        if sigma_barre > 40.0:    # RECOVERED-class high memory barre
+            base += 8.0
+        elif sigma_barre < 15.0:  # easy to engage
+            base -= 5.0
+
+    # Force ratio: low = attacker weak = more likely HOLD
+    if force_ratio is not None:
+        if force_ratio < 0.30:
+            base += 7.0
+        elif force_ratio > 1.00:
+            base -= 12.0
+
+    return float(max(-100.0, min(100.0, base)))
+
+
+def _prediction_confidence(
+    structural_prediction: str,
+    trajectory_confidence: str,
+    visit_count: int,
+) -> str:
+    """HIGH / MEDIUM / LOW confidence for the structural prediction."""
+    if structural_prediction == "NO_PREDICTION":
+        return "LOW"
+    if (trajectory_confidence == "HIGH"
+            and visit_count >= 3
+            and structural_prediction in ("HOLD", "FAIL")):
+        return "HIGH"
+    if (trajectory_confidence in ("HIGH", "MEDIUM")
+            and structural_prediction in ("HOLD", "FAIL", "UNCERTAIN")):
+        return "MEDIUM"
+    return "LOW"
+
+
+def _prediction_reason(
+    structural_prediction: str,
+    structural_trajectory: str,
+    trajectory_confidence: str,
+    health_state: str,
+    breakdown_count: int,
+    damage_count: int,
+    growth_count: int,
+    visit_count: int,
+) -> str:
+    """Short explanation for the structural prediction label."""
+    if structural_prediction == "NO_PREDICTION":
+        if trajectory_confidence == "LOW":
+            return f"confidence=LOW; visit_count={visit_count} — insufficient structural evidence"
+        return f"trajectory=UNKNOWN; no structural classification available"
+
+    if structural_prediction == "FAIL":
+        if structural_trajectory in _FAIL_TRAJECTORIES:
+            return f"trajectory={structural_trajectory}; breakdown_count={breakdown_count}"
+        if breakdown_count >= 1:
+            return f"{breakdown_count} breakdown visit(s); health_state={health_state}"
+        return f"health_state=COLLAPSING; damage_count={damage_count} >= 2"
+
+    if structural_prediction == "HOLD":
+        return (f"trajectory={structural_trajectory}; "
+                f"growth={growth_count}, damage={damage_count}, breakdown=0; "
+                f"health_state={health_state}")
+
+    # UNCERTAIN
+    return f"trajectory={structural_trajectory}; mixed structural signals"
+
+
+def build_zone_structural_prediction(
+    results_df: pd.DataFrame,
+    trajectory_df: pd.DataFrame,
+    vs_attacker_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B11 — Structural Engagement Prediction.
+
+    One row per zone case.  Produces a structural expectation (HOLD / FAIL /
+    UNCERTAIN / NO_PREDICTION) for the next zone interaction, derived from the
+    B9–B10 health and trajectory layers together with zone defense capacity
+    variables from the B4 series.
+
+    This is NOT a price prediction.  It is NOT a trading signal.
+    It is the model's current structural expectation given all available
+    mechanical evidence.  B12 will later validate whether the expectation
+    matched the observed market outcome.
+
+    Prediction labels (research-only):
+      HOLD           zone expected to hold if tested again
+      FAIL           zone expected to fail if tested again
+      UNCERTAIN      mixed or insufficient structural signals
+      NO_PREDICTION  data quality insufficient for a reliable prediction
+                     (trajectory=UNKNOWN or confidence=LOW)
+
+    prediction_score  [-100, +100]
+      Positive → HOLD expectation.  Negative → FAIL expectation.
+      Derived from trajectory_score with adjustments for sigma_barre_zone
+      (defense capacity) and force_ratio (attacker strength).
+
+    prediction_confidence
+      HIGH   : trajectory HIGH confidence, 3+ visits, clear HOLD or FAIL
+      MEDIUM : moderate evidence
+      LOW    : single visit, UNKNOWN trajectory, or NO_PREDICTION
+
+    prediction_reason
+      Brief explanation of the primary classification driver.
+
+    Research only.  No scoring, lifecycle, replay, or dashboard changes.
+    """
+    if results_df.empty or trajectory_df.empty:
+        return pd.DataFrame()
+
+    # ── Index all inputs ──────────────────────────────────────────────────────
+    tr_idx  = trajectory_df.set_index("case_id").to_dict("index") if (
+        "case_id" in trajectory_df.columns
+    ) else {}
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+    va_idx: dict = {}
+    if vs_attacker_df is not None and not vs_attacker_df.empty and "case_id" in vs_attacker_df.columns:
+        va_idx = vs_attacker_df.set_index("case_id").to_dict("index")
+
+    rows: list = []
+
+    for case_id, r in res_idx.items():
+        tr = tr_idx.get(case_id, {})
+        va = va_idx.get(case_id, {})
+
+        # ── Pull B10 / B9 fields from trajectory row ─────────────────────────
+        structural_trajectory   = str(tr.get("structural_trajectory")  or "UNKNOWN")
+        trajectory_score_raw    = to_float(tr.get("trajectory_score")) or 0.0
+        trajectory_confidence   = str(tr.get("trajectory_confidence")  or "LOW")
+        trajectory_direction    = str(tr.get("trajectory_direction")   or "NEUTRAL")
+        health_state            = str(tr.get("health_state")           or "UNKNOWN")
+        health_slope            = to_float(tr.get("health_slope"))
+        health_total_change     = to_float(tr.get("health_total_change")) or 0.0
+        health_last_visit       = to_float(tr.get("health_last_visit")) or 0.0
+        omega_total             = to_float(tr.get("omega_total"))     or 0.0
+        omega_max               = to_float(tr.get("omega_max"))       or 0.0
+        omega_mean              = to_float(tr.get("omega_mean"))      or 0.0
+        force_total             = to_float(tr.get("attacker_force_total")) or 0.0
+        force_max               = to_float(tr.get("attacker_force_max"))   or 0.0
+        damage_count            = int(to_float(tr.get("damage_visit_count"))    or 0)
+        growth_count            = int(to_float(tr.get("growth_visit_count"))    or 0)
+        breakdown_count         = int(to_float(tr.get("breakdown_visit_count")) or 0)
+        absorption_count        = int(to_float(tr.get("absorption_visit_count"))or 0)
+        visit_count             = int(to_float(tr.get("visit_count"))           or 0)
+        dominant_vr             = str(tr.get("dominant_visit_result") or "UNKNOWN")
+        final_vr                = str(tr.get("final_visit_result")    or "UNKNOWN")
+
+        # ── Pull structural defense metrics ───────────────────────────────────
+        sigma_barre    = to_float(r.get("sigma_barre_zone"))
+        sigma_at_ret   = to_float(r.get("sigma_at_return"))
+        omega_area     = to_float(r.get("omega_stress_area")) or 0.0
+        pen_depth      = to_float(r.get("zone_penetration_depth")) or 0.0
+
+        # ── Pull B4 metrics from zone vs attacker profile ─────────────────────
+        zss        = to_float(va.get("rdm_v16b4_zone_strength_score"))
+        afs        = to_float(va.get("rdm_v16b4_attacker_force_score"))
+        force_ratio = to_float(va.get("rdm_v16b4_force_ratio"))
+
+        # ── Predict ───────────────────────────────────────────────────────────
+        prediction = _structural_prediction_label(
+            structural_trajectory=structural_trajectory,
+            trajectory_confidence=trajectory_confidence,
+            health_state=health_state,
+            health_last_visit=health_last_visit,
+            breakdown_count=breakdown_count,
+            damage_count=damage_count,
+        )
+
+        score = _prediction_score(
+            structural_prediction=prediction,
+            trajectory_score=trajectory_score_raw,
+            breakdown_count=breakdown_count,
+            health_last_visit=health_last_visit,
+            force_ratio=force_ratio,
+            sigma_barre=sigma_barre,
+            damage_count=damage_count,
+            growth_count=growth_count,
+        )
+
+        confidence = _prediction_confidence(
+            structural_prediction=prediction,
+            trajectory_confidence=trajectory_confidence,
+            visit_count=visit_count,
+        )
+
+        reason = _prediction_reason(
+            structural_prediction=prediction,
+            structural_trajectory=structural_trajectory,
+            trajectory_confidence=trajectory_confidence,
+            health_state=health_state,
+            breakdown_count=breakdown_count,
+            damage_count=damage_count,
+            growth_count=growth_count,
+            visit_count=visit_count,
+        )
+
+        rows.append({
+            "analysis_run_utc":       run_utc,
+            "case_id":                case_id,
+            "episode_id":             r.get("episode_id"),
+            "zone_id":                r.get("zone_id"),
+            "zone_mechanical_state":  r.get("zone_mechanical_state"),
+            "visit_count":            visit_count,
+            "health_state":           health_state,
+            "structural_trajectory":  structural_trajectory,
+            "trajectory_score":       round_float(trajectory_score_raw),
+            "trajectory_confidence":  trajectory_confidence,
+            "trajectory_direction":   trajectory_direction,
+            "health_slope":           round_float(health_slope) if health_slope is not None else pd.NA,
+            "health_total_change":    round_float(health_total_change),
+            "health_last_visit":      round_float(health_last_visit),
+            "omega_total":            round_float(omega_total),
+            "omega_max":              round_float(omega_max),
+            "omega_mean":             round_float(omega_mean),
+            "attacker_force_total":   round_float(force_total),
+            "attacker_force_max":     round_float(force_max),
+            "damage_visit_count":     damage_count,
+            "growth_visit_count":     growth_count,
+            "breakdown_visit_count":  breakdown_count,
+            "absorption_visit_count": absorption_count,
+            "sigma_barre_zone":       round_float(sigma_barre) if sigma_barre is not None else pd.NA,
+            "sigma_at_return":        round_float(sigma_at_ret) if sigma_at_ret is not None else pd.NA,
+            "omega_stress_area":      round_float(omega_area),
+            "zone_penetration_depth": round_float(pen_depth),
+            "zone_strength_score":    round_float(zss) if zss is not None else pd.NA,
+            "attacker_force_score":   round_float(afs) if afs is not None else pd.NA,
+            "force_ratio":            round_float(force_ratio) if force_ratio is not None else pd.NA,
+            "prediction_score":       round_float(score),
+            "structural_prediction":  prediction,
+            "prediction_confidence":  confidence,
+            "prediction_reason":      reason,
+            "research_only":          True,
         })
 
     return pd.DataFrame(rows)

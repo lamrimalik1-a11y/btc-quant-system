@@ -4,11 +4,7 @@
 
 Checkpoint:
 
-PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
-
-Tag:
-
-`PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE`
+PHASE1B_HYBRID_DOWNLOADER_STABLE
 
 Status:
 
@@ -22,180 +18,134 @@ Status:
 - No Dashboard V2 scoring changes
 - No RDM formula changes
 - No lifecycle changes
-
-## Secondary Checkpoint
-
-PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
-
-Completed:
-
-- Binance historical downloader stability improvements
-- Timeout raised: 120s -> 150s
-- Max retries raised: 10 -> 15
-- Extended backoff sequence
-- Retry jitter (±30%)
-- WinError 10060 detection and longer backoff
-- Session retry counter
-- Resume deduplication
-- Periodic checkpoint progress logs
-- Final download verification (row count, first/last timestamp, duplicate check)
-- New CLI flags: `--max-retries`, `--timeout`
-
-## RDM V1.6 Exposure Physics — Completed Series
-
-### B1 — Attacker Force Basics
-
-Completed. Attacker force normalization and zone-relative scoring.
-
-### B3.5-A — Attack Attempt Segmentation
-
-Completed. Contiguous attacker session segmentation.
-
-### B3.5-B — Force-Lull Attempt Segmentation
-
-Completed. Sub-session segmentation using force lull thresholds.
-Mean attempts after B3.5-B: 2.46 per zone (was 1 before).
-
-### B4-A — Zone Strength Foundation (ZSS)
-
-Completed. Composite zone strength score from capacity, rigidity, fatigue_inverse, recovery, stress_availability.
-
-### B4-B — Zone vs Attacker
-
-Completed. AFS vs ZSS framework. Force ratio. Anomaly detection baseline.
-
-### B5 — Anomaly Physics
-
-Completed. expected_balance vs observed_balance. Balance gap. Anomaly direction.
-
-### B5.5 — Trajectory Context
-
-Completed. ACTIVE_DEGRADATION / STABLE_ZONE / RECOVERING_ZONE gate for anomaly detection.
-
-### B6 — Elastic Reinforcement Physics
-
-Completed. capacity_growth_factor, rigidity_growth_factor, reinforcement_score, reinforcement_mode.
-
-Design review: reinforcement_mode is a reformulation of zone_mechanical_state — not independent.
-
-### B7 — Attacker Conversion Physics
-
-Completed. `research/attacker_conversion_profile.csv`.
-
-Key finding: Force ≠ Damage. Attacker force does not predict structural damage.
-
-### B7.5-A — Elastic Growth Rate Test
-
-Completed. Growth rate is a symptom, not a mechanism. The sign separation is perfect but growth rate = 16/interaction_count for elastic zones — a formula artifact.
-
-### B7.5-B — Force Allocation Physics
-
-Completed. `research/force_allocation_profile.csv`.
-
-Two channels: Growth Channel and Damage Channel.
-
-Key finding: total_growth = 36.0 for ALL growth-dominant cases (constant, not market-measured). Force allocation confirms the binary channel split but is another reformulation of zone_mechanical_state.
-
-### B7.6 Series — Exposure Physics
-
-#### B7.6-A — Absorption vs Reflection
-
-Completed. HIGH_OMEGA vs LOW_OMEGA GROWTH_DOMINANT split confirmed.
-
-Two physical families:
-- REFLECTION_DOMINANT: omega near zero, overstress < 1, sigma_failure_risk = NONE
-- ABSORPTION_DOMINANT: omega high, overstress > 1, sigma_failure_risk active
-
-#### B7.6-B — Structural Engagement Physics
-
-Completed. Force alone does not explain engagement.
-
-Key correlations (n=31):
-- sigma_barre vs overstress_ratio: r = -0.49 (high barre = lower overstress)
-- penetration_depth vs overstress_ratio: r = +0.64
-
-Engagement is controlled by:
-- sigma_barre_zone (driven by structural memory: reclaim_history r=+0.69, mechanical_memory_score r=+0.67)
-- NOT by force_input (r ≈ 0.12)
-
-Best binary predictor: sigma_barre < Q50 OR force_ratio > 0.80 → 77.4% accuracy.
-
-#### B7.6-C — Stress Exposure Physics
-
-Completed. Conceptual review only.
-
-Engineering analog: Arias Intensity (stress × time integral). omega_stress_area IS the structural equivalent of this integral.
-
-Best definition of Stress Exposure: sigma × penetration × cycles (per-cycle version of omega).
-
-#### B7.6-D — Omega Validation
-
-Completed. Core empirical finding.
-
-sigma × penetration vs omega: r = 0.9935
-
-Omega is the primary Deep Structural Exposure variable.
-
-#### B7.6-E — Surface Damage Physics Review
-
-Completed. Conceptual review.
-
-Hypothesis: RIGID zones with omega=0 and damage>0 represent surface contact fatigue (Hertz contact, fretting).
-
-#### B7.6-F — Surface Damage Validation
-
-Completed. Hypothesis REJECTED.
-
-Zero-omega damage in RIGID zones is NOT independent market physics. It comes from:
-
-```
-rigidity_live = rigidity_birth - row_progress × zone_strength_decay × 0.55 + repair_effect × 8.0
-capacity_live = capacity_birth - row_progress × zone_strength_decay × 0.08 + repair_effect × 10.0
-```
-
-The discrete 7.7 and 4.95 values are:
-- 14.0 × 0.55 = 7.7 (one field_exhausted event)
-- 9.0  × 0.55 = 4.95 (one field_weakening event)
-
-This is a time-based temporal decay formula, not independent structural damage from market force.
-
-### B7.7 — Structural Exposure Physics
-
-Completed. Cyclic exposure review.
-
-Key findings:
-- Cyclic metrics (interaction_count, force_lull_attempt_count, zone_test_count) have low variance in the current dataset (interaction_count range: 101-114).
-- No cyclic metric improves R² beyond log_omega alone.
-- omega_per_test pattern is suggestive (GROWTH cases: more cycles at lower omega each; DAMAGE cases: fewer cycles at higher omega each) but confounded by mechanical_family.
-- Not validated with current dataset — future research only.
-
-## Confirmed RDM Physics Chain
-
-```
-Attacker Force
-    ↓  [filtered by sigma_barre_zone]
-Structural Engagement (penetration > 0)
-    ↓  [× sigma_at_return]
-Omega Stress Area  (stress × penetration = deep exposure)
-    ↓  [routed by mechanical_family]
-    ├── ELASTIC_FAMILY  →  Growth channel (+16 rigidity, +20 capacity, constant)
-    └── DEGRADED_FAMILY →  Damage channel (fatigue + rigidity loss, scales with omega)
-```
-
-sigma_barre_zone is driven by structural memory (reclaim_history, repair_cycles, mechanical_memory_score) — NOT by current structural dimensions alone.
-
-## Research CSVs Generated
-
-- `research/zone_strength_profile.csv`
-- `research/zone_vs_attacker_profile.csv`
-- `research/zone_anomaly_profile.csv`
-- `research/zone_reinforcement_profile.csv`
-- `research/attacker_conversion_profile.csv`
-- `research/force_allocation_profile.csv`
-- `research/attacker_conversion_profile.csv`
+- No replay formula changes
 
 ## Prior Checkpoints (preserved)
 
+- `PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE`
+- `PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE`
 - `PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
 - `PHASE1B_RDM_VISUALIZATION_STABLE`
 - `PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+
+---
+
+## PHASE1B_HYBRID_DOWNLOADER_STABLE
+
+### PHASE1B_RAW_TRADE_ARCHIVE_V1 — Tier 1
+
+Status: COMPLETED
+
+Local raw trade archive. One CSV per UTC day stored in `archives/{SYMBOL}/raw-trades/{date}.csv`.
+
+Implemented:
+
+- `_raw_trade_cache_path(symbol, date_str)` — path helper
+- `_day_ms_range(date_str)` — UTC day boundary in milliseconds
+- `_iter_utc_days(start_ms, end_ms)` — list of UTC date strings for a time range
+- `_trade_to_csv_row(trade)` — dict to 8-column CSV row
+- `_csv_row_to_trade(row)` — 8-column CSV row to dict
+- `_verify_raw_trades(trades, date_str)` — sanity check (count, timestamp bounds)
+- `try_load_raw_trade_cache(symbol, date_str)` — load with verification, CACHE HIT log
+- `save_raw_trade_cache(symbol, date_str, trades)` — atomic write (temp + rename + verify)
+
+Cache file format (8 columns):
+
+```
+aggTradeId, price, qty, firstTradeId, lastTradeId, timestamp, isBuyerMaker, isBestMatch
+```
+
+Matches API dict keys `{a, p, q, f, l, T, m, M}` exactly.
+
+Verification rules:
+
+- len >= 1000 (sanity floor)
+- first timestamp within expected UTC day
+- last timestamp within expected UTC day
+- corrupted files are skipped but preserved on disk
+
+### PHASE1B_BINANCE_ZIP_ARCHIVE_V1 — Tier 2
+
+Status: COMPLETED
+
+Binance public data archive. Daily aggTrades ZIP files from `data.binance.vision`.
+
+Implemented:
+
+- `BINANCE_PUBLIC_DATA_URL = "https://data.binance.vision"`
+- `BINANCE_ZIP_LAG_DAYS = 2`
+- `is_binance_zip_available(date_str)` — gate: date <= today UTC - 2 days
+- `download_day_from_binance_zip(symbol, date_str)` — HTTP GET, in-memory ZIP extract, CSV parse
+
+URL pattern:
+
+```
+https://data.binance.vision/data/spot/daily/aggTrades/{SYMBOL}/{SYMBOL}-aggTrades-{YYYY-MM-DD}.zip
+```
+
+Important implementation detail:
+
+Binance public ZIP timestamps are in **microseconds**. API timestamps are in **milliseconds**. Conversion applied inside `download_day_from_binance_zip`:
+
+```python
+t["T"] = t["T"] // 1000   # microseconds -> milliseconds
+```
+
+Failure handling:
+
+- HTTP 404: date not yet available → fall through to Tier 3
+- HTTP 5xx / network error → fall through to Tier 3
+- Bad ZIP / parse error → fall through to Tier 3
+- All failures are logged, never silently swallowed
+
+After ZIP success: data is saved to Tier 1 cache (`save_raw_trade_cache`) so the next run gets CACHE HIT.
+
+Validated test:
+
+```
+BTCUSDT 2026-05-25
+ZIP downloaded: 542,386 trades | 7.7 MB | 2.7 seconds
+Timestamps: within 2026-05-25 UTC (after microsecond conversion)
+Cache save: OK
+Second run: CACHE HIT (542,386 trades, 0 network requests)
+```
+
+### 3-Tier Priority Order (per UTC day)
+
+```
+TIER 1  archives/{SYMBOL}/raw-trades/{date}.csv
+        Valid cache exists → CACHE HIT — zero network requests
+
+TIER 2  data.binance.vision ZIP (gate: date <= today - 2 days)
+        ZIP available → ZIP HIT — save to Tier 1 cache — done
+
+TIER 3  api.binance.com/api/v3/aggTrades (existing API loop)
+        Per-day checkpoint/resume — save to Tier 1 cache on success
+```
+
+### New CLI Flags
+
+- `--no-local-cache` — skip Tier 1 (always download fresh)
+- `--no-zip` — skip Tier 2 (API only for uncached dates)
+
+Existing flags unchanged:
+
+- `--slow-mode` — for API fallback on unstable networks (not needed for historical downloads using ZIP/cache)
+- `--max-retries N`, `--timeout N`, `--request-sleep N`
+
+### Why This Solves WinError 10060
+
+Historical downloads previously required thousands of sequential API calls (200-500 per day, 1400-3500 for a 7-day window). Each API call is a separate TCP connection. WinError 10060 fires at the OS-level TCP stack under this load.
+
+After this update:
+- Old dates (>= 2 days old): one ZIP file per day, one TCP connection, ~3 sec → no WinError 10060
+- Same range on second run: zero TCP connections → no WinError 10060
+- Recent dates only: API fallback still available with existing retry/backoff
+
+---
+
+## RDM V1.6 Exposure Physics (prior checkpoint, preserved)
+
+See `PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE` checkpoint content in `RDM_MARKET_MECHANICS_STATUS.md`.
+
+Core finding: `sigma × penetration ≈ omega` (r = 0.9935). Omega is the primary deep structural exposure variable.

@@ -196,14 +196,42 @@ Status: COMPLETED
 - Session retry tracking, resume deduplication
 - New CLI: `--max-retries`, `--timeout`
 
+## 3-Tier Hybrid Downloader
+
+Status: COMPLETED
+
+Tier 1 (local cache) + Tier 2 (Binance ZIP) + Tier 3 (API fallback).
+
+Priority per UTC day:
+
+1. archives/{SYMBOL}/raw-trades/{date}.csv -> CACHE HIT (zero network)
+2. data.binance.vision ZIP (date >= 2 days old) -> ZIP HIT -> save to cache
+3. Binance aggTrades API -> API DOWNLOAD -> save to cache
+
+Key: Binance ZIP timestamps are microseconds. Converted to milliseconds (// 1000) inside download_day_from_binance_zip.
+
+Validated: BTCUSDT 2026-05-25 — 542,386 trades, 7.7 MB, 2.7 sec via ZIP.
+
+New CLI: --no-local-cache, --no-zip
+
+Standard command:
+
+python tools/generate_binance_historical_replay.py --start "2026-05-20 00:00:00" --end "2026-06-02 00:00:00" --symbol BTCUSDT --row-size 500
+
+Use --slow-mode only for recent-date API fallback on unstable networks, not for historical downloads.
+
 ## Current Active Phase
 
 PHASE 1B+ Research Expansion
 
-Current checkpoints:
+Current checkpoint:
 
-- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE (primary)
-- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE (secondary)
+PHASE1B_HYBRID_DOWNLOADER_STABLE
+
+Prior checkpoints:
+
+- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 
 Rules preserved:
 
@@ -211,6 +239,7 @@ Rules preserved:
 - No lifecycle changes
 - No Dashboard V2 scoring impact
 - No RDM formula changes
+- No replay formula changes
 - No Phase 2 / No execution / No entries / No live signals
 
 Do not advance to Phase 2.

@@ -1,10 +1,13 @@
 import argparse
 import calendar
+import csv
+import io
 import json
 import random
 import socket
 import sys
 import time
+import zipfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -79,6 +82,23 @@ ARCHIVE_INDEX_FILE_NAME = "archive_index.json"
 
 REQUEST_LIMIT = 1000
 REQUEST_SLEEP_SECONDS = 0.5
+
+# ==================================================
+# RAW TRADE CACHE — Tier 1
+# One CSV per UTC day: archives/{SYMBOL}/raw-trades/{YYYY-MM-DD}.csv
+# This is the INPUT cache (raw aggTrades), separate from the existing
+# OUTPUT archive (processed CSVs in archives/{SYMBOL}/{window}/{date}/).
+# ==================================================
+RAW_TRADE_CACHE_SUBDIR = "raw-trades"
+MIN_TRADES_PER_DAY     = 1_000   # sanity floor; BTCUSDT has 100k-1M trades/day
+
+# ==================================================
+# BINANCE PUBLIC DATA — Tier 2
+# Daily ZIP archives: data.binance.vision/data/spot/daily/aggTrades/{SYM}/...
+# Available for dates older than today UTC minus BINANCE_ZIP_LAG_DAYS.
+# ==================================================
+BINANCE_PUBLIC_DATA_URL = "https://data.binance.vision"
+BINANCE_ZIP_LAG_DAYS    = 2   # archives lag ~2 UTC days behind real-time
 REQUEST_TIMEOUT_SECONDS = 150          # raised from 120 — WinError 10060 needs more margin
 MAX_RETRIES = 15                       # raised from 10 — extra tolerance for flaky networks
 RETRY_BACKOFF_SECONDS = [10, 20, 40, 80, 120, 180, 240, 300]  # longer ramp; capped at 300s
@@ -147,6 +167,39 @@ def parse_args():
         default=REQUEST_TIMEOUT_SECONDS,
         help=f"HTTP timeout in seconds per request (default: {REQUEST_TIMEOUT_SECONDS})",
     )
+    parser.add_argument(
+        "--request-sleep",
+        type=float,
+        default=REQUEST_SLEEP_SECONDS,
+        help=f"Seconds to sleep between request batches (default: {REQUEST_SLEEP_SECONDS})",
+    )
+    parser.add_argument(
+        "--slow-mode",
+        action="store_true",
+        help=(
+            "Enable slow-download mode for unstable networks. "
+            "Sets request_sleep=2.0s, timeout=240s, max_retries=40. "
+            "Individual --timeout / --max-retries / --request-sleep still override slow-mode values."
+        ),
+    )
+    parser.add_argument(
+        "--no-local-cache",
+        action="store_true",
+        help=(
+            "Skip the local raw trade cache (Tier 1). "
+            "Always download even if cache files exist. "
+            "Cache files are not written when this flag is set."
+        ),
+    )
+    parser.add_argument(
+        "--no-zip",
+        action="store_true",
+        help=(
+            "Skip the Binance public ZIP archive (Tier 2). "
+            "Falls back directly to the API for any day not in local cache. "
+            "Useful when data.binance.vision is unavailable or for API testing."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -154,15 +207,38 @@ def main():
     profiler = PerfProfiler("historical_replay_generation")
     args = parse_args()
 
-    # Apply CLI overrides to module-level retry/timeout constants so that
-    # sleep_before_retry and fetch_agg_trades_batch_with_retries pick them up.
-    global MAX_RETRIES, REQUEST_TIMEOUT_SECONDS
-    if args.max_retries != MAX_RETRIES:
-        print(f"max_retries overridden: {args.max_retries} (default={MAX_RETRIES})")
+    # Apply CLI overrides to module-level constants.
+    # Precedence: slow-mode sets a conservative baseline, then individual flags
+    # override specific values if the user explicitly provided them (detected by
+    # comparing to the original module-level defaults, not the slow-mode values).
+    global MAX_RETRIES, REQUEST_TIMEOUT_SECONDS, REQUEST_SLEEP_SECONDS
+
+    _orig_retries = MAX_RETRIES              # 15
+    _orig_timeout = REQUEST_TIMEOUT_SECONDS  # 150
+    _orig_sleep   = REQUEST_SLEEP_SECONDS    # 0.5
+
+    if args.slow_mode:
+        REQUEST_SLEEP_SECONDS   = 2.0
+        REQUEST_TIMEOUT_SECONDS = 240
+        MAX_RETRIES             = 40
+        print(
+            f"SLOW MODE ACTIVE | "
+            f"request_sleep={REQUEST_SLEEP_SECONDS}s | "
+            f"timeout={REQUEST_TIMEOUT_SECONDS}s | "
+            f"max_retries={MAX_RETRIES}"
+        )
+
+    # Individual flags override the baseline (slow-mode or default) when the
+    # user explicitly supplied a value different from the original module default.
+    if args.max_retries != _orig_retries:
         MAX_RETRIES = args.max_retries
-    if args.timeout != REQUEST_TIMEOUT_SECONDS:
-        print(f"timeout overridden: {args.timeout}s (default={REQUEST_TIMEOUT_SECONDS}s)")
+        print(f"max_retries overridden: {MAX_RETRIES}")
+    if args.timeout != _orig_timeout:
         REQUEST_TIMEOUT_SECONDS = args.timeout
+        print(f"timeout overridden: {REQUEST_TIMEOUT_SECONDS}s")
+    if args.request_sleep != _orig_sleep:
+        REQUEST_SLEEP_SECONDS = args.request_sleep
+        print(f"request_sleep overridden: {REQUEST_SLEEP_SECONDS}s")
 
     try:
         if args.row_size <= 0:
@@ -182,7 +258,19 @@ def main():
         if args.overwrite:
             clear_download_checkpoint()
 
-        resume_checkpoint = load_matching_checkpoint(
+        use_local_cache = not args.no_local_cache
+        use_zip         = not args.no_zip
+
+        # Check which UTC days the run needs (warmup + target).
+        # Any day that already has a raw cache file counts as resumable, so
+        # ensure_outputs_can_be_written doesn't block when outputs already exist.
+        _run_days   = _iter_utc_days(warmup_start_ms, end_ms)
+        any_cached  = use_local_cache and any(
+            _raw_trade_cache_path(args.symbol, d).exists() for d in _run_days
+        )
+
+        # Also honour a legacy full-range checkpoint written by older versions.
+        legacy_checkpoint = load_matching_checkpoint(
             symbol=args.symbol,
             start_date=args.start,
             end_date=args.end,
@@ -191,19 +279,25 @@ def main():
         ensure_outputs_can_be_written(
             overwrite=args.overwrite,
             save_raw=args.save_raw,
-            resume_active=resume_checkpoint is not None,
+            resume_active=any_cached or legacy_checkpoint is not None,
         )
 
-        print(f"Symbol: {args.symbol}")
-        print(f"Start: {args.start}")
-        print(f"End: {args.end}")
-        print(f"Row size: {args.row_size}")
-        if resume_checkpoint:
+        print(f"Symbol:      {args.symbol}")
+        print(f"Start:       {args.start}")
+        print(f"End:         {args.end}")
+        print(f"Row size:    {args.row_size}")
+        print(f"Local cache: {'ON' if use_local_cache else 'OFF (--no-local-cache)'}")
+        print(f"ZIP archive: {'ON' if use_zip else 'OFF (--no-zip)'}")
+        cached_count = sum(
+            1 for d in _run_days if _raw_trade_cache_path(args.symbol, d).exists()
+        ) if use_local_cache else 0
+        if cached_count:
+            print(f"Cache hits:  {cached_count}/{len(_run_days)} day(s) already in local cache")
+        if legacy_checkpoint:
             print(
-                "Resume checkpoint found: "
-                f"last timestamp={resume_checkpoint.get('last_success_timestamp')} | "
-                f"last aggTrade id={resume_checkpoint.get('last_success_agg_trade_id')} | "
-                f"downloaded={resume_checkpoint.get('downloaded_count')}"
+                "Legacy checkpoint found: "
+                f"last ts={legacy_checkpoint.get('last_success_timestamp')} | "
+                f"downloaded={legacy_checkpoint.get('downloaded_count')}"
             )
 
         with profiler.step("download_total"):
@@ -213,8 +307,10 @@ def main():
                 end_ms=end_ms,
                 start_date=args.start,
                 end_date=args.end,
-                checkpoint=resume_checkpoint,
+                checkpoint=legacy_checkpoint,
                 profiler=profiler,
+                use_local_cache=use_local_cache,
+                use_zip=use_zip,
             )
 
         if agg_trades is None:
@@ -379,29 +475,431 @@ def main():
         )
 
 
-def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoint, profiler=None):
-    trades = load_partial_agg_trades() if checkpoint else []
-    current_start_ms = start_ms
+# ==================================================
+# RAW TRADE CACHE — helper functions  (Tier 1)
+# ==================================================
 
-    # ── Session-level diagnostic state ──────────────────────────────────────
-    session_start    = time.perf_counter()
-    request_num      = 0                 # batch counter (1-indexed in output)
-    session_retries  = 0                 # total retry events this session
-    total_range_ms   = max(end_ms - start_ms, 1)
-    _speed_window: list = []
-    _SPEED_WINDOW_SIZE  = 10
-    _CHECKPOINT_LOG_INTERVAL = 25        # emit full checkpoint line every N batches
-    # ────────────────────────────────────────────────────────────────────────
+def _raw_trade_cache_path(symbol: str, date_str: str) -> Path:
+    """Absolute path for the raw trade cache file for one UTC day."""
+    return ARCHIVE_DIR / symbol.upper() / RAW_TRADE_CACHE_SUBDIR / f"{date_str}.csv"
 
-    if checkpoint:
-        last_success_timestamp = checkpoint.get("last_success_timestamp")
-        if last_success_timestamp is not None:
-            current_start_ms = int(last_success_timestamp) + 1
-            # Deduplicate partial trades by aggTrade ID to guard against
-            # edge-case double-writes at crash boundaries.
+
+def _day_ms_range(date_str: str) -> tuple:
+    """Return (start_ms_incl, end_ms_incl) for the full UTC calendar day."""
+    d      = date.fromisoformat(date_str)
+    start  = int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp() * 1000)
+    return start, start + 86_400_000 - 1
+
+
+def _iter_utc_days(start_ms: int, end_ms: int) -> list:
+    """Return sorted list of YYYY-MM-DD strings for every UTC day overlapping [start_ms, end_ms]."""
+    day_ms = 86_400_000
+    first  = (start_ms // day_ms) * day_ms       # floor to day boundary
+    result = []
+    cursor = first
+    while cursor <= end_ms:
+        result.append(
+            datetime.fromtimestamp(cursor / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+        )
+        cursor += day_ms
+    return result
+
+
+def _trade_to_csv_row(t: dict) -> list:
+    """Convert an aggTrade dict to a raw-cache CSV row (8 columns)."""
+    return [
+        t.get("a", ""),
+        t.get("p", ""),
+        t.get("q", ""),
+        t.get("f", ""),
+        t.get("l", ""),
+        t.get("T", ""),
+        "True"  if t.get("m") else "False",
+        "True"  if t.get("M") else "False",
+    ]
+
+
+def _csv_row_to_trade(row: list):
+    """Convert a raw-cache CSV row back to an aggTrade dict. Returns None on bad row."""
+    if len(row) < 8:
+        return None
+    try:
+        return {
+            "a": row[0],
+            "p": row[1],
+            "q": row[2],
+            "f": row[3],
+            "l": row[4],
+            "T": int(row[5]),
+            "m": row[6].strip().lower() in ("true", "1"),
+            "M": row[7].strip().lower() in ("true", "1"),
+        }
+    except (ValueError, IndexError):
+        return None
+
+
+def _verify_raw_trades(trades: list, date_str: str) -> bool:
+    """Return True if the trade list is plausible for the given UTC day.
+
+    Checks performed:
+    - len >= MIN_TRADES_PER_DAY
+    - first and last timestamps fall within the calendar day
+    """
+    if len(trades) < MIN_TRADES_PER_DAY:
+        return False
+    day_start, day_end = _day_ms_range(date_str)
+    try:
+        first_ts = int(trades[0]["T"])
+        last_ts  = int(trades[-1]["T"])
+    except (KeyError, ValueError, IndexError):
+        return False
+    if not (day_start <= first_ts <= day_end):
+        return False
+    if not (day_start <= last_ts <= day_end):
+        return False
+    return True
+
+
+def try_load_raw_trade_cache(symbol: str, date_str: str):
+    """Load one UTC day of aggTrades from the local raw cache.
+
+    Returns list of aggTrade dicts on success, or None on cache miss /
+    failed verification.  A corrupted file is preserved on disk — delete it
+    manually to force a re-download.
+    """
+    path = _raw_trade_cache_path(symbol, date_str)
+    if not path.exists():
+        return None
+
+    try:
+        trades = []
+        with path.open("r", encoding="utf-8", newline="") as fh:
+            reader = csv.reader(fh)
+            next(reader, None)           # skip header line
+            for row in reader:
+                t = _csv_row_to_trade(row)
+                if t is not None:
+                    trades.append(t)
+    except Exception as exc:
+        print(f"  CACHE | {date_str} | read error: {exc} — skipped")
+        return None
+
+    if not _verify_raw_trades(trades, date_str):
+        print(
+            f"  CACHE | {date_str} | verification failed "
+            f"({len(trades):,} trades) — skipped, file preserved for inspection"
+        )
+        return None
+
+    print(f"  CACHE HIT | {date_str} | {len(trades):,} trades | {path}")
+    return trades
+
+
+def save_raw_trade_cache(symbol: str, date_str: str, trades: list) -> bool:
+    """Atomically save one UTC day of aggTrades to the local raw cache.
+
+    Writes to a .tmp file first, verifies it can be read back and passes
+    _verify_raw_trades, then renames to the final path.  On any failure
+    the .tmp file is removed and the function returns False.
+    """
+    if not trades:
+        return False
+
+    path     = _raw_trade_cache_path(symbol, date_str)
+    tmp_path = path.with_suffix(".tmp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Write
+        with tmp_path.open("w", encoding="utf-8", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(
+                ["aggTradeId", "price", "qty", "firstTradeId", "lastTradeId",
+                 "timestamp", "isBuyerMaker", "isBestMatch"]
+            )
+            for t in trades:
+                writer.writerow(_trade_to_csv_row(t))
+
+        # Verify round-trip before committing
+        verify_trades = []
+        with tmp_path.open("r", encoding="utf-8", newline="") as fh:
+            reader = csv.reader(fh)
+            next(reader, None)
+            for row in reader:
+                t = _csv_row_to_trade(row)
+                if t is not None:
+                    verify_trades.append(t)
+
+        if not _verify_raw_trades(verify_trades, date_str):
+            tmp_path.unlink(missing_ok=True)
+            print(f"  CACHE WRITE | {date_str} | round-trip verification failed — not saved")
+            return False
+
+        tmp_path.rename(path)
+        print(f"  CACHE SAVED | {date_str} | {len(trades):,} trades -> {path}")
+        return True
+
+    except Exception as exc:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        print(f"  CACHE WRITE | {date_str} | error: {exc} -- not saved")
+        return False
+
+
+# ==================================================
+# BINANCE PUBLIC DATA — Tier 2 functions
+# ==================================================
+
+def is_binance_zip_available(date_str: str) -> bool:
+    """Return True if a daily aggTrades ZIP is expected to exist on data.binance.vision.
+
+    Binance publishes daily ZIP archives with approximately a 2-day lag relative
+    to UTC midnight.  Any date older than today UTC minus BINANCE_ZIP_LAG_DAYS is
+    treated as available.
+    """
+    today_utc  = datetime.now(timezone.utc).date()
+    target_day = date.fromisoformat(date_str)
+    return target_day <= today_utc - timedelta(days=BINANCE_ZIP_LAG_DAYS)
+
+
+def download_day_from_binance_zip(symbol: str, date_str: str):
+    """Download one UTC day of aggTrades from the Binance public data archive.
+
+    URL pattern:
+        https://data.binance.vision/data/spot/daily/aggTrades/
+        {SYMBOL}/{SYMBOL}-aggTrades-{YYYY-MM-DD}.zip
+
+    The ZIP is extracted entirely in memory — no temporary files are written.
+    The inner CSV uses the same 8-column format as the raw trade cache, so
+    _csv_row_to_trade is reused without modification.
+
+    Returns list of aggTrade dicts on success.
+    Returns None on any failure (404, network error, bad ZIP, parse error).
+    All failures are logged and silently trigger the Tier 3 API fallback.
+    """
+    url = (
+        f"{BINANCE_PUBLIC_DATA_URL}/data/spot/daily/aggTrades"
+        f"/{symbol.upper()}/{symbol.upper()}-aggTrades-{date_str}.zip"
+    )
+    print(f"  ZIP | {date_str} | {url}")
+
+    # ── HTTP GET ─────────────────────────────────────────────────────────────
+    try:
+        req = Request(
+            url,
+            headers={"User-Agent": "btc-quant-observation-replay/1.0"},
+        )
+        t0 = time.perf_counter()
+        with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as resp:
+            payload = resp.read()
+        elapsed = time.perf_counter() - t0
+        size_mb = len(payload) / 1_048_576
+        print(
+            f"  ZIP | {date_str} | "
+            f"downloaded {size_mb:.1f} MB in {elapsed:.1f}s"
+        )
+    except HTTPError as exc:
+        label = "Not Found" if exc.code == 404 else f"HTTP {exc.code}"
+        print(f"  ZIP | {date_str} | {label} -- falling back to API")
+        return None
+    except (TimeoutError, socket.timeout, URLError) as exc:
+        print(f"  ZIP | {date_str} | network error: {exc} -- falling back to API")
+        return None
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | unexpected error: {exc} -- falling back to API")
+        return None
+
+    # ── Extract ZIP in memory ─────────────────────────────────────────────────
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(payload))
+    except zipfile.BadZipFile as exc:
+        print(f"  ZIP | {date_str} | bad ZIP: {exc} -- falling back to API")
+        return None
+
+    csv_names = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+    if not csv_names:
+        print(f"  ZIP | {date_str} | no CSV inside ZIP -- falling back to API")
+        return None
+
+    try:
+        raw_bytes = zf.read(csv_names[0])
+        text      = raw_bytes.decode("utf-8")
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | CSV read error: {exc} -- falling back to API")
+        return None
+
+    # ── Parse CSV rows ────────────────────────────────────────────────────────
+    # Column order: aggTradeId, price, qty, firstTradeId, lastTradeId,
+    #               timestamp, isBuyerMaker, isBestMatch
+    #
+    # IMPORTANT: Binance public data CSVs store the timestamp in MICROSECONDS.
+    # The aggTrades API uses MILLISECONDS.  Divide T by 1000 so the rest of
+    # the pipeline (which expects milliseconds) works without modification.
+    trades = []
+    try:
+        reader = csv.reader(text.splitlines())
+        next(reader, None)   # skip header line
+        for row in reader:
+            t = _csv_row_to_trade(row)
+            if t is not None:
+                t["T"] = t["T"] // 1000   # microseconds -> milliseconds
+                trades.append(t)
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | parse error: {exc} -- falling back to API")
+        return None
+
+    if not trades:
+        print(f"  ZIP | {date_str} | 0 trades parsed -- falling back to API")
+        return None
+
+    print(f"  ZIP HIT | {date_str} | {len(trades):,} trades")
+    return trades
+
+
+def download_agg_trades(
+    symbol, start_ms, end_ms, start_date, end_date,
+    checkpoint,           # legacy full-range checkpoint; honoured for backward compat
+    profiler=None,
+    use_local_cache=True,
+    use_zip=True,
+):
+    """Download aggTrades for a time range, iterating day by day.
+
+    Priority order per UTC day:
+      Tier 1: local raw trade cache      (archives/{SYMBOL}/raw-trades/{date}.csv)
+      Tier 2: Binance public daily ZIP   (data.binance.vision, for dates >= 2 days old)
+      Tier 3: Binance HTTP aggTrades API (existing retry/backoff/checkpoint logic)
+
+    After any Tier 2 or Tier 3 download, the result is written to the Tier 1
+    cache so future runs never re-download the same day.
+
+    The `checkpoint` parameter is a legacy full-range checkpoint from older
+    code.  It is used only if it applies to the first day's API download;
+    per-day checkpoints take precedence.
+    """
+    session_start = time.perf_counter()
+    days          = _iter_utc_days(start_ms, end_ms)
+    total_days    = len(days)
+    cache_hits    = 0
+    zip_days      = 0
+    api_days      = 0
+
+    print(
+        f"DOWNLOAD START | {start_date} -> {end_date} | "
+        f"{total_days} UTC day(s) | "
+        f"max_retries={MAX_RETRIES} | timeout={REQUEST_TIMEOUT_SECONDS}s | "
+        f"local_cache={'ON' if use_local_cache else 'OFF'} | "
+        f"zip={'ON' if use_zip else 'OFF'}"
+    )
+
+    all_trades: list = []
+
+    for day_idx, date_str in enumerate(days, start=1):
+        day_start_ms, day_end_ms = _day_ms_range(date_str)
+        effective_start = max(day_start_ms, start_ms)
+        effective_end   = min(day_end_ms, end_ms)
+
+        # ── TIER 1: local raw trade cache ─────────────────────────────────────
+        if use_local_cache:
+            cached = try_load_raw_trade_cache(symbol, date_str)
+            if cached is not None:
+                day_trades = [
+                    t for t in cached
+                    if effective_start <= int(t["T"]) <= effective_end
+                ]
+                all_trades.extend(day_trades)
+                cache_hits += 1
+                continue
+
+        # ── TIER 2: Binance public daily ZIP ─────────────────────────────────
+        if use_zip and is_binance_zip_available(date_str):
+            zip_trades = download_day_from_binance_zip(symbol, date_str)
+            if zip_trades is not None:
+                # Save the full day to local cache before filtering to slice
+                if use_local_cache:
+                    save_raw_trade_cache(symbol, date_str, zip_trades)
+                day_trades = [
+                    t for t in zip_trades
+                    if effective_start <= int(t["T"]) <= effective_end
+                ]
+                all_trades.extend(day_trades)
+                zip_days += 1
+                continue
+            # ZIP failed — fall through to Tier 3
+
+        # ── TIER 3: HTTP API ──────────────────────────────────────────────────
+        # Check for a per-day checkpoint (from a previous interrupted API run
+        # for this specific day).  For the very first day, also accept the legacy
+        # full-range checkpoint passed in from main().
+        prior_checkpoint = load_matching_checkpoint(
+            symbol=symbol,
+            start_date=date_str,
+            end_date=date_str,
+        )
+        if prior_checkpoint is None and day_idx == 1 and checkpoint is not None:
+            prior_checkpoint = checkpoint
+
+        day_trades = _download_day_api(
+            symbol=symbol,
+            date_str=date_str,
+            start_ms=effective_start,
+            end_ms=effective_end,
+            prior_checkpoint=prior_checkpoint,
+            day_num=day_idx,
+            total_days=total_days,
+            profiler=profiler,
+        )
+
+        if day_trades is None:
+            # API retries exhausted — checkpoint already saved inside _download_day_api.
+            return None
+
+        # Day complete: save to cache then clear the per-day checkpoint.
+        if use_local_cache:
+            save_raw_trade_cache(symbol, date_str, day_trades)
+        clear_download_checkpoint()
+
+        all_trades.extend(day_trades)
+        api_days += 1
+
+    elapsed_total = time.perf_counter() - session_start
+    print(
+        f"\nDOWNLOAD COMPLETE | {len(all_trades):,} trades | "
+        f"elapsed={_fmt_dur(elapsed_total)} | "
+        f"avg_speed={_fmt_speed(len(all_trades), elapsed_total)} | "
+        f"days_from_cache={cache_hits} | days_via_zip={zip_days} | days_via_api={api_days}"
+    )
+    return all_trades
+
+
+def _download_day_api(
+    symbol: str,
+    date_str: str,
+    start_ms: int,
+    end_ms: int,
+    prior_checkpoint,
+    day_num: int,
+    total_days: int,
+    profiler=None,
+):
+    """API batch loop for one UTC day.
+
+    Mirrors the original monolithic download loop, now scoped to a single day.
+    The checkpoint key is (symbol, date_str, date_str) so each day is
+    independently resumable.
+
+    Returns list of aggTrade dicts on success, None if all retries exhaust.
+    """
+    if prior_checkpoint:
+        trades = load_partial_agg_trades()
+        last_ts = prior_checkpoint.get("last_success_timestamp")
+        if last_ts is not None:
+            current_start_ms = int(last_ts) + 1
             if trades:
-                seen_ids = set()
-                deduped  = []
+                seen_ids: set = set()
+                deduped:  list = []
                 for t in trades:
                     tid = get_agg_trade_id(t)
                     if tid not in seen_ids:
@@ -409,21 +907,33 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
                         deduped.append(t)
                 dup_count = len(trades) - len(deduped)
                 if dup_count:
-                    print(f"RESUME | removed {dup_count} duplicate trade(s) from partial file")
+                    print(f"  RESUME | day={date_str} | removed {dup_count} dup(s)")
                 trades = deduped
             print(
-                f"RESUME | from {_fmt_ts(current_start_ms)} | "
-                f"already have {len(trades):,} trades | "
-                f"checkpoint={HISTORICAL_DOWNLOAD_CHECKPOINT_FILE}"
+                f"  RESUME | day={date_str} ({day_num}/{total_days}) | "
+                f"from {_fmt_ts(current_start_ms)} | {len(trades):,} trades in buffer"
             )
         else:
-            print("RESUME | checkpoint found but no timestamp — starting fresh")
+            current_start_ms = start_ms
+            print(f"  RESUME | day={date_str} | no timestamp — starting fresh")
     else:
+        # Clear any stale partial data left over from a different day's session.
+        if HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists():
+            HISTORICAL_DOWNLOAD_PARTIAL_FILE.unlink()
+        trades            = []
+        current_start_ms  = start_ms
         print(
-            f"DOWNLOAD START | {start_date} -> {end_date} | "
-            f"range={_fmt_ts(start_ms)} -> {_fmt_ts(end_ms)} | "
-            f"max_retries={MAX_RETRIES} | timeout={REQUEST_TIMEOUT_SECONDS}s"
+            f"  API | day={date_str} ({day_num}/{total_days}) | "
+            f"range={_fmt_ts(start_ms)} -> {_fmt_ts(end_ms)}"
         )
+
+    day_session_start  = time.perf_counter()
+    request_num        = 0
+    session_retries    = 0
+    total_range_ms     = max(end_ms - start_ms, 1)
+    _speed_window: list = []
+    _SPEED_WINDOW_SIZE  = 10
+    _CHECKPOINT_LOG_INTERVAL = 25
 
     while current_start_ms <= end_ms:
         request_num += 1
@@ -443,33 +953,27 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
             profiler.record("download_batch", batch_wall_elapsed)
 
         if batch is None:
-            last_success_timestamp = current_start_ms - 1
-            last_success_agg_trade_id = (
-                get_agg_trade_id(trades[-1]) if trades else None
-            )
             save_download_checkpoint(
                 symbol=symbol,
-                start_date=start_date,
-                end_date=end_date,
-                last_success_timestamp=last_success_timestamp,
-                last_success_agg_trade_id=last_success_agg_trade_id,
+                start_date=date_str,         # per-day key
+                end_date=date_str,
+                last_success_timestamp=current_start_ms - 1,
+                last_success_agg_trade_id=(
+                    get_agg_trade_id(trades[-1]) if trades else None
+                ),
                 downloaded_count=len(trades),
             )
-            elapsed = time.perf_counter() - session_start
+            elapsed = time.perf_counter() - day_session_start
             print(
-                f"\nDOWNLOAD PAUSED after REQ {request_num} | "
-                f"elapsed={_fmt_dur(elapsed)} | "
-                f"trades_so_far={len(trades):,} | "
-                f"session_retries={session_retries} | "
-                f"checkpoint={HISTORICAL_DOWNLOAD_CHECKPOINT_FILE} | "
-                f"Re-run the same command to resume."
+                f"\nDOWNLOAD PAUSED | day={date_str} | "
+                f"elapsed={_fmt_dur(elapsed)} | trades_so_far={len(trades):,} | "
+                f"retries={session_retries} | Re-run the same command to resume."
             )
             return None
 
         if not batch:
             break
 
-        # ── Update in-memory and on-disk state ───────────────────────────────
         trades.extend(batch)
         append_partial_agg_trades(batch)
 
@@ -477,14 +981,13 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
         last_trade_id  = get_agg_trade_id(batch[-1])
         save_download_checkpoint(
             symbol=symbol,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=date_str,
+            end_date=date_str,
             last_success_timestamp=last_timestamp,
             last_success_agg_trade_id=last_trade_id,
             downloaded_count=len(trades),
         )
 
-        # ── Rolling speed calculation ────────────────────────────────────────
         _speed_window.append((len(batch), batch_wall_elapsed))
         if len(_speed_window) > _SPEED_WINDOW_SIZE:
             _speed_window.pop(0)
@@ -492,31 +995,29 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
         window_seconds = sum(s for _, s in _speed_window)
         speed_str      = _fmt_speed(window_trades, window_seconds)
 
-        # ── Progress estimate ────────────────────────────────────────────────
-        elapsed_total = time.perf_counter() - session_start
+        elapsed_total = time.perf_counter() - day_session_start
         done_ms       = last_timestamp - start_ms
         pct           = min(done_ms / total_range_ms * 100, 100.0)
         if pct > 0 and elapsed_total > 0:
-            remaining_ms  = total_range_ms - done_ms
             ms_per_second = done_ms / elapsed_total
-            eta_seconds   = remaining_ms / ms_per_second if ms_per_second > 0 else 0
-            eta_str       = _fmt_dur(eta_seconds)
+            eta_str = _fmt_dur((total_range_ms - done_ms) / ms_per_second
+                                if ms_per_second > 0 else 0)
         else:
             eta_str = "calculating..."
 
         retry_tag = f" | retries={session_retries}" if session_retries else ""
         print(
-            f"  BATCH {request_num} | trades={len(trades):,} | "
+            f"  BATCH {request_num} | day={date_str} | trades={len(trades):,} | "
             f"speed={speed_str} | elapsed={_fmt_dur(elapsed_total)} | "
             f"eta={eta_str} | {pct:.1f}% | "
             f"ts={_fmt_ts(last_timestamp)} | last_id={last_trade_id}"
             f"{retry_tag}"
         )
 
-        # ── Periodic full checkpoint log ──────────────────────────────────────
         if request_num % _CHECKPOINT_LOG_INTERVAL == 0:
             print(
                 f"  --- CHECKPOINT LOG ---\n"
+                f"    day               : {date_str}\n"
                 f"    trades_downloaded : {len(trades):,}\n"
                 f"    current_timestamp : {_fmt_ts(last_timestamp)}\n"
                 f"    last_aggtrade_id  : {last_trade_id}\n"
@@ -526,7 +1027,6 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
                 f"    checkpoint_file   : {HISTORICAL_DOWNLOAD_CHECKPOINT_FILE}\n"
                 f"    partial_file      : {HISTORICAL_DOWNLOAD_PARTIAL_FILE}"
             )
-        # ────────────────────────────────────────────────────────────────────
 
         if last_timestamp >= end_ms:
             break
@@ -538,12 +1038,10 @@ def download_agg_trades(symbol, start_ms, end_ms, start_date, end_date, checkpoi
 
         time.sleep(REQUEST_SLEEP_SECONDS)
 
-    elapsed_total = time.perf_counter() - session_start
+    elapsed_total = time.perf_counter() - day_session_start
     print(
-        f"\nDOWNLOAD COMPLETE | {len(trades):,} trades | "
-        f"elapsed={_fmt_dur(elapsed_total)} | "
-        f"avg_speed={_fmt_speed(len(trades), elapsed_total)} | "
-        f"session_retries={session_retries}"
+        f"  API DONE | day={date_str} | {len(trades):,} trades | "
+        f"elapsed={_fmt_dur(elapsed_total)} | retries={session_retries}"
     )
     return trades
 

@@ -4,15 +4,13 @@
 
 The project is stable at:
 
-PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+PHASE1B_HYBRID_DOWNLOADER_STABLE
 
-Secondary checkpoint:
+Prior checkpoints:
 
-PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
-
-Base checkpoint:
-
-PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
+- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
+- PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
 
 Current system status:
 
@@ -20,16 +18,35 @@ Current system status:
 - Dashboard V2 replay = operational
 - Research Agent V1 = stable
 - RDM Market Mechanics V1.5 = validated
-- RDM Market Mechanics V1.6-A = completed
-- RDM Market Mechanics V1.6-B1 through B7.7 = completed
-- Numerical Foundation layer = operational
-- Attacker physics layer = completed (B1, B3.5, B4, B5, B5.5, B6, B7, B7.5, B7.6, B7.7)
-- Exposure physics = validated (omega ≈ sigma × penetration, r=0.9935)
-- Interaction Density Mapping = operational
-- Structural lifecycle calibration = operational
-- Replay Consistency Lock = stable
-- Source Isolation = stable
-- Downloader stability fix = complete
+- RDM Market Mechanics V1.6-A through B7.7 = completed
+- Exposure physics = validated (omega ~ sigma x penetration, r=0.9935)
+- Downloader = 3-tier hybrid (local cache / ZIP / API)
+- Local raw-trades cache = operational
+- Binance public ZIP archive = operational
+
+## Downloader Architecture
+
+3-tier priority per UTC day:
+
+Tier 1: Local raw trade cache
+- archives/{SYMBOL}/raw-trades/{date}.csv
+- If valid: CACHE HIT, zero network requests
+
+Tier 2: Binance public ZIP archive
+- data.binance.vision daily ZIP files
+- If date >= 2 days old: ZIP HIT, saves to Tier 1 cache
+
+Tier 3: Binance aggTrades API
+- Only for recent dates or ZIP failures
+- Existing retry/backoff/checkpoint logic
+
+Key detail: Binance ZIP timestamps are in microseconds. Converted to milliseconds (divide by 1000) before use. Rest of pipeline unchanged.
+
+Standard command:
+
+```powershell
+python tools/generate_binance_historical_replay.py --start "2026-05-20 00:00:00" --end "2026-06-02 00:00:00" --symbol BTCUSDT --row-size 500
+```
 
 ## Completed Phases / Modules
 
@@ -41,84 +58,31 @@ Completed:
 - Phase 1B Episode Research Assistant
 - Research Dashboard
 - RDM Market Mechanics V1.1 through V1.5
-- Context memory layer
-- Zone lifecycle memory
-- Field lifecycle memory
-- Lifecycle event persistence
 - RDM V1.6-A Numerical Foundation
-- RDM V1.6-B1 Attacker Force Basics
-- RDM V1.6-B3.5-A Attack Attempt Segmentation
-- RDM V1.6-B3.5-B Force-Lull Attempt Segmentation
-- RDM V1.6-B4-A Zone Strength Foundation (ZSS)
-- RDM V1.6-B4-B Zone vs Attacker
-- RDM V1.6-B5 Anomaly Physics
-- RDM V1.6-B5.5 Trajectory Context
-- RDM V1.6-B6 Elastic Reinforcement Physics
-- RDM V1.6-B7 Attacker Conversion Physics
-- RDM V1.6-B7.5-A Elastic Growth Rate Test
-- RDM V1.6-B7.5-B Force Allocation Physics
-- RDM V1.6-B7.6-A Absorption vs Reflection Physics
-- RDM V1.6-B7.6-B Structural Engagement Physics
-- RDM V1.6-B7.6-C Stress Exposure Physics (conceptual review)
-- RDM V1.6-B7.6-D Omega Validation
-- RDM V1.6-B7.6-E Surface Damage Physics Review
-- RDM V1.6-B7.6-F Surface Damage Validation (hypothesis rejected)
-- RDM V1.6-B7.7 Structural Exposure Physics
-- Downloader stability improvements (B7.6-F era)
+- RDM V1.6-B1 through B7.7 (full attacker and exposure physics series)
+- Downloader stability improvements (retries, backoff, jitter, WinError 10060)
+- PHASE1B_RAW_TRADE_ARCHIVE_V1 (Tier 1 local cache)
+- PHASE1B_BINANCE_ZIP_ARCHIVE_V1 (Tier 2 ZIP archive)
 
-## Validated Physics Findings
+## Validated Physics (RDM V1.6)
 
-Core finding:
-
-```
-sigma × penetration ≈ omega   (r = 0.9935)
-```
-
-Omega is the primary Deep Structural Exposure variable.
+sigma x penetration vs omega: r = 0.9935
 
 Structural engagement chain:
 
-```
-Force → sigma_barre filter → Penetration → Omega → mechanical_family → Growth or Damage
-```
+Force -> sigma_barre filter -> Penetration -> Omega -> mechanical_family -> Growth or Damage
 
-sigma_barre_zone is driven by:
-- reclaim_history (r = +0.69)
-- mechanical_memory_score (r = +0.67)
-- repair_cycles (r = +0.54)
+sigma_barre is driven by structural memory (reclaim_history r=0.69, mechanical_memory_score r=0.67), NOT by force.
 
-NOT by force_input (r ≈ 0.12).
+Surface Damage hypothesis: REJECTED. Zero-omega damage is time-based temporal decay formula.
 
-Surface Damage hypothesis: REJECTED.
-Zero-omega damage is time-based temporal decay formula, not independent market physics.
+## Next Steps
 
-## Rejected Hypotheses
+Priority:
 
-- reinforcement_mode (B6) is NOT independent from zone_mechanical_state — same reformulation.
-- Growth rate (B7.5-A) is NOT the protective mechanism — it is a symptom of ELASTIC_FAMILY classification.
-- Force allocation (B7.5-B) is NOT independent — another reformulation of zone_mechanical_state.
-- Surface Damage (B7.6-E/F) is NOT an independent physics pathway — it is formula-driven temporal decay.
-- Cyclic exposure (B7.7) is NOT validated — insufficient cycle variance in current dataset.
-
-## Latest Stable Checkpoint
-
-Latest tag:
-
-`PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE`
-
-Secondary:
-
-`PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE`
-
-## Next Research Directions
-
-Options for next phase:
-
-- RDM V1.6-B8 or later: per-cycle omega decomposition (requires per-test sigma data)
-- Zone intent framework: direction prediction from pre-interaction state
-- Preparation Family classifier: EQUILIBRIUM vs EXTREME compression
-- Multi-day dataset restoration: run full 7-day replay to restore 634-row research base
-- Downloader run: rebuild multi-day research dataset
+1. Run historical replay for research dataset (2026-05-20 to 2026-06-02)
+2. Rebuild 634-row RDM research base (currently 50-row single-day dataset)
+3. Continue RDM V1.6 development on full dataset
 
 Do not:
 
@@ -127,4 +91,3 @@ Do not:
 - Change Dashboard V2 scoring
 - Change replay scoring
 - Change lifecycle logic
-- Add live signals

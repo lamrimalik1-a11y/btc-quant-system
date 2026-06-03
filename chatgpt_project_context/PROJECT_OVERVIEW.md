@@ -21,61 +21,43 @@ Core philosophy:
 Major areas:
 
 - Dashboard V2 statistical context layer
-- Historical replay generation
+- Historical replay generation (3-tier hybrid downloader)
 - Phase 1B Episode Research Assistant
 - Research dashboard / observation UI
 - Dashboard V2 research mapping layer
 - Context memory and lifecycle memory
-- RDM Market Mechanics research layer
+- RDM Market Mechanics research layer (V1.1 through V1.6-B7.7)
 - Streamlit dashboard for replay and research observation
 
 Important files:
 
+- `tools/generate_binance_historical_replay.py` — 3-tier downloader (local cache / ZIP / API)
 - `dashboard_app.py`
 - `dashboard/research_mapping.py`
 - `dashboard/overlay_renderer.py`
 - `research/zone_mechanics_calculator.py`
 - `tools/analyze_phase1b_episode_research.py`
-- `tools/generate_binance_historical_replay.py`
 - `context_memory.py`
 - `MASTER_STATUS.md`
-- `research/MASTER_RESEARCH_STATUS.md`
 
 ## Current Phase
-
-Current phase:
 
 PHASE 1B+ Research Expansion
 
 Current focus:
 
-- RDM Exposure Physics research (B7 series completed)
-- Omega validated as primary structural exposure variable
-- Downloader stability improvements applied
+- Historical dataset rebuild using new hybrid downloader
+- RDM V1.6 development (series A through B7.7 complete, next steps pending full dataset)
 
 ## Current Checkpoint
 
-Checkpoint:
+PHASE1B_HYBRID_DOWNLOADER_STABLE
 
-PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+Prior:
 
-Secondary:
-
-PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
-
-Base:
-
-PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
-
-Status:
-
-- Research only
-- Observation only
-- Dashboard V2 scoring locked
-- RDM Market Mechanics V1.5 + V1.6 (A through B7.7) validated
-- Interaction Density Mapping operational
-- Structural lifecycle calibration operational
-- Omega = sigma × penetration validated (r=0.9935)
+- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
+- PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
 
 ## Hard Rules
 
@@ -84,14 +66,15 @@ Do not advance to Phase 2.
 Do not add:
 
 - Execution
-- Entries
-- Exits
+- Entries / Exits
 - BUY / SELL logic
 - Live signals
 - Decision engine
 - Risk engine
 - Scoring changes
 - Dashboard V2 scoring changes
-- Footprint / Microstructure unless explicitly authorized in a future phase
+- RDM formula changes
+- Lifecycle logic changes
+- Replay formula changes
 
 All current work remains research-only.

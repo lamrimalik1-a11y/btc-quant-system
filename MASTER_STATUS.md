@@ -2000,14 +2000,95 @@ CURRENT ACTIVE PHASE
 
 PHASE 1B+ Research Expansion
 
-Active checkpoints:
+Active checkpoint:
 
-PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE (primary)
-PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE (secondary)
+PHASE1B_HYBRID_DOWNLOADER_STABLE
+
+Prior checkpoints:
+
+PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
+
+==================================================
+PHASE1B_HYBRID_DOWNLOADER_STABLE
+==================================================
+
+PHASE1B_RAW_TRADE_ARCHIVE_V1 — Tier 1 Local Raw Trade Cache
+
+STATUS: COMPLETED
+
+One CSV per UTC day: archives/{SYMBOL}/raw-trades/{YYYY-MM-DD}.csv
+
+New functions:
+- _raw_trade_cache_path
+- _day_ms_range
+- _iter_utc_days
+- _trade_to_csv_row / _csv_row_to_trade
+- _verify_raw_trades
+- try_load_raw_trade_cache
+- save_raw_trade_cache (atomic write: tmp -> verify -> rename)
+
+Cache file: 8 columns matching API dict {a, p, q, f, l, T, m, M}
+
+Verification: len >= 1000, timestamps within expected UTC day.
+
+Corrupted cache files skipped but preserved for inspection.
+
+---
+
+PHASE1B_BINANCE_ZIP_ARCHIVE_V1 — Tier 2 Binance Public ZIP
+
+STATUS: COMPLETED
+
+URL: https://data.binance.vision/data/spot/daily/aggTrades/{SYMBOL}/{SYMBOL}-aggTrades-{date}.zip
+
+New functions:
+- is_binance_zip_available(date_str): date <= today UTC - 2 days
+- download_day_from_binance_zip(symbol, date_str): HTTP GET, in-memory extract, CSV parse
+
+IMPORTANT: Binance ZIP timestamps are in MICROSECONDS.
+API timestamps are in MILLISECONDS.
+Conversion: t["T"] = t["T"] // 1000
+
+Failure handling: 404, network error, bad ZIP, parse error
+all fall through to Tier 3. No silent failure.
+
+After ZIP success: saved to Tier 1 cache for zero-cost future runs.
+
+Validated test:
+- BTCUSDT 2026-05-25
+- 542,386 trades | 7.7 MB | 2.7 seconds
+- Timestamps verified within UTC day after conversion
+- Round-trip save + load: OK
+- Second run: CACHE HIT (0 network requests)
+
+New CLI flags:
+- --no-local-cache: skip Tier 1
+- --no-zip: skip Tier 2
+
+3-tier priority order per UTC day:
+
+1. Local cache (archives/{SYMBOL}/raw-trades/{date}.csv) -> CACHE HIT
+2. Binance ZIP (data.binance.vision) -> ZIP HIT -> save to cache
+3. API fallback (existing loop) -> API DOWNLOAD -> save to cache
+
+VALIDATION:
+
+python -m py_compile tools/generate_binance_historical_replay.py research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py
+
+RESULT: ALL_COMPILE_OK
+
+No changes to:
+- RDM formulas
+- Replay logic
+- Dashboard logic
+- Scoring
+- Lifecycle logic
+- Research logic
 
 Next priorities:
 
-1. Rebuild multi-day research dataset (run 7-day historical replay)
-2. Continue RDM V1.6 development on 634-row base
+1. Run 2026-05-20 to 2026-06-02 replay to rebuild 634-row RDM research base
+2. Continue RDM V1.6 on full dataset
 3. Zone intent framework research
 4. Per-cycle omega decomposition (future)

@@ -32,9 +32,12 @@ Use this at the start of a new conversation:
 ```text
 You are working on my BTC Quant repo in PHASE 1B+ Research Expansion.
 Load the uploaded project context files first.
-Current checkpoint is PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK, tag PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK.
-Rules: research only, no Phase 2, no execution, no entries, no live signals, no scoring changes, no Dashboard V2 scoring changes.
-Continue from RDM Market Mechanics V1.5 plus Replay Consistency Lock / Source Isolation.
+Current checkpoint is PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE.
+Rules: research only, no Phase 2, no execution, no entries, no live signals, no scoring changes, no Dashboard V2 scoring changes, no RDM formula changes, no lifecycle changes.
+Completed: RDM V1.6-A through B7.7 (exposure physics series).
+Key finding: omega ≈ sigma × penetration (r=0.9935). Omega is the primary deep structural exposure variable.
+Surface Damage hypothesis was rejected in B7.6-F — zero-omega damage is temporal decay formula, not independent physics.
+Next: multi-day dataset rebuild (run 7-day replay), then next RDM research direction.
 ```
 
 ## Command Sequence To Run
@@ -42,9 +45,8 @@ Continue from RDM Market Mechanics V1.5 plus Replay Consistency Lock / Source Is
 Basic validation:
 
 ```powershell
-python -m py_compile research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py tools/validate_replay_consistency.py tools/diagnose_episode_75_integrity.py
+python -m py_compile research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py tools/generate_binance_historical_replay.py
 python research/zone_mechanics_calculator.py
-python tools/validate_replay_consistency.py
 ```
 
 Run dashboard:
@@ -59,10 +61,22 @@ Research assistant:
 python tools/analyze_phase1b_episode_research.py --mode score4plus
 ```
 
-Historical replay example:
+Historical replay (basic):
 
 ```powershell
-python tools/generate_binance_historical_replay.py --start YYYY-MM-DD --end YYYY-MM-DD --overwrite
+python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59"
+```
+
+Historical replay (overwrite):
+
+```powershell
+python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --overwrite
+```
+
+Historical replay (stable network overrides):
+
+```powershell
+python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --max-retries 25 --timeout 180
 ```
 
 Live observation command:
@@ -85,22 +99,22 @@ Do not:
 - Add risk engine
 - Change Dashboard V2 scoring
 - Change replay scoring
+- Change RDM formulas
+- Change lifecycle logic
 - Treat RDM research results as trade signals
 
-## Recommended Next Work
+## Context for Next Session
 
-Next safe research workflow:
+The current 50-row dataset (single day) has limited research value compared to the 634-row multi-day dataset that was previously available.
 
-1. Pull only today's data.
-2. Run historical replay.
-3. Run episode research assistant.
-4. Run RDM mechanics calculator.
-5. Open dashboard.
-6. Observe Dashboard V2 episodes, Active RDM Zone, Interaction Density Band, and RDM lifecycle state.
-7. Confirm the replay banner shows `REPLAY MODE ACTIVE` when observing historical replay.
-8. Confirm source audit rows point to historical replay sources.
-9. Record false positives, recoveries, ruptures, dormant zones, and density behavior.
-10. After today's observation is complete, pull a 10-day replay window.
+Priority: run a 7-day historical replay to rebuild the research base before continuing RDM V1.6 development.
+
+After rebuilding the dataset, next RDM research directions:
+
+1. Per-cycle omega decomposition (requires per-test sigma data — not yet available)
+2. Zone intent framework (BULLISH / BEARISH / NEUTRAL / UNKNOWN from pre-interaction state)
+3. Preparation Family classifier (EQUILIBRIUM vs EXTREME compression)
+4. Sigma decoupling index (validate market sigma vs zone-directed sigma)
 
 ## Replay Source Rule
 

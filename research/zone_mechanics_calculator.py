@@ -63,6 +63,20 @@ ZONE_INTERACTION_CORE_NOTES_FILE = RESEARCH_DIR / "zone_interaction_core_notes.m
 ZONE_INTERACTION_DENSITY_MAP_FILE = RESEARCH_DIR / "zone_interaction_density_map.csv"
 ZONE_INTERACTION_DENSITY_NOTES_FILE = RESEARCH_DIR / "zone_interaction_density_notes.md"
 ZONE_ATTACKER_EVOLUTION_FILE = RESEARCH_DIR / "zone_attacker_evolution.csv"
+ZONE_STRENGTH_PROFILE_FILE = RESEARCH_DIR / "zone_strength_profile.csv"
+ZONE_VS_ATTACKER_FILE      = RESEARCH_DIR / "zone_vs_attacker_profile.csv"
+ZONE_ANOMALY_FILE          = RESEARCH_DIR / "zone_anomaly_profile.csv"
+ZONE_REINFORCEMENT_FILE    = RESEARCH_DIR / "zone_reinforcement_profile.csv"
+ATTACKER_CONVERSION_FILE   = RESEARCH_DIR / "attacker_conversion_profile.csv"
+FORCE_ALLOCATION_FILE      = RESEARCH_DIR / "force_allocation_profile.csv"
+
+# ==================================================
+# RDM V1.6-B3.5-B — FORCE LULL SEGMENTATION CONSTANTS
+# Research only.  Do not use in scoring, lifecycle, or replay.
+# ==================================================
+ATTACKER_LULL_THRESHOLD_RATIO: float = 0.50   # lull if rolling_force < 50% of session mean
+ATTACKER_FORCE_WINDOW: int = 5                 # trailing rolling mean window (rows)
+ATTACKER_LULL_DURATION: int = 3               # min lull rows to separate attempts; shorter lulls are bridged
 
 NOTABLE_CASES = [
     "CASE_00021",
@@ -163,6 +177,28 @@ def main() -> None:
             results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
         with profiler.step("rdm_v16_numeric_foundation"):
             results_df = add_rdm_v16_numeric_foundation(results_df)
+        with profiler.step("rdm_v16b4_zone_strength_foundation"):
+            strength_df = build_zone_strength_profile(results_df, run_utc)
+        with profiler.step("rdm_v16b4_zone_vs_attacker"):
+            vs_attacker_df = build_zone_vs_attacker_profile(
+                strength_df, attacker_df, results_df, run_utc
+            )
+        with profiler.step("rdm_v16b5_anomaly_physics"):
+            anomaly_df = build_zone_anomaly_profile(
+                vs_attacker_df, results_df, run_utc
+            )
+        with profiler.step("rdm_v16b6_reinforcement_physics"):
+            reinforcement_df = build_zone_reinforcement_profile(
+                results_df, run_utc
+            )
+        with profiler.step("rdm_v16b7_attacker_conversion_physics"):
+            conversion_df = build_attacker_conversion_profile(
+                results_df, attacker_df, run_utc
+            )
+        with profiler.step("rdm_v16b75b_force_allocation_physics"):
+            force_alloc_df = build_force_allocation_profile(
+                results_df, attacker_df, run_utc
+            )
         profiler.add_metric("interaction_mask_reuse_count", rdm_case_cache.mask_reuse_count)
         with profiler.step("rdm_timeline_lifecycle"):
             timeline_df = build_mechanics_timeline(results_df, run_utc)
@@ -207,6 +243,12 @@ def main() -> None:
             geometry_tracking_df.to_csv(ZONE_REAL_GEOMETRY_TRACKING_FILE, index=False)
             live_evolution_df.to_csv(ZONE_LIVE_RDM_EVOLUTION_FILE, index=False)
             attacker_df.to_csv(ZONE_ATTACKER_EVOLUTION_FILE, index=False)
+            strength_df.to_csv(ZONE_STRENGTH_PROFILE_FILE, index=False)
+            vs_attacker_df.to_csv(ZONE_VS_ATTACKER_FILE, index=False)
+            anomaly_df.to_csv(ZONE_ANOMALY_FILE, index=False)
+            reinforcement_df.to_csv(ZONE_REINFORCEMENT_FILE, index=False)
+            conversion_df.to_csv(ATTACKER_CONVERSION_FILE, index=False)
+            force_alloc_df.to_csv(FORCE_ALLOCATION_FILE, index=False)
             interaction_core_df.to_csv(ZONE_INTERACTION_CORE_GEOMETRY_FILE, index=False)
             density_df.to_csv(ZONE_INTERACTION_DENSITY_MAP_FILE, index=False)
             true_lifecycle_df.to_csv(ZONE_TRUE_LIFECYCLE_TRACKING_FILE, index=False)
@@ -238,6 +280,12 @@ def main() -> None:
         profiler.add_metric("historical_rows_loaded", len(historical_rows))
         profiler.add_metric("live_evolution_rows", len(live_evolution_df))
         profiler.add_metric("attacker_evolution_rows", len(attacker_df))
+        profiler.add_metric("zone_strength_profile_rows", len(strength_df))
+        profiler.add_metric("zone_vs_attacker_rows", len(vs_attacker_df))
+        profiler.add_metric("zone_anomaly_rows", len(anomaly_df))
+        profiler.add_metric("zone_reinforcement_rows", len(reinforcement_df))
+        profiler.add_metric("attacker_conversion_rows", len(conversion_df))
+        profiler.add_metric("force_allocation_rows", len(force_alloc_df))
         profiler.add_metric("interaction_core_rows", len(interaction_core_df))
         profiler.add_metric("interaction_density_rows", len(density_df))
         profiler.add_metric("timeline_rows", len(timeline_df))
@@ -261,6 +309,12 @@ def main() -> None:
         print(f"Real geometry tracking: {relative_path(ZONE_REAL_GEOMETRY_TRACKING_FILE)}")
         print(f"Live RDM evolution: {relative_path(ZONE_LIVE_RDM_EVOLUTION_FILE)}")
         print(f"Attacker evolution: {relative_path(ZONE_ATTACKER_EVOLUTION_FILE)}")
+        print(f"Zone strength profile: {relative_path(ZONE_STRENGTH_PROFILE_FILE)}")
+        print(f"Zone vs attacker profile: {relative_path(ZONE_VS_ATTACKER_FILE)}")
+        print(f"Zone anomaly profile: {relative_path(ZONE_ANOMALY_FILE)}")
+        print(f"Zone reinforcement profile: {relative_path(ZONE_REINFORCEMENT_FILE)}")
+        print(f"Attacker conversion profile: {relative_path(ATTACKER_CONVERSION_FILE)}")
+        print(f"Force allocation profile: {relative_path(FORCE_ALLOCATION_FILE)}")
         print(f"Live RDM evolution notes: {relative_path(ZONE_LIVE_RDM_EVOLUTION_NOTES_FILE)}")
         print(f"Interaction core geometry: {relative_path(ZONE_INTERACTION_CORE_GEOMETRY_FILE)}")
         print(f"Interaction density map: {relative_path(ZONE_INTERACTION_DENSITY_MAP_FILE)}")
@@ -2213,6 +2267,20 @@ def build_attacker_evolution(
         else {}
     )
 
+    # V1.6-B2: build capacity_birth lookup for zone-relative normalization.
+    # capacity_birth is already present in results from V1.5 / V1.6-A.
+    # Only positive, finite values are stored; zero or missing → NaN output.
+    capacity_lookup: dict = {}
+    if "case_id" in results.columns and "capacity_birth" in results.columns:
+        for _, _r in results.iterrows():
+            _cid = str(_r.get("case_id") or "")
+            try:
+                _cb = float(_r.get("capacity_birth"))
+                if _cb > 0:
+                    capacity_lookup[_cid] = _cb
+            except (TypeError, ValueError):
+                pass
+
     for _, result_row in results.iterrows():
         case_id = str(result_row.get("case_id") or "")
         case_live = grouped_live.get(case_id, pd.DataFrame())
@@ -2225,21 +2293,79 @@ def build_attacker_evolution(
                 errors="coerce",
             ).abs().dropna()
 
+        # B1 core values (computed once, reused for both B1 and B2 fields)
+        force_mean = (
+            round_float(force_values.mean()) if not force_values.empty else pd.NA
+        )
+        force_peak = (
+            round_float(force_values.max()) if not force_values.empty else pd.NA
+        )
+
+        # V1.6-B2: zone-relative normalization (per-case denominator)
+        capacity_birth_val = capacity_lookup.get(case_id)
+        if isinstance(force_mean, float) and capacity_birth_val is not None:
+            force_zone_norm = round_float(force_mean / capacity_birth_val)
+        else:
+            force_zone_norm = pd.NA
+
+        if isinstance(force_peak, float) and capacity_birth_val is not None:
+            force_peak_zone_norm = round_float(force_peak / capacity_birth_val)
+        else:
+            force_peak_zone_norm = pd.NA
+
+        # V1.6-B3: attacker evolution across sequential interaction events.
+        # Each contiguous run of interaction rows = one event.
+        event_forces = compute_event_forces(interaction_rows)
+        n_events = len(event_forces)
+        attack_attempts = segment_attacker_attempts(interaction_rows)
+        attempt_diagnostics = attacker_attempt_diagnostics(attack_attempts)
+
+        # V1.6-B3.5-B: FORCE_LULL_ATTEMPT_SEGMENTATION_V1 (parallel model)
+        force_lull_attempts = segment_force_lull_attempts(interaction_rows)
+        force_lull_metrics = force_lull_attempt_metrics(force_lull_attempts)
+
+        force_birth = event_forces[0] if n_events >= 1 else pd.NA
+        force_final = event_forces[-1] if n_events >= 1 else pd.NA
+
+        if isinstance(force_birth, float) and isinstance(force_final, float):
+            force_delta = round_float(force_final - force_birth)
+            force_pct_change = (
+                round_float((force_final - force_birth) / force_birth * 100)
+                if force_birth != 0
+                else pd.NA
+            )
+        else:
+            force_delta = pd.NA
+            force_pct_change = pd.NA
+
+        force_trend_slope = linear_slope_from_values(event_forces)
+        force_trend_count = n_events if n_events > 0 else pd.NA
+
+        if n_events >= 1:
+            valid_events = [
+                (i, v) for i, v in enumerate(event_forces)
+                if isinstance(v, float) and pd.notna(v)
+            ]
+            force_peak_event_index = (
+                max(valid_events, key=lambda t: t[1])[0] + 1  # 1-indexed
+                if valid_events
+                else pd.NA
+            )
+        else:
+            force_peak_event_index = pd.NA
+
         rows.append(
             {
                 "analysis_run_utc": run_utc,
                 "case_id": result_row.get("case_id"),
                 "episode_id": result_row.get("episode_id"),
                 "zone_id": result_row.get("zone_id"),
+                # B1 fields (unchanged)
                 "rdm_v16b_attacker_interaction_count": (
                     len(interaction_rows) if not interaction_rows.empty else pd.NA
                 ),
-                "rdm_v16b_attacker_force_mean_at_touch": (
-                    round_float(force_values.mean()) if not force_values.empty else pd.NA
-                ),
-                "rdm_v16b_attacker_force_peak": (
-                    round_float(force_values.max()) if not force_values.empty else pd.NA
-                ),
+                "rdm_v16b_attacker_force_mean_at_touch": force_mean,
+                "rdm_v16b_attacker_force_peak": force_peak,
                 "rdm_v16b_attacker_force_std": (
                     round_float(force_values.std()) if len(force_values) > 1 else pd.NA
                 ),
@@ -2248,11 +2374,77 @@ def build_attacker_evolution(
                     if not case_live.empty and "inside_zone_flag" in case_live.columns
                     else pd.NA
                 ),
+                # B2 fields — zone-relative normalization
+                "rdm_v16b_attacker_force_zone_normalized": force_zone_norm,
+                "rdm_v16b_attacker_force_peak_zone_normalized": force_peak_zone_norm,
+                # B3 fields — attacker evolution through lifecycle events
+                "rdm_v16b_attacker_force_birth": force_birth,
+                "rdm_v16b_attacker_force_final": force_final,
+                "rdm_v16b_attacker_force_delta": force_delta,
+                "rdm_v16b_attacker_force_pct_change": force_pct_change,
+                "rdm_v16b_attacker_force_trend_slope": force_trend_slope,
+                "rdm_v16b_attacker_force_trend_count": force_trend_count,
+                "rdm_v16b_attacker_force_peak_event_index": force_peak_event_index,
+                # B3.5-A fields — CONTIGUOUS_INTERACTION_ROWS_V1 (preserved, diagnostic)
+                "rdm_v16b_attacker_attempt_count": attempt_diagnostics["count"],
+                "rdm_v16b_attacker_attempt_rows_total": attempt_diagnostics["rows_total"],
+                "rdm_v16b_attacker_attempt_rows_mean": attempt_diagnostics["rows_mean"],
+                "rdm_v16b_attacker_attempt_rows_max": attempt_diagnostics["rows_max"],
+                "rdm_v16b_attacker_attempt_first_row": attempt_diagnostics["first_row"],
+                "rdm_v16b_attacker_attempt_last_row": attempt_diagnostics["last_row"],
+                "rdm_v16b_attacker_attempt_row_spans": attempt_diagnostics["row_spans"],
+                "rdm_v16b_attacker_attempt_segmentation_model": (
+                    "CONTIGUOUS_INTERACTION_ROWS_V1"
+                ),
+                # B3.5-B fields — FORCE_LULL_ATTEMPT_SEGMENTATION_V1 (parallel model)
+                **force_lull_metrics,
                 "research_only": True,
             }
         )
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    # V1.6-B2: cycle-relative normalization (cross-case denominator).
+    # Denominator = mean of each metric across all cases that have valid data.
+    # Cases with NaN numerator produce NaN output. Guard against zero denominator.
+    _mean_series = pd.to_numeric(
+        df["rdm_v16b_attacker_force_mean_at_touch"], errors="coerce"
+    )
+    _peak_series = pd.to_numeric(
+        df["rdm_v16b_attacker_force_peak"], errors="coerce"
+    )
+
+    _cycle_mean_denom = (
+        float(_mean_series.dropna().mean())
+        if not _mean_series.dropna().empty
+        else None
+    )
+    _cycle_peak_denom = (
+        float(_peak_series.dropna().mean())
+        if not _peak_series.dropna().empty
+        else None
+    )
+
+    if _cycle_mean_denom is not None and _cycle_mean_denom > 0:
+        df["rdm_v16b_attacker_force_cycle_normalized"] = (
+            (_mean_series / _cycle_mean_denom)
+            .apply(lambda v: round_float(v) if pd.notna(v) else pd.NA)
+        )
+    else:
+        df["rdm_v16b_attacker_force_cycle_normalized"] = pd.NA
+
+    if _cycle_peak_denom is not None and _cycle_peak_denom > 0:
+        df["rdm_v16b_attacker_force_peak_cycle_normalized"] = (
+            (_peak_series / _cycle_peak_denom)
+            .apply(lambda v: round_float(v) if pd.notna(v) else pd.NA)
+        )
+    else:
+        df["rdm_v16b_attacker_force_peak_cycle_normalized"] = pd.NA
+
+    return df
 
 
 def attach_historical_delta_to_live_rows(
@@ -2321,6 +2513,1406 @@ def max_consecutive_truthy(values: Any) -> Any:
             current_count = 0
 
     return max_count if max_count > 0 else pd.NA
+
+
+def build_zone_strength_profile(results: pd.DataFrame, run_utc: str) -> pd.DataFrame:
+    """
+    RDM V1.6-B4-A — Zone Strength Foundation.
+
+    Computes a Zone Strength Score (ZSS) for each case using five orthogonal
+    mechanical components from existing RDM V1.5 / V1.6-A metrics.
+
+    Normalization strategy
+    ---------------------
+    capacity / rigidity  : per-case ratio against birth value (birth is non-zero).
+    fatigue inverse      : population-normalized (fatigue_birth = 0 always;
+                           normalize live value against max observed in this run).
+    recovery ratio       : population-normalized (recovery_birth = 0 always;
+                           normalize live value against max observed in this run).
+    stress availability  : rdm_v16_stress_utilization_current is 0-100 percent;
+                           divide by 100 to convert to [0,1] fraction.
+
+    Missing denominators  → NaN.  No fallback values.
+    All components clamped to [0, 1] before formula application.
+    ZSS is always in [0, 100].
+
+    Research only.  Does not affect scoring, lifecycle, replay, or dashboard.
+    """
+    if results.empty:
+        return pd.DataFrame()
+
+    # Population-level denominators for metrics where birth value = 0.
+    # Computed once so each per-case ratio is consistent across the dataset.
+    fat_series = pd.to_numeric(results["fatigue_live"], errors="coerce")
+    rec_series = pd.to_numeric(results["recovery_live"], errors="coerce")
+    fatigue_pop_max = float(fat_series.dropna().max()) if not fat_series.dropna().empty else None
+    recovery_pop_max = float(rec_series.dropna().max()) if not rec_series.dropna().empty else None
+
+    rows = []
+
+    for _, row in results.iterrows():
+
+        # ── Component 1: Capacity Ratio ──────────────────────────────────────
+        # capacity_live tracks the evolving mechanical capacity; birth is the
+        # original structural reserve.  Ratio > 1 (recovery beyond birth) is
+        # clamped to 1.
+        cap_live  = to_float(row.get("capacity_live"))
+        cap_birth = to_float(row.get("capacity_birth"))
+        if cap_live is not None and cap_birth is not None and cap_birth > 0:
+            capacity_ratio = round_float(min(max(cap_live / cap_birth, 0.0), 1.0))
+        else:
+            capacity_ratio = pd.NA
+
+        # ── Component 2: Rigidity Ratio ──────────────────────────────────────
+        rig_live  = to_float(row.get("rigidity_live"))
+        rig_birth = to_float(row.get("rigidity_birth"))
+        if rig_live is not None and rig_birth is not None and rig_birth > 0:
+            rigidity_ratio = round_float(min(max(rig_live / rig_birth, 0.0), 1.0))
+        else:
+            rigidity_ratio = pd.NA
+
+        # ── Component 3: Fatigue Inverse (population-normalized) ─────────────
+        # fatigue_birth = 0 for every zone; normalize fatigue_live against the
+        # maximum observed fatigue across all cases in this run.
+        fat_live = to_float(row.get("fatigue_live"))
+        if fat_live is not None and fatigue_pop_max is not None and fatigue_pop_max > 0:
+            fatigue_inverse = round_float(min(max(1.0 - fat_live / fatigue_pop_max, 0.0), 1.0))
+        else:
+            fatigue_inverse = pd.NA
+
+        # ── Component 4: Recovery Ratio (population-normalized) ──────────────
+        # recovery_birth = 0 for every zone; normalize recovery_live against the
+        # maximum observed recovery across all cases in this run.
+        rec_live = to_float(row.get("recovery_live"))
+        if rec_live is not None and recovery_pop_max is not None and recovery_pop_max > 0:
+            recovery_ratio = round_float(min(max(rec_live / recovery_pop_max, 0.0), 1.0))
+        else:
+            recovery_ratio = pd.NA
+
+        # ── Component 5: Stress Availability ─────────────────────────────────
+        # rdm_v16_stress_utilization_current is stored as a 0-100 percentage.
+        # Divide by 100 to convert to a [0, 1] fraction, then invert.
+        stress_pct = to_float(row.get("rdm_v16_stress_utilization_current"))
+        if stress_pct is not None:
+            stress_availability = round_float(min(max(1.0 - stress_pct / 100.0, 0.0), 1.0))
+        else:
+            stress_availability = pd.NA
+
+        # ── ZSS Formula ───────────────────────────────────────────────────────
+        components = [
+            to_float(capacity_ratio),
+            to_float(rigidity_ratio),
+            to_float(fatigue_inverse),
+            to_float(recovery_ratio),
+            to_float(stress_availability),
+        ]
+        if any(v is None for v in components):
+            zone_strength_score = pd.NA
+        else:
+            cap, rig, fat, rec, stress = components
+            zss_base = (
+                0.30 * cap
+                + 0.25 * rig
+                + 0.20 * fat
+                + 0.15 * rec
+                + 0.10 * (cap * rec)
+            )
+            zone_strength_score = round_float(min(max(zss_base * stress, 0.0), 1.0) * 100.0)
+
+        rows.append(
+            {
+                "analysis_run_utc": run_utc,
+                "case_id": row.get("case_id"),
+                "episode_id": row.get("episode_id"),
+                "zone_id": row.get("zone_id"),
+                "zone_mechanical_state": row.get("zone_mechanical_state"),
+                "rdm_v16b4_zss_capacity_ratio": capacity_ratio,
+                "rdm_v16b4_zss_rigidity_ratio": rigidity_ratio,
+                "rdm_v16b4_zss_fatigue_inverse": fatigue_inverse,
+                "rdm_v16b4_zss_recovery_ratio": recovery_ratio,
+                "rdm_v16b4_zss_stress_availability": stress_availability,
+                "rdm_v16b4_zone_strength_score": zone_strength_score,
+                "research_only": True,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+# Legacy helpers kept for any external callers; not used by the corrected
+# build_zone_strength_profile above.
+
+def ratio_or_na(numerator: Any, denominator: Any) -> Any:
+    numerator_value = to_float(numerator)
+    denominator_value = to_float(denominator)
+    if numerator_value is None or denominator_value is None or denominator_value == 0:
+        return pd.NA
+    return round_float(numerator_value / denominator_value)
+
+
+def fatigue_inverse_or_na(fatigue_current: Any) -> Any:
+    fatigue_value = to_float(fatigue_current)
+    if fatigue_value is None:
+        return pd.NA
+    return round_float(1.0 - (fatigue_value / 100.0))
+
+
+def stress_availability_or_na(stress_utilization: Any) -> Any:
+    stress_value = to_float(stress_utilization)
+    if stress_value is None:
+        return pd.NA
+    bounded_stress = min(max(stress_value, 0.0), 1.0)
+    return round_float(1.0 - bounded_stress)
+
+
+def zone_strength_score_or_na(
+    capacity_ratio: Any,
+    rigidity_ratio: Any,
+    fatigue_inverse: Any,
+    recovery_ratio: Any,
+    stress_availability: Any,
+) -> Any:
+    values = [
+        to_float(capacity_ratio),
+        to_float(rigidity_ratio),
+        to_float(fatigue_inverse),
+        to_float(recovery_ratio),
+        to_float(stress_availability),
+    ]
+    if any(value is None for value in values):
+        return pd.NA
+    cap, rig, fat, rec, stress = values
+    zss_base = (
+        0.30 * cap
+        + 0.25 * rig
+        + 0.20 * fat
+        + 0.15 * rec
+        + 0.10 * (cap * rec)
+    )
+    return round_float(zss_base * stress * 100.0)
+
+
+def build_zone_vs_attacker_profile(
+    strength_df: pd.DataFrame,
+    attacker_df: pd.DataFrame,
+    results_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B4-B — Zone Strength vs Attacker Force.
+
+    Merges zone_strength_profile and zone_attacker_evolution on case_id.
+    Computes:
+      attacker_force_score  — composite 0-100 score from five attacker metrics
+      force_ratio           — attacker_force_score / zone_strength_score
+
+    Attacker Force Score formula (all inputs normalized to [0,1] then weighted):
+
+      AFS_base =
+          0.40 * force_mean_zone_normalized_norm    (primary sustained force)
+        + 0.25 * force_peak_zone_normalized_norm    (peak attack capacity)
+        + 0.20 * persistence_max_norm               (sustained pressure duration)
+        + 0.10 * attempt_count_norm                 (engagement frequency)
+        + 0.05 * trend_slope_norm                   (trajectory; NaN -> 0)
+
+      attacker_force_score = AFS_base * 100  (range [0, 100])
+
+    Normalization: population max for each metric (computed within this run).
+    Trend slope uses min-max normalization over the valid (non-NaN) population.
+    NaN input for any component -> that component contributes 0.
+
+    force_ratio = attacker_force_score / zone_strength_score.
+    If zone_strength_score <= 0 or NaN: force_ratio = NaN.
+
+    Research only.  Does not affect scoring, lifecycle, replay, or dashboard.
+    """
+    if strength_df.empty or attacker_df.empty:
+        return pd.DataFrame()
+
+    # ── Prepare lookup dicts keyed by case_id ────────────────────────────────
+    str_idx = strength_df.set_index("case_id").to_dict("index")
+    att_idx = attacker_df.set_index("case_id").to_dict("index")
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        not results_df.empty and "case_id" in results_df.columns
+    ) else {}
+
+    # ── Population normalization denominators ─────────────────────────────────
+    def _pop_max(df: pd.DataFrame, col: str) -> float:
+        s = pd.to_numeric(df[col], errors="coerce")
+        v = float(s.dropna().max()) if not s.dropna().empty else None
+        return v if v is not None and v > 0 else None
+
+    def _pop_minmax(df: pd.DataFrame, col: str):
+        s = pd.to_numeric(df[col], errors="coerce").dropna()
+        if s.empty:
+            return None, None
+        return float(s.min()), float(s.max())
+
+    denom_force_mean  = _pop_max(attacker_df, "rdm_v16b_attacker_force_zone_normalized")
+    denom_force_peak  = _pop_max(attacker_df, "rdm_v16b_attacker_force_peak_zone_normalized")
+    denom_persistence = _pop_max(attacker_df, "rdm_v16b_attacker_persistence_max")
+    denom_attempts    = _pop_max(attacker_df, "rdm_v16b_force_lull_attempt_count")
+    slope_min, slope_max = _pop_minmax(
+        attacker_df, "rdm_v16b_force_lull_attempt_force_trend_slope"
+    )
+    slope_range = (slope_max - slope_min) if (
+        slope_min is not None and slope_max is not None
+        and slope_max > slope_min
+    ) else None
+
+    # ── Build output rows ─────────────────────────────────────────────────────
+    rows = []
+    all_case_ids = sorted(set(list(str_idx.keys()) + list(att_idx.keys())))
+
+    for case_id in all_case_ids:
+        s_row  = str_idx.get(case_id, {})
+        a_row  = att_idx.get(case_id, {})
+        r_row  = res_idx.get(case_id, {})
+
+        zss = to_float(s_row.get("rdm_v16b4_zone_strength_score"))
+
+        # ── Normalize each attacker component to [0, 1] ──────────────────────
+        def _norm(raw_val: Any, denom: float) -> float:
+            v = to_float(raw_val)
+            if v is None or denom is None:
+                return 0.0
+            return min(max(v / denom, 0.0), 1.0)
+
+        def _norm_minmax(raw_val: Any) -> float:
+            v = to_float(raw_val)
+            if v is None or slope_range is None:
+                return 0.0          # NaN or no range -> no trend contribution
+            return min(max((v - slope_min) / slope_range, 0.0), 1.0)
+
+        c_force_mean  = _norm(a_row.get("rdm_v16b_attacker_force_zone_normalized"), denom_force_mean)
+        c_force_peak  = _norm(a_row.get("rdm_v16b_attacker_force_peak_zone_normalized"), denom_force_peak)
+        c_persistence = _norm(a_row.get("rdm_v16b_attacker_persistence_max"), denom_persistence)
+        c_attempts    = _norm(a_row.get("rdm_v16b_force_lull_attempt_count"), denom_attempts)
+        c_trend_slope = _norm_minmax(a_row.get("rdm_v16b_force_lull_attempt_force_trend_slope"))
+
+        afs_base = (
+            0.40 * c_force_mean
+            + 0.25 * c_force_peak
+            + 0.20 * c_persistence
+            + 0.10 * c_attempts
+            + 0.05 * c_trend_slope
+        )
+        attacker_force_score = round_float(min(max(afs_base, 0.0), 1.0) * 100.0)
+
+        # ── Force ratio ───────────────────────────────────────────────────────
+        if zss is not None and zss > 0 and attacker_force_score is not None:
+            force_ratio = round_float(attacker_force_score / zss)
+        else:
+            force_ratio = pd.NA
+
+        rows.append({
+            "analysis_run_utc": run_utc,
+            "case_id": case_id,
+            "episode_id": s_row.get("episode_id") or a_row.get("episode_id"),
+            "zone_id": s_row.get("zone_id") or a_row.get("zone_id"),
+            "zone_mechanical_state": (
+                s_row.get("zone_mechanical_state")
+                or r_row.get("zone_mechanical_state")
+            ),
+            # Zone strength (from B4-A)
+            "rdm_v16b4_zone_strength_score": zss,
+            # Attacker force components (normalized, for transparency)
+            "rdm_v16b4_afs_force_mean_norm":  round_float(c_force_mean),
+            "rdm_v16b4_afs_force_peak_norm":  round_float(c_force_peak),
+            "rdm_v16b4_afs_persistence_norm": round_float(c_persistence),
+            "rdm_v16b4_afs_attempts_norm":    round_float(c_attempts),
+            "rdm_v16b4_afs_trend_slope_norm": round_float(c_trend_slope),
+            # Composite score and ratio
+            "rdm_v16b4_attacker_force_score": attacker_force_score,
+            "rdm_v16b4_force_ratio":          force_ratio,
+            "research_only": True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def build_zone_reinforcement_profile(
+    results_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B6 — Elastic Reinforcement Physics.
+
+    Measures structural reinforcement: the phenomenon where a zone's
+    mechanical properties (capacity, rigidity) exceed their birth-state
+    baseline under sustained attacker pressure.
+
+    This captures the ELASTIC ZONE superpower missed by ZSS: when a zone
+    runs at maximum recovery with zero fatigue accumulation, it actively
+    grows its structural reserve beyond its original birth state.
+
+    Fields
+    ------
+    rdm_v16b6_capacity_growth_factor
+        capacity_live / capacity_birth.  > 1 = grew beyond birth.
+
+    rdm_v16b6_capacity_growth_pct
+        (capacity_live - capacity_birth) / capacity_birth * 100.
+        Negative = degraded.  Positive = reinforced.
+
+    rdm_v16b6_rigidity_growth_factor
+        rigidity_live / rigidity_birth.  > 1 = grew beyond birth.
+
+    rdm_v16b6_rigidity_growth_pct
+        (rigidity_live - rigidity_birth) / rigidity_birth * 100.
+
+    rdm_v16b6_reinforcement_score  [0 – 100]
+        Composite score from four components:
+          0.40 * capacity_excess_normalized
+          0.40 * rigidity_excess_normalized
+          0.15 * recovery_live / recovery_pop_max
+          0.05 * (1 - fatigue_live / fatigue_pop_max)
+        Where *_excess = max(factor - 1, 0), normalized against pop max.
+
+    rdm_v16b6_reinforcement_mode
+        STRONG_REINFORCEMENT  : cap_factor > 1.10 AND rig_factor > 1.10
+        MODERATE_REINFORCEMENT: cap_factor > 1.0  OR  rig_factor > 1.0
+        NO_REINFORCEMENT      : neither exceeds birth baseline
+
+    Research only.  Does not affect scoring, lifecycle, replay, or dashboard.
+    """
+    # Reinforcement mode thresholds
+    _STRONG_THRESHOLD   = 1.10
+    _MODERATE_THRESHOLD = 1.00
+
+    if results_df.empty:
+        return pd.DataFrame()
+
+    # ── Population denominators for normalization ─────────────────────────────
+    def _pop_max(col: str) -> float:
+        s = pd.to_numeric(results_df[col], errors="coerce").dropna()
+        v = float(s.max()) if not s.empty else None
+        return v if v is not None and v > 0 else None
+
+    def _pop_excess_max(live_col: str, birth_col: str) -> float:
+        liv = pd.to_numeric(results_df[live_col], errors="coerce")
+        bir = pd.to_numeric(results_df[birth_col], errors="coerce")
+        excess = ((liv / bir) - 1.0).clip(lower=0.0).dropna()
+        v = float(excess.max()) if not excess.empty else None
+        return v if v is not None and v > 0 else None
+
+    cap_excess_max  = _pop_excess_max("capacity_live", "capacity_birth")
+    rig_excess_max  = _pop_excess_max("rigidity_live",  "rigidity_birth")
+    recovery_max    = _pop_max("recovery_live")
+    fatigue_max     = _pop_max("fatigue_live")
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+
+    rows = []
+
+    for case_id, r_row in res_idx.items():
+
+        cap_live  = to_float(r_row.get("capacity_live"))
+        cap_birth = to_float(r_row.get("capacity_birth"))
+        rig_live  = to_float(r_row.get("rigidity_live"))
+        rig_birth = to_float(r_row.get("rigidity_birth"))
+        rec_live  = to_float(r_row.get("recovery_live"))
+        fat_live  = to_float(r_row.get("fatigue_live"))
+
+        # ── Growth factors (raw, uncapped) ────────────────────────────────────
+        if cap_live is not None and cap_birth is not None and cap_birth > 0:
+            cap_factor  = cap_live / cap_birth
+            cap_pct     = round_float((cap_live - cap_birth) / cap_birth * 100.0)
+        else:
+            cap_factor = pd.NA
+            cap_pct    = pd.NA
+
+        if rig_live is not None and rig_birth is not None and rig_birth > 0:
+            rig_factor = rig_live / rig_birth
+            rig_pct    = round_float((rig_live - rig_birth) / rig_birth * 100.0)
+        else:
+            rig_factor = pd.NA
+            rig_pct    = pd.NA
+
+        # ── Reinforcement score ───────────────────────────────────────────────
+        cap_excess = max(float(cap_factor) - 1.0, 0.0) if isinstance(cap_factor, float) else 0.0
+        rig_excess = max(float(rig_factor) - 1.0, 0.0) if isinstance(rig_factor, float) else 0.0
+
+        cap_excess_norm = min(cap_excess / cap_excess_max, 1.0) if cap_excess_max else 0.0
+        rig_excess_norm = min(rig_excess / rig_excess_max, 1.0) if rig_excess_max else 0.0
+
+        rec_norm = min(float(rec_live) / recovery_max, 1.0) if (
+            rec_live is not None and recovery_max
+        ) else 0.0
+
+        fat_inv = min(max(1.0 - float(fat_live) / fatigue_max, 0.0), 1.0) if (
+            fat_live is not None and fatigue_max
+        ) else 1.0  # no fatigue data → full contribution
+
+        rein_raw = (
+            0.40 * cap_excess_norm
+            + 0.40 * rig_excess_norm
+            + 0.15 * rec_norm
+            + 0.05 * fat_inv
+        )
+        reinforcement_score = round_float(min(max(rein_raw, 0.0), 1.0) * 100.0)
+
+        # ── Reinforcement mode ────────────────────────────────────────────────
+        cf = float(cap_factor) if isinstance(cap_factor, float) else 0.0
+        rf = float(rig_factor) if isinstance(rig_factor, float) else 0.0
+
+        if cf > _STRONG_THRESHOLD and rf > _STRONG_THRESHOLD:
+            reinforcement_mode = "STRONG_REINFORCEMENT"
+        elif cf > _MODERATE_THRESHOLD or rf > _MODERATE_THRESHOLD:
+            reinforcement_mode = "MODERATE_REINFORCEMENT"
+        else:
+            reinforcement_mode = "NO_REINFORCEMENT"
+
+        rows.append({
+            "analysis_run_utc": run_utc,
+            "case_id": case_id,
+            "episode_id": r_row.get("episode_id"),
+            "zone_id": r_row.get("zone_id"),
+            "zone_mechanical_state": r_row.get("zone_mechanical_state"),
+            "rdm_v16b6_capacity_growth_factor":   round_float(cap_factor) if isinstance(cap_factor, float) else pd.NA,
+            "rdm_v16b6_capacity_growth_pct":      cap_pct,
+            "rdm_v16b6_rigidity_growth_factor":   round_float(rig_factor) if isinstance(rig_factor, float) else pd.NA,
+            "rdm_v16b6_rigidity_growth_pct":      rig_pct,
+            "rdm_v16b6_reinforcement_score":      reinforcement_score,
+            "rdm_v16b6_reinforcement_mode":       reinforcement_mode,
+            "research_only": True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def build_attacker_conversion_profile(
+    results_df: pd.DataFrame,
+    attacker_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B7 — Attacker Conversion Physics.
+
+    Measures how efficiently attacker force is converted into actual zone
+    structural damage.  High conversion = attacker force successfully
+    degraded the zone.  Low conversion = large force delivered, little or
+    no structural damage produced (zone absorbed or reflected the force).
+
+    This is the process-level metric that complements B6 (state-level
+    reinforcement).  Where B6 asks "did the zone grow?", B7 asks "how
+    much damage did the attacker actually produce per unit of force?".
+
+    attacker_force_input
+        Total cumulative force delivered:
+        rdm_v16b_attacker_force_mean_at_touch * rdm_v16b_attacker_interaction_count.
+        Represents the total mechanical energy applied to the zone.
+
+    rdm_v16b7_fatigue_generated
+        fatigue_live − fatigue_birth.  Always >= 0 (fatigue_birth == 0 for
+        all observed zones).  Measures accumulated internal stress damage.
+
+    rdm_v16b7_rigidity_damage
+        rigidity_birth − rigidity_live.  Positive = zone lost structural
+        rigidity.  Negative = zone grew rigidity beyond birth (reinforcement).
+
+    rdm_v16b7_capacity_damage
+        capacity_birth − capacity_live.  Positive = capacity consumed.
+        Negative = capacity grew beyond birth (reinforcement).
+
+    rdm_v16b7_conversion_efficiency_fatigue / _rigidity / _capacity
+        Raw signed ratio: damage / attacker_force_input.
+        Negative values indicate structural reinforcement (anti-damage).
+        Preserved unsigned for directional research use.
+
+    rdm_v16b7_attacker_conversion_score  [0 – 100]
+        Composite conversion score.  Weights:
+          0.40 * fatigue_efficiency_normalized
+          0.35 * rigidity_efficiency_normalized   (clamped >= 0)
+          0.25 * capacity_efficiency_normalized   (clamped >= 0)
+        Normalized against population max of each positive-clamped component.
+        High score: attacker force successfully converts to structural damage.
+        Low score: large force produces little or no zone damage.
+
+    rdm_v16b7_conversion_mode
+        HIGH_CONVERSION    : score >= 50
+        NORMAL_CONVERSION  : 15 <= score < 50
+        INEFFICIENT_ATTACKER: score < 15
+
+    Research only.  No scoring, lifecycle, replay, or dashboard impact.
+    """
+    _HIGH_THRESHOLD    = 50.0
+    _NORMAL_THRESHOLD  = 15.0
+
+    if results_df.empty or attacker_df.empty:
+        return pd.DataFrame()
+
+    # ── Merge zone structural data with attacker force data ───────────────────
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+    att_idx = attacker_df.set_index("case_id").to_dict("index") if (
+        "case_id" in attacker_df.columns
+    ) else {}
+
+    if not res_idx or not att_idx:
+        return pd.DataFrame()
+
+    # ── Compute raw efficiencies for population normalisation ─────────────────
+    raw_fat_effs: list[float] = []
+    raw_rig_effs: list[float] = []
+    raw_cap_effs: list[float] = []
+
+    for case_id, r_row in res_idx.items():
+        a_row = att_idx.get(case_id, {})
+
+        force_mean  = to_float(a_row.get("rdm_v16b_attacker_force_mean_at_touch")) or 0.0
+        force_count = to_float(a_row.get("rdm_v16b_attacker_interaction_count")) or 0.0
+        force_input = force_mean * force_count
+        if force_input <= 0:
+            continue
+
+        fat_live  = to_float(r_row.get("fatigue_live"))  or 0.0
+        fat_birth = to_float(r_row.get("fatigue_birth")) or 0.0
+        rig_live  = to_float(r_row.get("rigidity_live"))
+        rig_birth = to_float(r_row.get("rigidity_birth"))
+        cap_live  = to_float(r_row.get("capacity_live"))
+        cap_birth = to_float(r_row.get("capacity_birth"))
+
+        fat_gen = fat_live - fat_birth
+        rig_dam = (rig_birth - rig_live) if (rig_live is not None and rig_birth is not None) else 0.0
+        cap_dam = (cap_birth - cap_live) if (cap_live is not None and cap_birth is not None) else 0.0
+
+        raw_fat_effs.append(max(fat_gen / force_input, 0.0))
+        raw_rig_effs.append(max(rig_dam / force_input, 0.0))
+        raw_cap_effs.append(max(cap_dam / force_input, 0.0))
+
+    def _safe_max(vals: list[float]) -> float | None:
+        positives = [v for v in vals if v > 0]
+        if not positives:
+            return None
+        m = max(positives)
+        return m if m > 0 else None
+
+    pop_max_fat_eff = _safe_max(raw_fat_effs)
+    pop_max_rig_eff = _safe_max(raw_rig_effs)
+    pop_max_cap_eff = _safe_max(raw_cap_effs)
+
+    # ── Per-case rows ─────────────────────────────────────────────────────────
+    rows = []
+
+    for case_id, r_row in res_idx.items():
+        a_row = att_idx.get(case_id, {})
+
+        force_mean  = to_float(a_row.get("rdm_v16b_attacker_force_mean_at_touch")) or 0.0
+        force_count = to_float(a_row.get("rdm_v16b_attacker_interaction_count")) or 0.0
+        force_input = force_mean * force_count
+
+        fat_live  = to_float(r_row.get("fatigue_live"))  or 0.0
+        fat_birth = to_float(r_row.get("fatigue_birth")) or 0.0
+        rig_live  = to_float(r_row.get("rigidity_live"))
+        rig_birth = to_float(r_row.get("rigidity_birth"))
+        cap_live  = to_float(r_row.get("capacity_live"))
+        cap_birth = to_float(r_row.get("capacity_birth"))
+
+        fat_gen = fat_live - fat_birth
+        rig_dam = (rig_birth - rig_live) if (rig_live is not None and rig_birth is not None) else 0.0
+        cap_dam = (cap_birth - cap_live) if (cap_live is not None and cap_birth is not None) else 0.0
+
+        # ── Raw signed efficiency ratios ──────────────────────────────────────
+        if force_input > 0:
+            eff_fat_raw = fat_gen / force_input
+            eff_rig_raw = rig_dam / force_input
+            eff_cap_raw = cap_dam / force_input
+        else:
+            eff_fat_raw = 0.0
+            eff_rig_raw = 0.0
+            eff_cap_raw = 0.0
+
+        # ── Normalized components for composite score (clamp negatives to 0) ─
+        pos_fat = max(eff_fat_raw, 0.0)
+        pos_rig = max(eff_rig_raw, 0.0)
+        pos_cap = max(eff_cap_raw, 0.0)
+
+        fat_norm = min(pos_fat / pop_max_fat_eff, 1.0) if pop_max_fat_eff else 0.0
+        rig_norm = min(pos_rig / pop_max_rig_eff, 1.0) if pop_max_rig_eff else 0.0
+        cap_norm = min(pos_cap / pop_max_cap_eff, 1.0) if pop_max_cap_eff else 0.0
+
+        # ── Composite conversion score ────────────────────────────────────────
+        score_raw = (
+            0.40 * fat_norm
+            + 0.35 * rig_norm
+            + 0.25 * cap_norm
+        )
+        conversion_score = round_float(min(max(score_raw, 0.0), 1.0) * 100.0)
+
+        # ── Conversion mode ───────────────────────────────────────────────────
+        s = float(conversion_score) if isinstance(conversion_score, float) else 0.0
+        if s >= _HIGH_THRESHOLD:
+            conversion_mode = "HIGH_CONVERSION"
+        elif s >= _NORMAL_THRESHOLD:
+            conversion_mode = "NORMAL_CONVERSION"
+        else:
+            conversion_mode = "INEFFICIENT_ATTACKER"
+
+        rows.append({
+            "analysis_run_utc":                       run_utc,
+            "case_id":                                case_id,
+            "episode_id":                             r_row.get("episode_id"),
+            "zone_id":                                r_row.get("zone_id"),
+            "zone_mechanical_state":                  r_row.get("zone_mechanical_state"),
+            "rdm_v16b7_attacker_force_input":         round_float(force_input),
+            "rdm_v16b7_fatigue_generated":            round_float(fat_gen),
+            "rdm_v16b7_rigidity_damage":              round_float(rig_dam),
+            "rdm_v16b7_capacity_damage":              round_float(cap_dam),
+            "rdm_v16b7_conversion_efficiency_fatigue":  round_float(eff_fat_raw),
+            "rdm_v16b7_conversion_efficiency_rigidity": round_float(eff_rig_raw),
+            "rdm_v16b7_conversion_efficiency_capacity": round_float(eff_cap_raw),
+            "rdm_v16b7_attacker_conversion_score":    conversion_score,
+            "rdm_v16b7_conversion_mode":              conversion_mode,
+            "research_only":                          True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def build_force_allocation_profile(
+    results_df: pd.DataFrame,
+    attacker_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B7.5-B — Force Allocation Physics.
+
+    Measures how attacker force is split between two structural channels:
+
+    DAMAGE CHANNEL  — force that converts into structural degradation:
+      fatigue accumulation, rigidity loss, capacity loss.
+
+    GROWTH CHANNEL  — force that converts into structural reinforcement:
+      rigidity gain, capacity gain beyond birth baseline.
+
+    B7 established: force ≠ damage (conversion can be zero).
+    B7.5-A established: growth rate is a symptom, not the mechanism.
+    B7.5-B establishes: the force split between channels is the bridge variable.
+
+    Fields
+    ------
+    rdm_v16b75b_fatigue_generated
+        fatigue_live - fatigue_birth.  Always >= 0.
+
+    rdm_v16b75b_rigidity_damage / rdm_v16b75b_capacity_damage
+        Signed raw: rigidity_birth - rigidity_live, capacity_birth - capacity_live.
+        Positive = zone lost structure.  Negative = zone gained structure.
+
+    rdm_v16b75b_rigidity_growth / rdm_v16b75b_capacity_growth
+        Signed raw: rigidity_live - rigidity_birth, capacity_live - capacity_birth.
+        Mirror of the damage fields; positive = growth.
+
+    rdm_v16b75b_total_damage
+        Positive-clamped sum: max(rigidity_damage, 0) + max(capacity_damage, 0)
+        + fatigue_generated.  Represents total structural loss volume.
+
+    rdm_v16b75b_total_growth
+        Positive-clamped sum: max(rigidity_growth, 0) + max(capacity_growth, 0).
+        Represents total structural gain volume.
+
+    rdm_v16b75b_attacker_force_input
+        force_mean_at_touch * interaction_count.  Total cumulative force delivered.
+
+    rdm_v16b75b_damage_allocation_ratio
+        total_damage / attacker_force_input.  How much structural loss per unit force.
+
+    rdm_v16b75b_growth_allocation_ratio
+        total_growth / attacker_force_input.  How much structural gain per unit force.
+
+    rdm_v16b75b_force_allocation_balance
+        growth_allocation_ratio - damage_allocation_ratio.
+        Positive = growth dominates.  Negative = damage dominates.
+        Near zero = force produced neither meaningful growth nor damage.
+
+    rdm_v16b75b_force_allocation_mode
+        GROWTH_DOMINANT  : balance >  0.010
+        BALANCED         : balance >= -0.010 and <= 0.010
+        DAMAGE_DOMINANT  : balance < -0.010
+
+    Research only.  No scoring, lifecycle, replay, or dashboard impact.
+    """
+    _DOMINANT_THRESHOLD = 0.010
+
+    if results_df.empty or attacker_df.empty:
+        return pd.DataFrame()
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+    att_idx = attacker_df.set_index("case_id").to_dict("index") if (
+        "case_id" in attacker_df.columns
+    ) else {}
+
+    if not res_idx or not att_idx:
+        return pd.DataFrame()
+
+    rows = []
+
+    for case_id, r in res_idx.items():
+        a = att_idx.get(case_id, {})
+
+        fat_live  = to_float(r.get("fatigue_live"))  or 0.0
+        fat_birth = to_float(r.get("fatigue_birth")) or 0.0
+        rig_live  = to_float(r.get("rigidity_live"))
+        rig_birth = to_float(r.get("rigidity_birth"))
+        cap_live  = to_float(r.get("capacity_live"))
+        cap_birth = to_float(r.get("capacity_birth"))
+
+        force_mean  = to_float(a.get("rdm_v16b_attacker_force_mean_at_touch")) or 0.0
+        force_count = to_float(a.get("rdm_v16b_attacker_interaction_count")) or 0.0
+        force_input = force_mean * force_count
+
+        # ── Raw signed damage/growth fields ───────────────────────────────────
+        fat_gen  = fat_live - fat_birth
+        rig_raw  = (rig_birth - rig_live) if (rig_live is not None and rig_birth is not None) else 0.0
+        cap_raw  = (cap_birth - cap_live) if (cap_live is not None and cap_birth is not None) else 0.0
+
+        # ── Positive-clamped totals (damage vs growth) ────────────────────────
+        rig_damage_pos = max(rig_raw, 0.0)
+        cap_damage_pos = max(cap_raw, 0.0)
+        rig_growth_pos = max(-rig_raw, 0.0)
+        cap_growth_pos = max(-cap_raw, 0.0)
+
+        total_damage = fat_gen + rig_damage_pos + cap_damage_pos
+        total_growth = rig_growth_pos + cap_growth_pos
+
+        # ── Allocation ratios ─────────────────────────────────────────────────
+        if force_input > 0:
+            damage_alloc = total_damage / force_input
+            growth_alloc = total_growth / force_input
+        else:
+            damage_alloc = 0.0
+            growth_alloc = 0.0
+
+        balance = growth_alloc - damage_alloc
+
+        # ── Mode classification ───────────────────────────────────────────────
+        if balance > _DOMINANT_THRESHOLD:
+            mode = "GROWTH_DOMINANT"
+        elif balance < -_DOMINANT_THRESHOLD:
+            mode = "DAMAGE_DOMINANT"
+        else:
+            mode = "BALANCED"
+
+        rows.append({
+            "analysis_run_utc":                        run_utc,
+            "case_id":                                 case_id,
+            "episode_id":                              r.get("episode_id"),
+            "zone_id":                                 r.get("zone_id"),
+            "zone_mechanical_state":                   r.get("zone_mechanical_state"),
+            "rdm_v16b75b_fatigue_generated":           round_float(fat_gen),
+            "rdm_v16b75b_rigidity_damage":             round_float(rig_raw),
+            "rdm_v16b75b_capacity_damage":             round_float(cap_raw),
+            "rdm_v16b75b_rigidity_growth":             round_float(-rig_raw),
+            "rdm_v16b75b_capacity_growth":             round_float(-cap_raw),
+            "rdm_v16b75b_total_damage":                round_float(total_damage),
+            "rdm_v16b75b_total_growth":                round_float(total_growth),
+            "rdm_v16b75b_attacker_force_input":        round_float(force_input),
+            "rdm_v16b75b_damage_allocation_ratio":     round_float(damage_alloc),
+            "rdm_v16b75b_growth_allocation_ratio":     round_float(growth_alloc),
+            "rdm_v16b75b_force_allocation_balance":    round_float(balance),
+            "rdm_v16b75b_force_allocation_mode":       mode,
+            "research_only":                           True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def build_zone_anomaly_profile(
+    vs_df: pd.DataFrame,
+    results_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B5 + B5.5 — Anomaly Physics with Trajectory Context.
+
+    Detects structural anomalies: cases where the observed zone outcome
+    does not match the mechanical expectation set by ZSS vs AFS.
+
+    ZSS, AFS, Expected Balance, Observed Balance, Balance Gap, and the
+    original anomaly_score / anomaly_direction are unchanged from B5.
+
+    B5.5 adds:
+      trajectory_context  — classifies each case's lifecycle trajectory.
+      anomaly_direction_gated — anomaly direction filtered by trajectory.
+      anomaly_score_gated     — anomaly score filtered by trajectory.
+
+    ── Trajectory Context (B5.5) ────────────────────────────────────────────
+
+    Uses three signals from existing lifecycle fields:
+      birth_vs_live_degradation_state  (categorical degradation trajectory)
+      zone_recovery_state              (recovery outcome)
+      fatigue_increase_from_birth      (cumulative fatigue accumulation)
+
+    Classification priority (first match wins):
+
+    RECOVERING_ZONE
+      zone_recovery_state = RECOVERED or STRONG_RECOVERY
+      Active recovery dominates regardless of degradation state.
+
+    ACTIVE_DEGRADATION
+      (birth_vs_live_degradation_state in MODERATE/SEVERE AND zone_recovery_state = NO_RECOVERY)
+      OR
+      (fatigue_increase_normalized > 0.5 AND zone_recovery_state = NO_RECOVERY)
+      Zone is on a known degradation trajectory with no recovery.
+
+    STABLE_ZONE
+      Everything else.
+
+    ── Trajectory-Gated Anomaly (B5.5) ─────────────────────────────────────
+
+    ACTIVE_DEGRADATION + gap < 0 → EXPECTED_DEGRADATION
+      The outcome is mechanically predictable from the trajectory.
+      Not a genuine anomaly.  anomaly_score_gated = 0.
+
+    All other combinations → same as original anomaly_direction.
+
+    Original B5 fields are preserved unchanged.
+
+    Research only.  No scoring, lifecycle, replay, or dashboard impact.
+    """
+    _ANOMALY_THRESHOLD      = 20.0
+    _HEALTH_MAX             = 100.0
+    _FATIGUE_HIGH_THRESHOLD = 0.5    # normalized: above 50% of pop max = high fatigue
+
+    if vs_df.empty:
+        return pd.DataFrame()
+
+    vs_idx  = vs_df.set_index("case_id").to_dict("index")
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        not results_df.empty and "case_id" in results_df.columns
+    ) else {}
+
+    # Population max for fatigue normalization (used in trajectory classification)
+    fat_series = pd.to_numeric(
+        results_df["fatigue_increase_from_birth"], errors="coerce"
+    ) if (not results_df.empty and "fatigue_increase_from_birth" in results_df.columns) else pd.Series(dtype=float)
+    fatigue_pop_max = float(fat_series.dropna().max()) if not fat_series.dropna().empty else None
+
+    rows = []
+
+    for case_id, v_row in vs_idx.items():
+        r_row = res_idx.get(case_id, {})
+
+        zss = to_float(v_row.get("rdm_v16b4_zone_strength_score"))
+        afs = to_float(v_row.get("rdm_v16b4_attacker_force_score"))
+
+        # ── Expected balance (B5 — UNCHANGED) ────────────────────────────────
+        if zss is not None and afs is not None:
+            expected_balance = round_float(zss - afs)
+        else:
+            expected_balance = pd.NA
+
+        # ── Observed balance (B5 — UNCHANGED) ────────────────────────────────
+        health_val = to_float(r_row.get("rdm_health_score"))
+        if health_val is not None:
+            health_norm = min(max(health_val / _HEALTH_MAX, 0.0), 1.0)
+            health_contribution = (health_norm * 2.0 - 1.0) * 50.0
+        else:
+            health_contribution = 0.0
+
+        deg_state = str(r_row.get("birth_vs_live_degradation_state") or "").upper()
+        if "STABLE" in deg_state:
+            deg_contribution = 25.0
+        elif "SEVERE" in deg_state:
+            deg_contribution = -35.0
+        elif "MODERATE" in deg_state:
+            deg_contribution = -15.0
+        else:
+            deg_contribution = 0.0
+
+        rec_state = str(r_row.get("zone_recovery_state") or "").upper()
+        if "RECOVERED" in rec_state and "STRONG" not in rec_state:
+            rec_contribution = 20.0
+        elif "STRONG_RECOVERY" in rec_state:
+            rec_contribution = 10.0
+        elif "NO_RECOVERY" in rec_state:
+            rec_contribution = -5.0
+        else:
+            rec_contribution = 0.0
+
+        obs_raw = health_contribution + deg_contribution + rec_contribution
+        observed_balance = round_float(min(max(obs_raw, -100.0), 100.0))
+
+        # ── Balance gap and original anomaly fields (B5 — UNCHANGED) ─────────
+        if expected_balance is not pd.NA and expected_balance is not None:
+            gap_raw = (observed_balance or 0.0) - float(expected_balance)
+            balance_gap   = round_float(gap_raw)
+            anomaly_score = round_float(min(abs(gap_raw), 100.0))
+
+            if gap_raw < -_ANOMALY_THRESHOLD:
+                anomaly_direction = "ZONE_STRONGER_THAN_RESULT"
+            elif gap_raw > _ANOMALY_THRESHOLD:
+                anomaly_direction = "ATTACKER_STRONGER_THAN_RESULT"
+            else:
+                anomaly_direction = "BALANCED"
+        else:
+            gap_raw           = None
+            balance_gap       = pd.NA
+            anomaly_score     = pd.NA
+            anomaly_direction = "UNKNOWN"
+
+        # ── B5.5: Trajectory Context ──────────────────────────────────────────
+        # Fatigue accumulation normalized against population max
+        fat_val = to_float(r_row.get("fatigue_increase_from_birth"))
+        if fat_val is not None and fatigue_pop_max is not None and fatigue_pop_max > 0:
+            fat_norm = fat_val / fatigue_pop_max
+        else:
+            fat_norm = 0.0
+
+        no_recovery = "NO_RECOVERY" in rec_state
+
+        if "RECOVERED" in rec_state:
+            # Active recovery overrides degradation signal
+            trajectory_context = "RECOVERING_ZONE"
+        elif (
+            ("MODERATE" in deg_state or "SEVERE" in deg_state)
+            and no_recovery
+        ) or (
+            fat_norm > _FATIGUE_HIGH_THRESHOLD
+            and no_recovery
+        ):
+            trajectory_context = "ACTIVE_DEGRADATION"
+        else:
+            trajectory_context = "STABLE_ZONE"
+
+        # ── B5.5: Trajectory-Gated Anomaly ───────────────────────────────────
+        # ACTIVE_DEGRADATION with negative gap = trajectory explains the outcome.
+        if gap_raw is not None:
+            if trajectory_context == "ACTIVE_DEGRADATION" and gap_raw < 0:
+                anomaly_direction_gated = "EXPECTED_DEGRADATION"
+                anomaly_score_gated     = round_float(0.0)
+            else:
+                anomaly_direction_gated = anomaly_direction
+                anomaly_score_gated     = anomaly_score
+        else:
+            anomaly_direction_gated = "UNKNOWN"
+            anomaly_score_gated     = pd.NA
+
+        rows.append({
+            "analysis_run_utc": run_utc,
+            "case_id": case_id,
+            "episode_id": v_row.get("episode_id"),
+            "zone_id": v_row.get("zone_id"),
+            "zone_mechanical_state": v_row.get("zone_mechanical_state"),
+            "rdm_v16b4_zone_strength_score": zss,
+            "rdm_v16b4_attacker_force_score": afs,
+            # B5 fields — unchanged
+            "rdm_v16b5_expected_balance":   expected_balance,
+            "rdm_v16b5_observed_balance":   observed_balance,
+            "rdm_v16b5_balance_gap":        balance_gap,
+            "rdm_v16b5_anomaly_score":      anomaly_score,
+            "rdm_v16b5_anomaly_direction":  anomaly_direction,
+            # B5.5 fields — trajectory context and gated anomaly
+            "rdm_v16b5_trajectory_context":      trajectory_context,
+            "rdm_v16b5_anomaly_direction_gated": anomaly_direction_gated,
+            "rdm_v16b5_anomaly_score_gated":     anomaly_score_gated,
+            "research_only": True,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def compute_event_forces(interaction_rows: pd.DataFrame) -> list:
+    """
+    Split interaction rows into contiguous events by row_index.
+
+    Each contiguous run of rows (no gap in row_index > 1) is one interaction
+    event.  Returns a list of mean |delta| per event in chronological order.
+    Returns an empty list when no valid data is present.
+
+    V1.6-B3 helper.  Does not change any existing calculation.
+    """
+    if interaction_rows.empty or "delta" not in interaction_rows.columns:
+        return []
+
+    rows = interaction_rows.copy()
+    has_row_index = "row_index" in rows.columns
+
+    if has_row_index:
+        rows["_ridx"] = pd.to_numeric(rows["row_index"], errors="coerce")
+        rows = (
+            rows.dropna(subset=["_ridx"])
+            .sort_values("_ridx")
+            .reset_index(drop=True)
+        )
+
+    if rows.empty:
+        return []
+
+    rows["_dabs"] = pd.to_numeric(rows["delta"], errors="coerce").abs()
+
+    if not has_row_index:
+        # No row_index column: treat all rows as a single event.
+        mean_val = rows["_dabs"].dropna().mean()
+        return [round_float(mean_val)] if pd.notna(mean_val) else []
+
+    event_forces: list = []
+    current_group: list = []
+    prev_ridx: float = float("nan")
+
+    for _, row in rows.iterrows():
+        ridx = row["_ridx"]
+        dval = row["_dabs"]
+
+        if pd.isna(prev_ridx) or (ridx - prev_ridx) <= 1:
+            current_group.append(dval)
+        else:
+            # Gap detected — close current event and start a new one.
+            group_vals = pd.Series(current_group, dtype="float64").dropna()
+            if not group_vals.empty:
+                event_forces.append(round_float(group_vals.mean()))
+            current_group = [dval]
+
+        prev_ridx = ridx
+
+    # Close the final event.
+    if current_group:
+        group_vals = pd.Series(current_group, dtype="float64").dropna()
+        if not group_vals.empty:
+            event_forces.append(round_float(group_vals.mean()))
+
+    return event_forces
+
+
+def segment_attacker_attempts(interaction_rows: pd.DataFrame) -> list[Dict[str, Any]]:
+    """
+    Segment attack attempts in parallel with the existing B3 session model.
+
+    B3.5-A defines an attempt as a contiguous run of interaction rows.  The
+    segmentation is diagnostic-only and does not feed force trend, anomaly,
+    lifecycle, scoring, or dashboard behavior.
+    """
+    if interaction_rows.empty:
+        return []
+
+    rows = interaction_rows.copy()
+    if "row_index" not in rows.columns:
+        return [
+            {
+                "start_row": pd.NA,
+                "end_row": pd.NA,
+                "row_count": len(rows),
+            }
+        ]
+
+    rows["_ridx"] = pd.to_numeric(rows["row_index"], errors="coerce")
+    rows = rows.dropna(subset=["_ridx"]).sort_values("_ridx").reset_index(drop=True)
+    if rows.empty:
+        return []
+
+    attempts: list[Dict[str, Any]] = []
+    start_row = rows.iloc[0]["_ridx"]
+    previous_row = start_row
+    row_count = 0
+
+    for _, row in rows.iterrows():
+        current_row = row["_ridx"]
+        if current_row - previous_row > 1 and row_count > 0:
+            attempts.append(
+                {
+                    "start_row": int(start_row),
+                    "end_row": int(previous_row),
+                    "row_count": row_count,
+                }
+            )
+            start_row = current_row
+            row_count = 0
+
+        row_count += 1
+        previous_row = current_row
+
+    if row_count > 0:
+        attempts.append(
+            {
+                "start_row": int(start_row),
+                "end_row": int(previous_row),
+                "row_count": row_count,
+            }
+        )
+
+    return attempts
+
+
+def attacker_attempt_diagnostics(attempts: list[Dict[str, Any]]) -> Dict[str, Any]:
+    if not attempts:
+        return {
+            "count": pd.NA,
+            "rows_total": pd.NA,
+            "rows_mean": pd.NA,
+            "rows_max": pd.NA,
+            "first_row": pd.NA,
+            "last_row": pd.NA,
+            "row_spans": "",
+        }
+
+    row_counts = [attempt["row_count"] for attempt in attempts]
+    return {
+        "count": len(attempts),
+        "rows_total": sum(row_counts),
+        "rows_mean": round_float(sum(row_counts) / len(row_counts)),
+        "rows_max": max(row_counts),
+        "first_row": attempts[0]["start_row"],
+        "last_row": attempts[-1]["end_row"],
+        "row_spans": "|".join(
+            f"{attempt['start_row']}-{attempt['end_row']}"
+            for attempt in attempts
+        ),
+    }
+
+
+def segment_force_lull_attempts(
+    interaction_rows: pd.DataFrame,
+) -> list:
+    """
+    FORCE_LULL_ATTEMPT_SEGMENTATION_V1
+
+    Splits a continuous interaction session into discrete attack attempts by
+    detecting force lull periods *within* the session.
+
+    Algorithm
+    ---------
+    1. Compute impulse = |delta| for every interaction row.
+    2. session_mean_force = mean(impulse) across the session.
+    3. lull_threshold = session_mean_force * ATTACKER_LULL_THRESHOLD_RATIO.
+    4. rolling_force = trailing rolling mean of impulse, window = ATTACKER_FORCE_WINDOW.
+    5. active_flag = (rolling_force >= lull_threshold) per row.
+    6. Bridge short lulls: consecutive False runs shorter than ATTACKER_LULL_DURATION
+       rows are set to True (the attacker paused briefly, not ended).
+    7. Each contiguous run of True (after bridging) = one attempt.
+
+    Returns a list of attempt dicts, each containing:
+      start_ridx, end_ridx, row_count, mean_force, peak_force.
+
+    V1.6-B3.5-B helper.  Research only.  Does not change scoring, lifecycle,
+    or replay.
+    """
+    if interaction_rows.empty or "delta" not in interaction_rows.columns:
+        return []
+
+    rows = interaction_rows.copy()
+
+    has_ridx = "row_index" in rows.columns
+    if has_ridx:
+        rows["_ridx"] = pd.to_numeric(rows["row_index"], errors="coerce")
+        rows = (
+            rows.dropna(subset=["_ridx"])
+            .sort_values("_ridx")
+            .reset_index(drop=True)
+        )
+    else:
+        rows = rows.reset_index(drop=True)
+
+    if rows.empty:
+        return []
+
+    rows["_impulse"] = pd.to_numeric(rows["delta"], errors="coerce").abs()
+
+    session_mean = rows["_impulse"].dropna().mean()
+    if pd.isna(session_mean) or session_mean <= 0:
+        # Degenerate session (all-zero or missing delta): one attempt.
+        return [
+            {
+                "start_ridx": int(rows.iloc[0]["_ridx"]) if has_ridx else pd.NA,
+                "end_ridx": int(rows.iloc[-1]["_ridx"]) if has_ridx else pd.NA,
+                "row_count": len(rows),
+                "mean_force": round_float(rows["_impulse"].dropna().mean()),
+                "peak_force": round_float(rows["_impulse"].dropna().max()),
+            }
+        ]
+
+    lull_threshold = session_mean * ATTACKER_LULL_THRESHOLD_RATIO
+
+    # Trailing rolling mean; min_periods=1 so the first rows are not NaN.
+    rows["_rolling"] = (
+        rows["_impulse"].rolling(window=ATTACKER_FORCE_WINDOW, min_periods=1).mean()
+    )
+    rows["_active"] = rows["_rolling"] >= lull_threshold
+
+    # --- Bridge short lulls (False runs < ATTACKER_LULL_DURATION) ----------
+    active_list = rows["_active"].tolist()
+    n = len(active_list)
+    bridged = list(active_list)
+
+    i = 0
+    while i < n:
+        if not bridged[i]:
+            j = i
+            while j < n and not bridged[j]:
+                j += 1
+            if (j - i) < ATTACKER_LULL_DURATION:
+                for k in range(i, j):
+                    bridged[k] = True
+            i = j
+        else:
+            i += 1
+
+    rows["_bridged"] = bridged
+
+    # --- Segment into attempts -------------------------------------------
+    attempts: list = []
+    current: list = []
+
+    for _, row in rows.iterrows():
+        if row["_bridged"]:
+            current.append(row)
+        else:
+            if current:
+                attempts.append(current)
+                current = []
+
+    if current:
+        attempts.append(current)
+
+    # --- Build summary dicts for each attempt ----------------------------
+    result: list = []
+    for attempt_rows_list in attempts:
+        adf = pd.DataFrame(attempt_rows_list)
+        impulses = adf["_impulse"].dropna()
+        result.append(
+            {
+                "start_ridx": int(adf["_ridx"].iloc[0]) if has_ridx else pd.NA,
+                "end_ridx": int(adf["_ridx"].iloc[-1]) if has_ridx else pd.NA,
+                "row_count": len(adf),
+                "mean_force": round_float(impulses.mean()) if not impulses.empty else pd.NA,
+                "peak_force": round_float(impulses.max()) if not impulses.empty else pd.NA,
+            }
+        )
+
+    return result
+
+
+def force_lull_attempt_metrics(attempts: list) -> dict:
+    """
+    Derive all rdm_v16b_force_lull_* column values from the output of
+    segment_force_lull_attempts().
+
+    V1.6-B3.5-B.  Research only.  Additive — does not modify any existing
+    field.
+    """
+    _na_defaults: dict = {
+        "rdm_v16b_force_lull_attempt_count": pd.NA,
+        "rdm_v16b_force_lull_attempt_rows_total": pd.NA,
+        "rdm_v16b_force_lull_attempt_rows_mean": pd.NA,
+        "rdm_v16b_force_lull_attempt_rows_max": pd.NA,
+        "rdm_v16b_force_lull_attempt_first_row": pd.NA,
+        "rdm_v16b_force_lull_attempt_last_row": pd.NA,
+        "rdm_v16b_force_lull_attempt_row_spans": "",
+        "rdm_v16b_force_lull_attempt_force_mean": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_peak": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_birth": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_final": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_delta": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_pct_change": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_trend_slope": pd.NA,
+        "rdm_v16b_force_lull_attempt_force_trend_count": pd.NA,
+        "rdm_v16b_force_lull_attempt_peak_event_index": pd.NA,
+        "rdm_v16b_force_lull_segmentation_model": (
+            "FORCE_LULL_ATTEMPT_SEGMENTATION_V1"
+        ),
+    }
+
+    if not attempts:
+        return _na_defaults
+
+    out = dict(_na_defaults)
+    n = len(attempts)
+    row_counts = [a["row_count"] for a in attempts]
+
+    # Counts and row geometry
+    out["rdm_v16b_force_lull_attempt_count"] = n
+    out["rdm_v16b_force_lull_attempt_rows_total"] = sum(row_counts)
+    out["rdm_v16b_force_lull_attempt_rows_mean"] = round_float(sum(row_counts) / n)
+    out["rdm_v16b_force_lull_attempt_rows_max"] = max(row_counts)
+
+    first_start = attempts[0].get("start_ridx")
+    last_end = attempts[-1].get("end_ridx")
+    if first_start is not None and not (isinstance(first_start, float) and pd.isna(first_start)):
+        out["rdm_v16b_force_lull_attempt_first_row"] = first_start
+    if last_end is not None and not (isinstance(last_end, float) and pd.isna(last_end)):
+        out["rdm_v16b_force_lull_attempt_last_row"] = last_end
+
+    out["rdm_v16b_force_lull_attempt_row_spans"] = "|".join(
+        f"{a.get('start_ridx', '?')}-{a.get('end_ridx', '?')}" for a in attempts
+    )
+
+    # Per-attempt mean forces (the evolution signal)
+    attempt_means = [
+        a["mean_force"] for a in attempts
+        if isinstance(a.get("mean_force"), float) and pd.notna(a["mean_force"])
+    ]
+    attempt_peaks = [
+        a["peak_force"] for a in attempts
+        if isinstance(a.get("peak_force"), float) and pd.notna(a["peak_force"])
+    ]
+
+    if attempt_means:
+        out["rdm_v16b_force_lull_attempt_force_mean"] = round_float(
+            sum(attempt_means) / len(attempt_means)
+        )
+    if attempt_peaks:
+        out["rdm_v16b_force_lull_attempt_force_peak"] = round_float(max(attempt_peaks))
+
+    # Evolution: birth → final
+    force_birth = attempt_means[0] if attempt_means else pd.NA
+    force_final = attempt_means[-1] if attempt_means else pd.NA
+    out["rdm_v16b_force_lull_attempt_force_birth"] = force_birth
+    out["rdm_v16b_force_lull_attempt_force_final"] = force_final
+
+    if isinstance(force_birth, float) and isinstance(force_final, float):
+        out["rdm_v16b_force_lull_attempt_force_delta"] = round_float(
+            force_final - force_birth
+        )
+        if force_birth != 0:
+            out["rdm_v16b_force_lull_attempt_force_pct_change"] = round_float(
+                (force_final - force_birth) / force_birth * 100
+            )
+
+    # Trend slope across attempt-level mean forces
+    out["rdm_v16b_force_lull_attempt_force_trend_slope"] = (
+        linear_slope_from_values(attempt_means)
+    )
+    out["rdm_v16b_force_lull_attempt_force_trend_count"] = (
+        len(attempt_means) if attempt_means else pd.NA
+    )
+
+    # Peak event index (1-indexed attempt with highest mean force)
+    if attempt_means:
+        peak_idx = max(range(len(attempt_means)), key=lambda i: attempt_means[i])
+        out["rdm_v16b_force_lull_attempt_peak_event_index"] = peak_idx + 1
+
+    return out
+
+
+def linear_slope_from_values(values: list) -> Any:
+    """
+    Compute the least-squares regression slope across a sequence of floats.
+
+    Returns pd.NA when fewer than 3 valid values are present (insufficient
+    data for a meaningful trend).  x-coordinates are zero-indexed integers.
+
+    V1.6-B3 helper.  Does not change any existing calculation.
+    """
+    valid = [float(v) for v in values if v is not None and pd.notna(v)]
+    if len(valid) < 3:
+        return pd.NA
+
+    n = len(valid)
+    xs = list(range(n))
+    x_mean = sum(xs) / n
+    y_mean = sum(valid) / n
+
+    numerator = sum((xi - x_mean) * (yi - y_mean) for xi, yi in zip(xs, valid))
+    denominator = sum((xi - x_mean) ** 2 for xi in xs)
+
+    if denominator == 0:
+        return pd.NA
+
+    return round_float(numerator / denominator)
 
 
 class RdmCaseCache:

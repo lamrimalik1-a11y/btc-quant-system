@@ -1885,3 +1885,129 @@ python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00"
 FOR UNSTABLE NETWORKS:
 
 python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --symbol BTCUSDT --row-size 500 --max-retries 25 --timeout 180
+
+==================================================
+RDM V1.6 EXPOSURE PHYSICS SERIES — CHECKPOINT
+PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
+==================================================
+
+STATUS: COMPLETED AND STABLE
+
+Scope: Research only. No scoring changes. No lifecycle changes. No formula changes.
+
+--------------------------------------------------
+COMPLETED MODULES
+--------------------------------------------------
+
+RDM V1.6-A  Numerical Foundation                (previously committed)
+RDM V1.6-B1  Attacker Force Basics              (previously committed)
+RDM V1.6-B3.5-A  Attack Attempt Segmentation   (previously committed)
+RDM V1.6-B3.5-B  Force-Lull Segmentation       (previously committed)
+RDM V1.6-B4-A  Zone Strength Foundation (ZSS)  (previously committed)
+RDM V1.6-B4-B  Zone vs Attacker Profile        (previously committed)
+RDM V1.6-B5   Anomaly Physics                  (previously committed)
+RDM V1.6-B5.5  Trajectory Context              (previously committed)
+RDM V1.6-B6   Elastic Reinforcement Physics    (previously committed)
+RDM V1.6-B7   Attacker Conversion Physics      (current session)
+RDM V1.6-B7.5-A  Elastic Growth Rate Test      (current session)
+RDM V1.6-B7.5-B  Force Allocation Physics      (current session)
+RDM V1.6-B7.6-A  Absorption vs Reflection      (current session)
+RDM V1.6-B7.6-B  Structural Engagement         (current session)
+RDM V1.6-B7.6-C  Stress Exposure Physics       (current session)
+RDM V1.6-B7.6-D  Omega Validation              (current session)
+RDM V1.6-B7.6-E  Surface Damage Review         (current session)
+RDM V1.6-B7.6-F  Surface Damage Validation     (current session)
+RDM V1.6-B7.7   Structural Exposure Physics    (current session)
+
+--------------------------------------------------
+CORE VALIDATED FINDING
+--------------------------------------------------
+
+sigma_at_return × zone_penetration_depth  vs  omega_stress_area
+
+r = 0.9935   (n=31)
+
+Omega is the primary Deep Structural Exposure variable.
+
+--------------------------------------------------
+STRUCTURAL ENGAGEMENT CHAIN
+--------------------------------------------------
+
+Force
+  ↓  [filtered by sigma_barre_zone]
+  ↓  sigma_barre driven by structural memory
+     (reclaim_history r=+0.69, mechanical_memory_score r=+0.67)
+Structural Engagement
+  ↓  [penetration depth]
+Omega Stress Area  ≈  sigma_at_return × penetration_depth
+  ↓  [routed by mechanical_family]
+  ├── ELASTIC_FAMILY  →  Growth (+16 rigidity, +20 capacity — constant)
+  └── DEGRADED_FAMILY →  Damage (fatigue + structural decay, scales with omega)
+
+--------------------------------------------------
+REJECTED HYPOTHESES
+--------------------------------------------------
+
+reinforcement_mode (B6):
+  NOT independent from zone_mechanical_state.
+
+Growth Rate (B7.5-A):
+  Growth rate = 16/interaction_count — formula identity, not structural measurement.
+
+Force Allocation (B7.5-B):
+  total_growth = 36 constant for all ELASTIC zones regardless of force.
+  Another reformulation of zone_mechanical_state.
+
+Surface Damage (B7.6-E/F):
+  REJECTED. Zero-omega damage is:
+    rigidity_live = rigidity_birth - row_progress × zone_strength_decay × 0.55 + repair_effect × 8.0
+  Time-based temporal decay formula. NOT independent market physics.
+
+Cyclic Exposure (B7.7):
+  Insufficient variance in current dataset (interaction_count range: 101-114).
+  Not validated. Future research only.
+
+--------------------------------------------------
+RESEARCH CSVs ADDED
+--------------------------------------------------
+
+research/attacker_conversion_profile.csv
+research/force_allocation_profile.csv
+
+--------------------------------------------------
+VALIDATION RESULT
+--------------------------------------------------
+
+python -m py_compile research/zone_mechanics_calculator.py dashboard_app.py dashboard/research_mapping.py dashboard/overlay_renderer.py context_memory.py tools/analyze_phase1b_episode_research.py tools/generate_binance_historical_replay.py
+
+RESULT: ALL_COMPILE_OK
+
+--------------------------------------------------
+RULES PRESERVED
+--------------------------------------------------
+
+- No scoring changes
+- No lifecycle changes
+- No Dashboard V2 scoring impact
+- No RDM formula changes
+- No replay changes
+- No dashboard changes
+- No Phase 2 / No execution / No entries / No live signals
+
+==================================================
+CURRENT ACTIVE PHASE
+==================================================
+
+PHASE 1B+ Research Expansion
+
+Active checkpoints:
+
+PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE (primary)
+PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE (secondary)
+
+Next priorities:
+
+1. Rebuild multi-day research dataset (run 7-day historical replay)
+2. Continue RDM V1.6 development on 634-row base
+3. Zone intent framework research
+4. Per-cycle omega decomposition (future)

@@ -1,16 +1,14 @@
 # Current Checkpoint
 
+## Active Checkpoint
+
 Checkpoint:
 
-PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
-
-Commit:
-
-See latest repository commit for the replay consistency checkpoint.
+PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
 
 Tag:
 
-`PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
+`PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE`
 
 Status:
 
@@ -22,217 +20,182 @@ Status:
 - No live signals
 - No scoring changes
 - No Dashboard V2 scoring changes
-
-Includes:
-
-- Real Zone Geometry
-- Birth vs Live Tracking
-- Live RDM Evolution
-- Calibration Guards
-- Interaction Core Geometry
-- Spatial Clamp
-- Temporal Interaction Window
-- True Lifecycle Guard
-- Adaptive Recovery / Healing
-- Regime-Normalized Sigma
-- Interaction Density Mapping
-- Weighted Interaction Center
-- Density Bands
-- Structural Lifecycle Calibration
-- Recovery Persistence
-- Fatigue Realism
-- Rupture Persistence
-- Mechanical Memory
-- Birth / Return / Final comparison
-- Overlay calibration
-- Context vs Active Zone separation
-
-Geometry hierarchy:
-
-Context / Formation Range
-!=
-Active RDM Zone
-!=
-Interaction Density Band
-
-Current conclusion:
-
-The RDM layer is more realistic after V1.5. It no longer behaves like a permanent pessimistic collapse detector. Recovery can matter, rupture requires persistence, fatigue is less instant, and interaction density can now be observed inside the Active RDM Zone.
-
-## Performance Diagnostic + Safe Optimization Checkpoint
-
-Checkpoint extension:
-
-Performance diagnostics and safe optimization pass.
-
-Completed:
-
-- Performance profiling
-- `outputs/performance_profile_report.md`
-- `outputs/performance_profile.json`
-- `outputs/performance_optimization_plan.md`
-- Episode Research Index Cache
-- RDM Per-Case Cache
-- Shared Interaction Mask Cache
-- Live evolution row-window optimization
-- Profiling logs
-- Cache reuse metrics
-
-Measured results:
-
-- Episode research runtime: `24.55s -> 17.23s`
-- Research analysis: `23.89s -> 16.38s`
-- Latest research run after continued optimization: `16.41s total`, `15.83s cached analysis`
-- RDM runtime: `14.78s -> 14.66s`
-- Interaction core: `2.92s -> 1.96s`
-- Live evolution: `4.55s -> 4.36s`
-- Density: `~1.95s unchanged`
-
-Profiling conclusions:
-
-- Bottleneck mainly `CPU_PROCESSING + RDM_CALCULATOR`.
-- Repeated dataframe scans were partially reduced successfully.
-- Internet / Binance download is not the primary bottleneck for local research runs.
-- Density mapping remains computationally heavy.
-
-Latest optimization state:
-
-- Episode research uses indexed historical row lookup.
-- RDM calculator caches live evolution rows by case.
-- Interaction masks are built once and reused.
-- Live evolution row-window extraction uses sorted row_id lookup.
-
-Future optimization targets:
-
-- Vectorization
-- Optional Parquet / DuckDB migration
-- Batch write modes
-- Optional multiprocessing later
-
-Rules remain:
-
-- Research only
-- No behavior changes
-- No scoring changes
-- No RDM logic changes
-- No Dashboard logic changes
-- No trading logic
-
-## Replay Consistency Lock
-
-Base:
-
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
-
-Completed:
-
-- Data Integrity Diagnostic for Episode 75 / CASE_00075
-- Source data verified
-- Timezone verified
-- Dashboard mapping verified
-- Episode row alignment verified
-- Stale artifacts detected and documented
-- Explicit source modes:
-  - `LIVE_MODE`
-  - `HISTORICAL_REPLAY_MODE`
-- Historical replay source guards
-- Dashboard blocks live/default files in historical replay mode
-- No silent fallback to stale live/default files
-- Overlay loader accepts `source_mode`
-- Replay banner and per-episode source audit
-- Dashboard footer: `ACTIVE SOURCE: historical replay / live`
-- Replay consistency validator
-
-Reports / tools:
-
-- `tools/diagnose_episode_75_integrity.py`
-- `outputs/data_integrity_episode_75_report.md`
-- `outputs/data_integrity_episode_75.json`
-- `tools/validate_replay_consistency.py`
-- `outputs/replay_consistency_report.md`
-- `outputs/replay_consistency_report.json`
-
-Latest validator result:
-
-- `MIXED_SOURCE_USAGE_DETECTED: False`
-- `STALE_LIVE_FILES_FOUND: True`
-- `TIMESTAMP_INCONSISTENCIES_FOUND: False`
-- `REPLAY_LIVE_OVERLAP_FOUND: False`
-- `HISTORICAL_REPLAY_SOURCES_PRESENT: True`
-
-Important conclusion:
-
-Historical replay mode is now isolated. Stale live files may exist, but they are explicitly blocked from contaminating historical replay mode. Replay / RDM / Dashboard / Overlay rendering are traceable to explicit historical replay sources.
-
-## RDM V1.6-A Numerical Foundation
-
-Checkpoint:
-
-`RDM_V1.6-A_NUMERICAL_FOUNDATION`
-
-Status:
-
-COMPLETED
-
-Scope:
-
-Research only. Extension of RDM V1.5. No formula changes. No lifecycle changes. No scoring changes.
-
-Implemented:
-
-- 42 new `rdm_v16_*` columns added to `zone_mechanics_cycle3_results.csv`
-- Numerical Foundation layer
-- Birth / Current / Live / Final absolute metrics
-- Delta from Birth for all tracked metric families
-- Percentage Change from Birth for all tracked metric families
-
-Metric Families covered:
-
-- Rigidity
-- Sigma
-- Flèche
-- Capacity
-- Fatigue
-- Recovery
-- Stress Utilization (current)
-- Moment Utilization (current)
-- Interaction Density
-
-Validation:
-
-- py_compile passed
-- zone_mechanics_calculator.py executed successfully
-- 634 rows generated
-
-Example — Episode 622:
-
-Rigidity: Birth=50.0 / Current=50.0 / Delta=0.0
-
-Sigma: Birth=19.194501 / Current=7.276244 / Delta=-11.918257 / Change=-62.092039%
-
-Rules Preserved:
-
-- No scoring changes
-- No lifecycle changes
-- No Dashboard V2 scoring impact
 - No RDM formula changes
-- No Phase 2
-- No execution
-- No entries
-- No live signals
+- No lifecycle changes
 
-## Current Active Phase
+## Secondary Checkpoint
 
-PHASE 1B+ Research Expansion
-
-Active Work:
-
-RDM V1.6 Development
+PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 
 Completed:
 
-- RDM V1.6-A Numerical Foundation
+- Binance historical downloader stability improvements
+- Timeout raised: 120s -> 150s
+- Max retries raised: 10 -> 15
+- Extended backoff sequence
+- Retry jitter (±30%)
+- WinError 10060 detection and longer backoff
+- Session retry counter
+- Resume deduplication
+- Periodic checkpoint progress logs
+- Final download verification (row count, first/last timestamp, duplicate check)
+- New CLI flags: `--max-retries`, `--timeout`
 
-Next Target:
+## RDM V1.6 Exposure Physics — Completed Series
 
-- RDM V1.6-B Attacker Definition
+### B1 — Attacker Force Basics
+
+Completed. Attacker force normalization and zone-relative scoring.
+
+### B3.5-A — Attack Attempt Segmentation
+
+Completed. Contiguous attacker session segmentation.
+
+### B3.5-B — Force-Lull Attempt Segmentation
+
+Completed. Sub-session segmentation using force lull thresholds.
+Mean attempts after B3.5-B: 2.46 per zone (was 1 before).
+
+### B4-A — Zone Strength Foundation (ZSS)
+
+Completed. Composite zone strength score from capacity, rigidity, fatigue_inverse, recovery, stress_availability.
+
+### B4-B — Zone vs Attacker
+
+Completed. AFS vs ZSS framework. Force ratio. Anomaly detection baseline.
+
+### B5 — Anomaly Physics
+
+Completed. expected_balance vs observed_balance. Balance gap. Anomaly direction.
+
+### B5.5 — Trajectory Context
+
+Completed. ACTIVE_DEGRADATION / STABLE_ZONE / RECOVERING_ZONE gate for anomaly detection.
+
+### B6 — Elastic Reinforcement Physics
+
+Completed. capacity_growth_factor, rigidity_growth_factor, reinforcement_score, reinforcement_mode.
+
+Design review: reinforcement_mode is a reformulation of zone_mechanical_state — not independent.
+
+### B7 — Attacker Conversion Physics
+
+Completed. `research/attacker_conversion_profile.csv`.
+
+Key finding: Force ≠ Damage. Attacker force does not predict structural damage.
+
+### B7.5-A — Elastic Growth Rate Test
+
+Completed. Growth rate is a symptom, not a mechanism. The sign separation is perfect but growth rate = 16/interaction_count for elastic zones — a formula artifact.
+
+### B7.5-B — Force Allocation Physics
+
+Completed. `research/force_allocation_profile.csv`.
+
+Two channels: Growth Channel and Damage Channel.
+
+Key finding: total_growth = 36.0 for ALL growth-dominant cases (constant, not market-measured). Force allocation confirms the binary channel split but is another reformulation of zone_mechanical_state.
+
+### B7.6 Series — Exposure Physics
+
+#### B7.6-A — Absorption vs Reflection
+
+Completed. HIGH_OMEGA vs LOW_OMEGA GROWTH_DOMINANT split confirmed.
+
+Two physical families:
+- REFLECTION_DOMINANT: omega near zero, overstress < 1, sigma_failure_risk = NONE
+- ABSORPTION_DOMINANT: omega high, overstress > 1, sigma_failure_risk active
+
+#### B7.6-B — Structural Engagement Physics
+
+Completed. Force alone does not explain engagement.
+
+Key correlations (n=31):
+- sigma_barre vs overstress_ratio: r = -0.49 (high barre = lower overstress)
+- penetration_depth vs overstress_ratio: r = +0.64
+
+Engagement is controlled by:
+- sigma_barre_zone (driven by structural memory: reclaim_history r=+0.69, mechanical_memory_score r=+0.67)
+- NOT by force_input (r ≈ 0.12)
+
+Best binary predictor: sigma_barre < Q50 OR force_ratio > 0.80 → 77.4% accuracy.
+
+#### B7.6-C — Stress Exposure Physics
+
+Completed. Conceptual review only.
+
+Engineering analog: Arias Intensity (stress × time integral). omega_stress_area IS the structural equivalent of this integral.
+
+Best definition of Stress Exposure: sigma × penetration × cycles (per-cycle version of omega).
+
+#### B7.6-D — Omega Validation
+
+Completed. Core empirical finding.
+
+sigma × penetration vs omega: r = 0.9935
+
+Omega is the primary Deep Structural Exposure variable.
+
+#### B7.6-E — Surface Damage Physics Review
+
+Completed. Conceptual review.
+
+Hypothesis: RIGID zones with omega=0 and damage>0 represent surface contact fatigue (Hertz contact, fretting).
+
+#### B7.6-F — Surface Damage Validation
+
+Completed. Hypothesis REJECTED.
+
+Zero-omega damage in RIGID zones is NOT independent market physics. It comes from:
+
+```
+rigidity_live = rigidity_birth - row_progress × zone_strength_decay × 0.55 + repair_effect × 8.0
+capacity_live = capacity_birth - row_progress × zone_strength_decay × 0.08 + repair_effect × 10.0
+```
+
+The discrete 7.7 and 4.95 values are:
+- 14.0 × 0.55 = 7.7 (one field_exhausted event)
+- 9.0  × 0.55 = 4.95 (one field_weakening event)
+
+This is a time-based temporal decay formula, not independent structural damage from market force.
+
+### B7.7 — Structural Exposure Physics
+
+Completed. Cyclic exposure review.
+
+Key findings:
+- Cyclic metrics (interaction_count, force_lull_attempt_count, zone_test_count) have low variance in the current dataset (interaction_count range: 101-114).
+- No cyclic metric improves R² beyond log_omega alone.
+- omega_per_test pattern is suggestive (GROWTH cases: more cycles at lower omega each; DAMAGE cases: fewer cycles at higher omega each) but confounded by mechanical_family.
+- Not validated with current dataset — future research only.
+
+## Confirmed RDM Physics Chain
+
+```
+Attacker Force
+    ↓  [filtered by sigma_barre_zone]
+Structural Engagement (penetration > 0)
+    ↓  [× sigma_at_return]
+Omega Stress Area  (stress × penetration = deep exposure)
+    ↓  [routed by mechanical_family]
+    ├── ELASTIC_FAMILY  →  Growth channel (+16 rigidity, +20 capacity, constant)
+    └── DEGRADED_FAMILY →  Damage channel (fatigue + rigidity loss, scales with omega)
+```
+
+sigma_barre_zone is driven by structural memory (reclaim_history, repair_cycles, mechanical_memory_score) — NOT by current structural dimensions alone.
+
+## Research CSVs Generated
+
+- `research/zone_strength_profile.csv`
+- `research/zone_vs_attacker_profile.csv`
+- `research/zone_anomaly_profile.csv`
+- `research/zone_reinforcement_profile.csv`
+- `research/attacker_conversion_profile.csv`
+- `research/force_allocation_profile.csv`
+- `research/attacker_conversion_profile.csv`
+
+## Prior Checkpoints (preserved)
+
+- `PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK`
+- `PHASE1B_RDM_VISUALIZATION_STABLE`
+- `PHASE1B_RDM_MARKET_MECHANICS_V1_5`

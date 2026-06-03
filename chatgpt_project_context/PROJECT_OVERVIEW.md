@@ -49,35 +49,33 @@ PHASE 1B+ Research Expansion
 
 Current focus:
 
-- Observation
-- Calibration
-- Replay validation
-- Historical validation
-- False positive review
-- Live observation without execution
+- RDM Exposure Physics research (B7 series completed)
+- Omega validated as primary structural exposure variable
+- Downloader stability improvements applied
 
 ## Current Checkpoint
 
 Checkpoint:
 
-PHASE1B_RDM_MARKET_MECHANICS_V1_5
+PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE
 
-Commit:
+Secondary:
 
-`b04a781`
+PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 
-Tag:
+Base:
 
-`PHASE1B_RDM_MARKET_MECHANICS_V1_5`
+PHASE1B_RDM_REPLAY_CONSISTENCY_LOCK
 
 Status:
 
 - Research only
 - Observation only
 - Dashboard V2 scoring locked
-- RDM Market Mechanics V1.5 validated
+- RDM Market Mechanics V1.5 + V1.6 (A through B7.7) validated
 - Interaction Density Mapping operational
 - Structural lifecycle calibration operational
+- Omega = sigma × penetration validated (r=0.9935)
 
 ## Hard Rules
 

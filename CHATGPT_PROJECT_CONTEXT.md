@@ -154,63 +154,63 @@ Ratios:
 - Live execution
 - Signal logic
 
-## RDM V1.6-A Numerical Foundation
+## RDM V1.6 — Completed Series
 
-Status:
+### V1.6-A Numerical Foundation
 
-COMPLETED
+Status: COMPLETED
 
-Scope:
+- 42 new `rdm_v16_*` columns
+- Birth / Current / Live / Final metrics for all structural families
 
-Research only. Additive extension of RDM V1.5. Zero formula changes. Zero lifecycle changes. Zero scoring changes.
+### V1.6-B1 through B7.7 — Attacker and Exposure Physics
 
-Implemented:
+Status: COMPLETED
 
-- 42 new `rdm_v16_*` columns added to `zone_mechanics_cycle3_results.csv`
-- Numerical Foundation layer
-- Birth / Current / Live / Final absolute metrics
-- Delta from Birth for all metric families
-- Percentage Change from Birth for all metric families
+Key validated finding:
 
-Metric Families:
+```
+sigma_at_return × zone_penetration_depth ≈ omega_stress_area
+r = 0.9935
+```
 
-- Rigidity / Sigma / Flèche / Capacity / Fatigue / Recovery
-- Stress Utilization / Moment Utilization / Interaction Density
+Omega is the primary Deep Structural Exposure variable.
 
-Validation:
+Structural engagement chain:
 
-- py_compile passed
-- zone_mechanics_calculator.py executed successfully
-- 634 rows generated
+```
+Force → sigma_barre filter → Penetration → Omega → mechanical_family → Growth or Damage
+```
 
-Example — Episode 622:
+sigma_barre is driven by structural memory (reclaim_history, mechanical_memory_score) — NOT by force.
 
-Rigidity: Birth=50.0 / Current=50.0 / Delta=0.0
+Surface Damage hypothesis (B7.6-E/F): REJECTED. Zero-omega damage is time-based temporal decay.
 
-Sigma: Birth=19.194501 / Current=7.276244 / Delta=-11.918257 / Change=-62.092039%
+### Downloader Stability Fix
 
-Rules Preserved:
+Status: COMPLETED
+
+- Timeout: 120s -> 150s
+- Retries: 10 -> 15
+- Extended backoff, jitter, WinError 10060 detection
+- Session retry tracking, resume deduplication
+- New CLI: `--max-retries`, `--timeout`
+
+## Current Active Phase
+
+PHASE 1B+ Research Expansion
+
+Current checkpoints:
+
+- PHASE1B_RDM_EXPOSURE_PHYSICS_STABLE (primary)
+- PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE (secondary)
+
+Rules preserved:
 
 - No scoring changes
 - No lifecycle changes
 - No Dashboard V2 scoring impact
 - No RDM formula changes
 - No Phase 2 / No execution / No entries / No live signals
-
-## Current Active Phase
-
-PHASE 1B+ Research Expansion
-
-Active work:
-
-RDM V1.6 Development
-
-Completed:
-
-- RDM V1.6-A Numerical Foundation
-
-Next Target:
-
-RDM V1.6-B Attacker Definition
 
 Do not advance to Phase 2.

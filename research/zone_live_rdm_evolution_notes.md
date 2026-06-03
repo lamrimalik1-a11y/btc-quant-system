@@ -1,33 +1,31 @@
 # Zone Live RDM Evolution
 
-Run UTC: 2026-06-01T15:12:02+00:00
+Run UTC: 2026-06-02T22:36:36+00:00
 
 Research-only live-style replay timeline. No live execution, no scoring changes, and no signals.
 
-Rows: 51824
-Guard applied rows: 714
+Rows: 4236
+Guard applied rows: 92
 
 ## Raw Live Status Counts
 
-- LIVE_SAFE: 6396
-- LIVE_BREACH: 2320
-- LIVE_DORMANT: 15125
-- LIVE_RECOVERY: 27976
-- LIVE_FATIGUE: 4
-- LIVE_RUPTURE: 3
+- LIVE_SAFE: 1585
+- LIVE_RECOVERY: 1770
+- LIVE_BREACH: 429
+- LIVE_DORMANT: 452
 
 ## Guarded Live Status Counts
 
-- LIVE_SAFE: 6375
-- LIVE_WARNING: 923
-- LIVE_DORMANT: 5344
-- LIVE_RECOVERY: 27811
-- LIVE_BREACH: 1284
-- LIVE_AGING: 10087
+- LIVE_SAFE: 1576
+- LIVE_DORMANT: 486
+- LIVE_RECOVERY: 1747
+- LIVE_WARNING: 191
+- LIVE_BREACH: 231
+- LIVE_AGING: 5
 
 ## Live Breach Counts
 
-- 0: 20281
-- 1: 25611
-- 2: 1966
-- 3: 3966
+- 0: 1733
+- 1: 1529
+- 2: 361
+- 3: 613

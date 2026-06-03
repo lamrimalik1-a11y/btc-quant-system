@@ -3060,3 +3060,83 @@ EXPANSION / REVERSAL SPLIT V1 summary:
 Note:
 HYPOTHESIS_01 remains unproven.
 No trading interpretation.
+
+==================================================
+PHASE 1B EPISODE RESEARCH RUN
+==================================================
+
+Run UTC: 2026-06-02 19:51:57
+Replay window: 2026-06-02
+Mode: score4plus
+Episodes total: 148
+Episodes analyzed: 50
+Score >= 4 episodes: 50
+Research candidates: 50
+
+Classification counts:
+- MOMENTUM_PRECURSOR: 8
+- ACCELERATION_ZONE: 4
+- PRE_EXPANSION: 8
+- CONTEXT_ONLY: 4
+- REVERSAL_WARNING: 10
+- ACCUMULATION: 14
+- ABSORPTION: 0
+- FAILED_CONTEXT: 2
+- RANGE_NOISE: 0
+- UNKNOWN: 0
+
+Strongest examples:
+- CASE_00062 | episode_id=62 | classification=ACCUMULATION | layers=4 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=2315.24
+- CASE_00061 | episode_id=61 | classification=ACCUMULATION | layers=4 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=2262.58
+- CASE_00063 | episode_id=63 | classification=REVERSAL_WARNING | layers=4 | context=MULTI_ZSCORE_CONTEXT | max_abs_4h=2130.65
+- CASE_00065 | episode_id=65 | classification=ACCUMULATION | layers=6 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=1959.52
+- CASE_00057 | episode_id=57 | classification=ACCUMULATION | layers=4 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=1869.11
+
+Counterexamples:
+- CASE_00146 | episode_id=146 | classification=FAILED_CONTEXT | layers=6 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=499.58
+- CASE_00145 | episode_id=145 | classification=FAILED_CONTEXT | layers=5 | context=DELTA_ZSCORE_EXTREME | max_abs_4h=321.04
+
+Preparation zone summary:
+- Preparation candidates: 34
+- Preparation zones found: 34
+- HIGH preparation count: 12
+- EXTREME preparation count: 4
+- MOMENTUM_PRECURSOR with preparation: 5
+- REVERSAL_WARNING with preparation: 7
+- FAILED_CONTEXT with preparation: 2
+- PRE_EXPANSION with preparation: 5
+
+HYPOTHESIS_02 revisit summary:
+- Return count: 31
+- Return success count: 30
+- Return failure count: 1
+- Agreement true: 25
+- Agreement false: 21
+- Agreement unknown: 4
+- High expansion count: 3
+- Extreme expansion count: 26
+- Average quiet score: 85.18
+- Average range ratio: 0.58291269
+- Best preparation cases: CASE_00061|CASE_00057|CASE_00073|CASE_00075|CASE_00076
+- Failed preparation cases: CASE_00071|CASE_00084|CASE_00143|CASE_00145
+
+REVERSAL ANALYZER V1 summary:
+- Direct reversals: 35
+- Late reversals: 8
+- Reversal after preparation return: 21
+- Failed after return: 16
+- HIGH reversal count: 4
+- EXTREME reversal count: 25
+- Average time to reversal: 13.77234419
+
+EXPANSION / REVERSAL SPLIT V1 summary:
+- Pure expansions: 13
+- Expansion then reversal: 5
+- Failed expansions: 1
+- Direct reversals: 31
+- Average expansion strength: 2.64
+- Average expansion to reversal ratio: 10.50018955
+
+Note:
+HYPOTHESIS_01 remains unproven.
+No trading interpretation.

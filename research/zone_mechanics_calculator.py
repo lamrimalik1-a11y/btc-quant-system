@@ -4284,8 +4284,8 @@ def build_zone_structural_trajectory(
 # ==================================================
 
 _HOLD_TRAJECTORIES  = {"STRENGTHENING", "STABLE", "RECOVERY"}
-_FAIL_TRAJECTORIES  = {"TERMINAL", "ACCELERATING_FAILURE"}
-_UNCERT_TRAJECTORIES = {"DEGRADING", "TRANSITIONAL"}
+_FAIL_TRAJECTORIES  = {"TERMINAL", "ACCELERATING_FAILURE", "DEGRADING"}
+_UNCERT_TRAJECTORIES = {"TRANSITIONAL"}
 _HEALTH_CRITICAL_LOW = 20.0   # health below this is structurally compromised
 
 

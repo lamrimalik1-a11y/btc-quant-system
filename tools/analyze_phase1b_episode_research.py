@@ -330,7 +330,13 @@ class ResearchRowIndex:
         if row_id is None or self.rows.empty or self.row_ids.empty:
             return self.rows.head(0).copy()
         position = self.row_ids.searchsorted(float(row_id), side="left")
-        frame = self.rows.iloc[:int(position)].copy()
+        # Copy only the tail needed rather than the full slice from row 0.
+        # The downstream callers always discard earlier rows via .tail(N);
+        # copying the full slice allocates up to ~25 000 rows to produce 100,
+        # causing address-space fragmentation on repeated per-episode calls.
+        tail_needed = tail if tail is not None else 500
+        start = max(0, int(position) - tail_needed)
+        frame = self.rows.iloc[start:int(position)].copy()
         return frame.tail(tail).copy() if tail is not None else frame
 
 

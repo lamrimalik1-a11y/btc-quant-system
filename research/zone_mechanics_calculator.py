@@ -3625,7 +3625,11 @@ def build_zone_visit_timeline(
             first_row = visit_rows.iloc[0]
 
             # Structural state at end of visit (last row in span)
-            rig_v = to_float(last_row.get("rigidity_live"))  or rig_birth
+            # Explicit None-check: preserves 0.0 (fully decayed) vs None (missing data).
+            # The previous `or rig_birth` treated 0.0 as falsy, silently resetting
+            # fully-decayed rigidity to birth value before the BREAKDOWN classifier saw it.
+            _rig_raw = to_float(last_row.get("rigidity_live"))
+            rig_v    = rig_birth if _rig_raw is None else _rig_raw
             cap_v = to_float(last_row.get("capacity_live"))  or cap_birth
             fat_v = to_float(last_row.get("fatigue_live"))   or 0.0
             rec_v = to_float(last_row.get("recovery_live"))  or 0.0

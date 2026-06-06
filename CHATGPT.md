@@ -120,3 +120,118 @@ No replay changes.
 No research changes.
 No B12v2 changes.
 No scoring changes.
+
+==================================================
+PHASE1B_RIGIDITY_FALLBACK_FIX_STABLE
+==================================================
+
+Date: 2026-06-06
+Status: STABLE CHECKPOINT
+
+WHAT HAPPENED:
+
+A silent data corruption bug was discovered and fixed in
+research/zone_mechanics_calculator.py inside build_zone_visit_timeline().
+
+The bug caused fully-decayed EXHAUSTED_ZONE states to be misclassified
+as RECLAIM or DAMAGE instead of BREAKDOWN, contaminating B12v2 outcome labels.
+
+ROOT CAUSE:
+
+Line 3628 (original):
+    rig_v = to_float(last_row.get("rigidity_live")) or rig_birth
+
+Python `or` treats 0.0 as falsy. For EXHAUSTED_ZONE (rig_birth=30.0,
+zone_strength_decay>=50, recovery_current=0.0), the live rigidity formula
+clamps the zone to exactly rigidity_live=0.0.
+
+When 0.0 was fetched, `to_float()` correctly returned 0.0, but `or rig_birth`
+silently replaced it with 30.0. The BREAKDOWN check then saw rig_v=30.0 and
+found 30.0 < 15.0 = False, so BREAKDOWN never fired.
+
+Three conditions make EXHAUSTED_ZONE exclusively vulnerable:
+  1. rig_birth <= 30 (MEDIUM zone — BREAKDOWN threshold is 15.0)
+  2. zone_strength_decay >= 50 (enough decay to reach 0.0)
+  3. recovery_current = 0.0 (NO_RECOVERY — no repair to prevent floor)
+
+THE FIX:
+
+Single-line replacement (lines 3631-3632 after edit):
+
+    _rig_raw = to_float(last_row.get("rigidity_live"))
+    rig_v    = rig_birth if _rig_raw is None else _rig_raw
+
+Explicit None-check: 0.0 (fully decayed) is preserved. None (missing data)
+still falls back to rig_birth. Behavior unchanged for all non-EXHAUSTED cases.
+
+IMPACT ON ZONE_VISIT_TIMELINE:
+
+Effect A (RECLAIM → BREAKDOWN):
+  13 visit_N outcomes that were RECLAIM are now correctly BREAKDOWN.
+  B12v2 impact: 13 cases that were false FAILs (pred=FAIL, out=HOLD)
+  became true positives (pred=FAIL, out=FAIL).
+
+Effect B (DAMAGE → BREAKDOWN):
+  Unexpected positive side effect: zones where fallback had given rig_v=30.0
+  caused the classifier to fall to DAMAGE (not BREAKDOWN), which B12v2 mapped
+  as AMBIGUOUS and excluded. After fix, BREAKDOWN fires first on all these.
+  Formation: +17 newly evaluable correct FAILs
+  Active Core: +13 newly evaluable correct FAILs
+  Density Band: +7 newly evaluable correct FAILs
+
+RESULTS — POST-FIX B12v2 VALIDATED:
+
+  Mode           Evaluable  Accuracy  HOLD F1  FAIL F1  Lift
+  Formation          650     98.8%    0.989    0.986   +42.3%
+  Active Core        400     98.8%    0.989    0.986   +43.8%
+  Density Band       263     98.5%    0.986    0.983   +43.3%
+
+All modes: LEAKAGE PASS, CONSISTENCY PASS, INTEGRITY PASS.
+
+Remaining false HOLDs: 3 identical cases across all modes
+  — STABLE trajectory / EXHAUSTED_ZONE / HEALTH_STABLE
+  — Same 3 zones — different failure mode (not the fallback bug)
+
+Remaining false FAILs after fix:
+  Formation: 5 (4x EXHAUSTED_ZONE rig_birth>30, 1x RIGID_ZONE ABSORPTION)
+  Active Core: 2 (EXHAUSTED_ZONE DEGRADING)
+  Density Band: 1 (EXHAUSTED_ZONE DEGRADING)
+
+INTERPRETATION:
+
+The fix corrected a classification bug, not a formula. No RDM physics changed.
+The B12v2 engine now sees correct structural states: zones that fully decayed
+(rigidity=0.0) are correctly labeled BREAKDOWN. The accuracy improvement from
+~97.2% to 98.8% (Formation) is entirely attributable to removing misclassified
+outcomes from the ground truth — not from improving the prediction model.
+
+ARCHITECTURE PRESERVED:
+
+No formula changes.
+No Phase 1 production file changes.
+No RDM formula changes.
+No B9/B10/B11/Synthesis changes.
+No lifecycle logic changes.
+No replay formula changes.
+No dashboard changes.
+
+CURRENT PROJECT STATUS:
+
+B12v2 is validated at 98.8% prospective accuracy (Formation mode) across a
+34-day dataset (Apr 30 – Jun 2, 2026). All three zone modes confirmed.
+Physics correlation (sigma x penetration r=0.9953) intact.
+Leakage-free architecture confirmed.
+
+Repository: CLEAN. Commit: PHASE1B_RIGIDITY_FALLBACK_FIX_STABLE.
+
+NEXT RESEARCH CANDIDATE:
+
+PHASE1B_EXHAUSTED_ZONE_RESEARCH
+
+Goal: Characterize the remaining error concentration in EXHAUSTED_ZONE.
+  - False HOLDs: 3 cases — STABLE trajectory / HEALTH_STABLE / EXHAUSTED_ZONE
+    (B10 calls these STABLE even though they eventually breakdown — why?)
+  - False FAILs: 4 Formation cases — EXHAUSTED_ZONE with rig_birth > 30
+    (BREAKDOWN threshold of rig_birth*0.50 not reached because rig_birth > 30)
+  - Question: Is STABLE trajectory in EXHAUSTED_ZONE a systematic B10 error
+    or a genuine edge case (zone that was stable until a sudden event)?

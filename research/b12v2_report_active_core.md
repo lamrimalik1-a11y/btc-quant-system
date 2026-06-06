@@ -2,7 +2,7 @@
 ======================================================================
 B12v2 — PENULTIMATE-STATE VALIDATION
 ======================================================================
-Run:          2026-06-06 18:47 UTC
+Run:          2026-06-06 22:43 UTC
 Architecture: research/b12v2_architecture.md
 Dataset:      2026-04-30 to 2026-06-02
 Zone mode:    active_core
@@ -51,22 +51,22 @@ STEP 2.5 — PENULTIMATE ACTIVE CORE
   Visit N touchpoint check:
     Reached penultimate core:     465
     Missed penultimate core:      281 (will be reclassified AMBIGUOUS)
-  Penultimate core width (valid): median=281  p25=217  p75=346
+  Penultimate ACTIVE CORE width (valid): median=281  p25=217  p75=346
 
 ======================================================================
 STEP 3 — OUTCOME CLASSIFICATION
 ======================================================================
-  Active Core reclassification: 259 visit-N outcomes set to AMBIGUOUS
-  (price at visit N did not reach the penultimate Active Core)
+  ACTIVE CORE reclassification: 263 visit-N outcomes set to AMBIGUOUS
+  (price at visit N did not reach the penultimate ACTIVE CORE)
   Multi-visit cases:  746
-  HOLD outcomes:      267  (35.8%)
-  FAIL outcomes:      181  (24.3%)
-  AMBIGUOUS (excl):   298   (39.9%)
-  Potential evaluable (HOLD+FAIL): 448
+  HOLD outcomes:      258  (34.6%)
+  FAIL outcomes:      204  (27.3%)
+  AMBIGUOUS (excl):   284   (38.1%)
+  Potential evaluable (HOLD+FAIL): 462
 
   Outcome uses visit_N.visit_result ONLY.
   No breakdown_count, no health_last_visit threshold.
-  Active Core mode: outcomes excluded where visit N missed penultimate core.
+  ACTIVE CORE mode: outcomes excluded where visit N missed penultimate zone.
 
 ======================================================================
 STEP 4 — RECOMPUTE B9/B10/B11/SYNTHESIS FROM vt_prior
@@ -111,10 +111,10 @@ STEP 5 — BUILD EVALUATION FRAME
     UNCERTAIN:     9    (excluded)
     NO_PREDICTION: 80   (excluded)
   Outcomes (visit N):
-    HOLD:          267
-    FAIL:          181
-    AMBIGUOUS:     298   (excluded)
-  FINAL EVALUABLE POPULATION: 387
+    HOLD:          258
+    FAIL:          204
+    AMBIGUOUS:     284   (excluded)
+  FINAL EVALUABLE POPULATION: 400
 
 ======================================================================
 STEP 6 — INTEGRITY CHECK
@@ -129,42 +129,42 @@ INTEGRITY: ALL CHECKS PASSED
 ======================================================================
 STEP 7 — BASERATE
 ======================================================================
-  HOLD outcomes: 229 / 387 = 59.2%
-  FAIL outcomes: 158 / 387 = 40.8%
-  Majority-class naive baseline: 59.2%
+  HOLD outcomes: 220 / 400 = 55.0%
+  FAIL outcomes: 180 / 400 = 45.0%
+  Majority-class naive baseline: 55.0%
   (B12 retrospective baserate for comparison: 63.3% / 36.7%)
 
 ======================================================================
 STEP 8 — OVERALL ACCURACY
 ======================================================================
-  Evaluable:         387
-  Correct:           373
-  Incorrect:         14
-  Overall accuracy:  96.4%
-  Naive baseline:    59.2%
-  Lift vs baseline:  +37.2%
+  Evaluable:         400
+  Correct:           395
+  Incorrect:         5
+  Overall accuracy:  98.8%
+  Naive baseline:    55.0%
+  Lift vs baseline:  +43.8%
   Verdict: STRONG — beats baseline by >10pp
 
   Confusion matrix:
     b12v2_outcome  FAIL  HOLD  All
     pred_label                    
-    FAIL            155    11  166
+    FAIL            177     2  179
     HOLD              3   218  221
-    All             158   229  387
+    All             180   220  400
 
 ======================================================================
 STEP 9 — HOLD ANALYSIS
 ======================================================================
   HOLD predictions: 221
-  TP=218  FP=3  FN=11
-  Precision: 98.6%   Recall: 95.2%   F1: 0.969
-  HOLD lift: +39.5%  vs baserate 59.2%
+  TP=218  FP=3  FN=2
+  Precision: 98.6%   Recall: 99.1%   F1: 0.989
+  HOLD lift: +43.6%  vs baserate 55.0%
   False HOLDs (predicted HOLD, visit N = BREAKDOWN): 3
   False HOLD rate: 1.4%
 
 --- HOLD by trajectory ---
-    STABLE                    : n=  3  hold_rate=0.0%  lift=-59.2%
-    STRENGTHENING             : n=218  hold_rate=100.0%  lift=+40.8%
+    STABLE                    : n=  3  hold_rate=0.0%  lift=-55.0%
+    STRENGTHENING             : n=218  hold_rate=100.0%  lift=+45.0%
 
 --- HOLD by mechanical state ---
     ELASTIC_ZONE          : n= 37  hold_rate=100.0%
@@ -173,8 +173,8 @@ STEP 9 — HOLD ANALYSIS
     RECOVERED_ZONE        : n= 55  hold_rate=100.0%
 
 --- HOLD by coherence ---
-    MODERATE      : n= 49  hold_rate=95.9%  lift=+36.7%
-    STRONG        : n=172  hold_rate=99.4%  lift=+40.2%
+    MODERATE      : n= 49  hold_rate=95.9%  lift=+40.9%
+    STRONG        : n=172  hold_rate=99.4%  lift=+44.4%
 
 --- HOLD by visit count (N-1 prior visits) ---
     prior_visits=2: n= 49  hold_rate=95.9%
@@ -191,25 +191,25 @@ STEP 9 — HOLD ANALYSIS
 ======================================================================
 STEP 10 — FAIL ANALYSIS
 ======================================================================
-  FAIL predictions: 166
-  TP=155  FP=11  FN=3
-  Precision: 93.4%   Recall: 98.1%   F1: 0.957
-  FAIL lift: +52.5%  vs baserate 40.8%
-  False FAILs (predicted FAIL, visit N = HOLD/GROWTH): 11
+  FAIL predictions: 179
+  TP=177  FP=2  FN=3
+  Precision: 98.9%   Recall: 98.3%   F1: 0.986
+  FAIL lift: +53.9%  vs baserate 45.0%
+  False FAILs (predicted FAIL, visit N = HOLD/GROWTH): 2
 
 --- FAIL by trajectory ---
-    DEGRADING                 : n= 65  fail_rate=96.9%  lift=+56.1%
-    TERMINAL                  : n=101  fail_rate=91.1%  lift=+50.3%
+    DEGRADING                 : n= 65  fail_rate=96.9%  lift=+51.9%
+    TERMINAL                  : n=114  fail_rate=100.0%  lift=+55.0%
 
 --- FAIL by mechanical state ---
-    EXHAUSTED_ZONE        : n=166  fail_rate=93.4%
+    EXHAUSTED_ZONE        : n=179  fail_rate=98.9%
 
 --- FAIL by coherence ---
-    MODERATE      : n= 39  fail_rate=92.3%  lift=+51.5%
-    STRONG        : n=127  fail_rate=93.7%  lift=+52.9%
+    MODERATE      : n= 39  fail_rate=97.4%  lift=+52.4%
+    STRONG        : n=140  fail_rate=99.3%  lift=+54.3%
 
 --- FAIL by health state ---
-    HEALTH_COLLAPSING     : n=101  fail_rate=91.1%
+    HEALTH_COLLAPSING     : n=114  fail_rate=100.0%
     HEALTH_DEGRADING_FAST : n=  5  fail_rate=80.0%
     HEALTH_WEAKENING      : n= 57  fail_rate=100.0%
     UNKNOWN               : n=  3  fail_rate=66.7%
@@ -218,8 +218,8 @@ STEP 10 — FAIL ANALYSIS
 STEP 11 — COHERENCE VALIDATION
 ======================================================================
   Coherence          N     Acc  Hold_prec  Fail_prec     Lift
-  STRONG           299   97.0%      99.4%      93.7%  +37.8%
-  MODERATE          88   94.3%      95.9%      92.3%  +35.1%
+  STRONG           312   99.4%      99.4%      99.3%  +44.4%
+  MODERATE          88   96.6%      95.9%      97.4%  +41.6%
 
   STRONG >= MODERATE:      True
   MODERATE >= INSUFFICIENT:True
@@ -229,10 +229,10 @@ STEP 11 — COHERENCE VALIDATION
 STEP 12 — TRAJECTORY VALIDATION
 ======================================================================
   Trajectory                     N     Acc   HOLD%   FAIL%     Lift    Useful
-  STRENGTHENING                218  100.0%  100.0%    0.0%  +40.8%       YES
-  STABLE                         3    0.0%    0.0%  100.0%  -59.2%        NO
-  DEGRADING                     65   96.9%    3.1%   96.9%  +37.7%       YES
-  TERMINAL                     101   91.1%    8.9%   91.1%  +31.9%       YES
+  STRENGTHENING                218  100.0%  100.0%    0.0%  +45.0%       YES
+  STABLE                         3    0.0%    0.0%  100.0%  -55.0%        NO
+  DEGRADING                     65   96.9%    3.1%   96.9%  +41.9%       YES
+  TERMINAL                     114  100.0%    0.0%  100.0%  +45.0%       YES
 
   Useful trajectories (lift > 5pp): ['STRENGTHENING', 'DEGRADING', 'TERMINAL']
 
@@ -241,8 +241,8 @@ STEP 13 — SYNTHESIS CONTRIBUTION
 ======================================================================
   Synthesis adds: coherence classification + multi-source context + quality gate
 
-  Full evaluable accuracy:            96.4%  n=387
-  STRONG-coherence filtered accuracy: 97.0%  n=299
+  Full evaluable accuracy:            98.8%  n=400
+  STRONG-coherence filtered accuracy: 99.4%  n=312
   Coherence filtering delta:          +0.6%
   Verdict: coherence filter marginally improves accuracy
 
@@ -252,8 +252,8 @@ STEP 13 — SYNTHESIS CONTRIBUTION
   withheld a prediction. Excluding them focuses evaluation on confident predictions.
 
   Prediction origin analysis:
-    Prior breakdown >= 1 in vt_prior: 101
-      Accuracy: 91.1%  (semi-prospective: prior breakdown is valid signal)
+    Prior breakdown >= 1 in vt_prior: 114
+      Accuracy: 100.0%  (semi-prospective: prior breakdown is valid signal)
     No prior breakdown:               286
       Accuracy: 98.3%  (FULLY prospective: structural signals only)
       Baseline: 76.9%  Lift: +21.3%
@@ -280,9 +280,6 @@ STEP 14 — INTERPRETATION VALIDATION  [sample]
     pred=FAIL  out=FAIL  traj=TERMINAL            | TERMINAL zone under opposing flow — failure confirmed.
   --- False  FAILs  (pred=FAIL, visit N = HOLD) ---
     pred=FAIL  out=HOLD  traj=DEGRADING           | DEGRADING zone under opposing flow — failure expected.
-    pred=FAIL  out=HOLD  traj=TERMINAL            | TERMINAL zone under opposing flow — failure expected.
-    pred=FAIL  out=HOLD  traj=TERMINAL            | TERMINAL zone under opposing flow — failure confirmed.
-    pred=FAIL  out=HOLD  traj=TERMINAL            | TERMINAL zone under opposing flow — failure confirmed.
     pred=FAIL  out=HOLD  traj=DEGRADING           | DEGRADING zone under opposing flow — failure confirmed.
 
 ======================================================================
@@ -305,12 +302,12 @@ STEP 16 — ERROR ANALYSIS
     coh_label: {'MODERATE': np.int64(2), 'STRONG': np.int64(1)}
     health_state: {'HEALTH_STABLE': np.int64(3)}
 
-  False FAILs: 11  (predicted FAIL, visit N = HOLD/GROWTH)
-  False FAIL rate: 6.6%
-    structural_trajectory: {'TERMINAL': np.int64(9), 'DEGRADING': np.int64(2)}
-    zone_mechanical_state: {'EXHAUSTED_ZONE': np.int64(11)}
-    coh_label: {'STRONG': np.int64(8), 'MODERATE': np.int64(3)}
-    health_state: {'HEALTH_COLLAPSING': np.int64(9), 'UNKNOWN': np.int64(1), 'HEALTH_DEGRADING_FAST': np.int64(1)}
+  False FAILs: 2  (predicted FAIL, visit N = HOLD/GROWTH)
+  False FAIL rate: 1.1%
+    structural_trajectory: {'DEGRADING': np.int64(2)}
+    zone_mechanical_state: {'EXHAUSTED_ZONE': np.int64(2)}
+    coh_label: {'MODERATE': np.int64(1), 'STRONG': np.int64(1)}
+    health_state: {'UNKNOWN': np.int64(1), 'HEALTH_DEGRADING_FAST': np.int64(1)}
 
 ======================================================================
 STEP 17 — CONSISTENCY REVIEW AND SELF REVIEW
@@ -323,7 +320,7 @@ Assumptions made and verified in this run:
   C. outcome_df derived from visit N visit_result only (no breakdown_count)
   D. results_df / vs_attacker_df / episodes_df are not visit-outcome-dependent
   E. I(t) intersection O(t+1) = empty set (verified field by field)
-  F. Evaluable population: 387 cases
+  F. Evaluable population: 400 cases
 
   REJECTED:
   A. Retrospective accuracy (B12) as evidence of predictive value -- REJECTED
@@ -351,16 +348,16 @@ FLAGS SUMMARY
 ======================================================================
 GREEN FLAGS:
   * Physics: sigma x penetration r=0.9953  CONFIRMED
-  * Prospective accuracy beats baseline by >5pp: 96.4% vs 59.2%
-  * HOLD precision > baserate: 98.6% vs 59.2%
-  * FAIL precision > baserate: 93.4% vs 40.8%
+  * Prospective accuracy beats baseline by >5pp: 98.8% vs 55.0%
+  * HOLD precision > baserate: 98.6% vs 55.0%
+  * FAIL precision > baserate: 98.9% vs 45.0%
   * Leakage assertion: PASS (I(t) ∩ O(t+1) = empty)
   * Architecture chain B9->B10->B11->Synthesis preserved exactly
   * Zero Phase 1 production files modified
   * Useful trajectories identified: ['STRENGTHENING', 'DEGRADING', 'TERMINAL']
 
 YELLOW FLAGS:
-  * AMBIGUOUS visit N outcomes (DAMAGE): 298 -- excluded from evaluation
+  * AMBIGUOUS visit N outcomes (DAMAGE): 284 -- excluded from evaluation
   * Single-visit zones excluded: 473 (39.3% of all cases)
   * NO_PREDICTION + UNCERTAIN excluded: 89
   * Dataset = single 34-day period; regime generalizability unverified
@@ -372,9 +369,9 @@ RED FLAGS:
 ======================================================================
 FINAL RECOMMENDATION
 ======================================================================
-  Prospective accuracy:   96.4%  vs baseline 59.2%  lift=+37.2%
-  HOLD F1 (prospective):  0.969   FAIL F1 (prospective): 0.957
-  Evaluable population:   387
+  Prospective accuracy:   98.8%  vs baseline 55.0%  lift=+43.8%
+  HOLD F1 (prospective):  0.989   FAIL F1 (prospective): 0.986
+  Evaluable population:   400
   Physics sigma x pen:    r=0.9953
 
   RECOMMENDATION: Phase 1 integrated chain shows genuine prospective predictive
@@ -395,5 +392,5 @@ SELF REVIEW STATUS:
 SAVING OUTPUTS
 ======================================================================
   Written: b12v2_penultimate_predictions_active_core.csv  (746 rows)
-  Written: b12v2_case_results_active_core.csv  (387 rows)
+  Written: b12v2_case_results_active_core.csv  (400 rows)
   Written: b12v2_report_active_core.csv

@@ -2425,3 +2425,152 @@ REFERENCE
 
 research/terminology_formation_zones.md
 
+
+
+==================================================
+PHASE1B_RIGIDITY_FALLBACK_FIX_STABLE
+==================================================
+
+Date: 2026-06-06
+STATUS: STABLE CHECKPOINT
+
+--------------------------------------------------
+ROOT CAUSE
+--------------------------------------------------
+
+In research/zone_mechanics_calculator.py, inside build_zone_visit_timeline(),
+the rigidity fallback pattern at line 3628 (original):
+
+    rig_v = to_float(last_row.get("rigidity_live")) or rig_birth
+
+Python `or` treats 0.0 as falsy. For EXHAUSTED_ZONE (MEDIUM strength,
+rig_birth=30.0, zone_strength_decay>=50, recovery_current=0.0), the live
+rigidity formula clamps to exactly 0.0:
+
+    rigidity_live = max(rigidity_birth - row_progress * decay * 0.55 + repair * 8.0, 0.0)
+
+When rigidity_live=0.0 was returned, `to_float()` returned 0.0 (correct),
+but `or rig_birth` silently replaced it with 30.0 (birth value). This
+prevented BREAKDOWN from firing because:
+
+    rig_v=30.0 < rig_birth*0.50=15.0  -->  False  (no BREAKDOWN)
+    rig_v=0.0  < rig_birth*0.50=15.0  -->  True   (BREAKDOWN fires)
+
+The fallback was not a logic error in the original design intent, but Python
+`or` treats 0.0 the same as None, making the "missing data guard" also fire
+on fully decayed but valid states.
+
+--------------------------------------------------
+FIX
+--------------------------------------------------
+
+Single line change in research/zone_mechanics_calculator.py (lines 3631-3632):
+
+BEFORE (line 3628):
+    rig_v = to_float(last_row.get("rigidity_live")) or rig_birth
+
+AFTER (lines 3631-3632):
+    _rig_raw = to_float(last_row.get("rigidity_live"))
+    rig_v    = rig_birth if _rig_raw is None else _rig_raw
+
+Explicit None-check: preserves 0.0 (fully decayed) vs None (missing data).
+cap_v, hlt_v, sig_v fallbacks unchanged (separate audit required).
+
+--------------------------------------------------
+IMPACT ON ZONE_VISIT_TIMELINE
+--------------------------------------------------
+
+Effect A — RECLAIM reclassified to BREAKDOWN:
+  Cases where rigidity_live=0.0 was silently replaced by rig_birth=30.0,
+  causing visit_result=RECLAIM instead of BREAKDOWN.
+  Formation: 13 cases flipped
+  (zone_visit_timeline.csv: 20 RECLAIM at visit N before fix → 7 after fix)
+
+Effect B — DAMAGE reclassified to BREAKDOWN:
+  Cases where fallback prevented BREAKDOWN, classifier fell to DAMAGE
+  (AMBIGUOUS in B12v2). After fix, BREAKDOWN fires first.
+  Formation: +17 newly evaluable correct FAILs
+  Active Core: +13 newly evaluable correct FAILs
+  Density Band: +7 newly evaluable correct FAILs
+
+--------------------------------------------------
+VALIDATED RESULTS — POST-FIX B12v2
+--------------------------------------------------
+
+Formation mode (research/b12v2_report.md):
+  Evaluable: 650  |  Accuracy: 98.8%  |  Lift: +42.3% vs baseline 56.5%
+  HOLD  — Precision: 99.2%  Recall: 98.6%  F1: 0.989  |  False HOLDs: 3
+  FAIL  — Precision: 98.2%  Recall: 98.9%  F1: 0.986  |  False FAILs: 5
+  LEAKAGE: PASS  |  CONSISTENCY: PASS
+
+Active Core mode (research/b12v2_report_active_core.md):
+  Evaluable: 400  |  Accuracy: 98.8%  |  Lift: +43.8% vs baseline 55.0%
+  HOLD  — Precision: 98.6%  Recall: 99.1%  F1: 0.989  |  False HOLDs: 3
+  FAIL  — Precision: 98.9%  Recall: 98.3%  F1: 0.986  |  False FAILs: 2
+  LEAKAGE: PASS  |  CONSISTENCY: PASS
+
+Density Band mode (research/b12v2_report_density_band.md):
+  Evaluable: 263  |  Accuracy: 98.5%  |  Lift: +43.3% vs baseline 55.1%
+  HOLD  — Precision: 98.0%  Recall: 99.3%  F1: 0.986  |  False HOLDs: 3
+  FAIL  — Precision: 99.1%  Recall: 97.5%  F1: 0.983  |  False FAILs: 1
+  LEAKAGE: PASS  |  CONSISTENCY: PASS
+
+Remaining false HOLDs (all 3 modes): 3 identical cases
+  — STABLE trajectory / EXHAUSTED_ZONE / HEALTH_STABLE
+
+Remaining false FAILs after fix:
+  Formation: 5 (4x EXHAUSTED_ZONE rig_birth>30, 1x RIGID_ZONE ABSORPTION)
+  Active Core: 2 (EXHAUSTED_ZONE DEGRADING)
+  Density Band: 1 (EXHAUSTED_ZONE DEGRADING)
+
+--------------------------------------------------
+ARCHITECTURE
+--------------------------------------------------
+
+No formula changes.
+No Phase 1 production file changes.
+No RDM formula changes.
+No B9/B10/B11/Synthesis changes.
+No lifecycle logic changes.
+No replay formula changes.
+No dashboard changes.
+
+Only zone_mechanics_calculator.py line 3628 modified (rigidity fallback).
+zone_visit_timeline.csv regenerated from existing CSVs (no replay needed).
+
+--------------------------------------------------
+FILES CHANGED
+--------------------------------------------------
+
+research/zone_mechanics_calculator.py       (fix: line 3628)
+research/zone_visit_timeline.csv            (regenerated: 3841 rows)
+research/b12v2_case_results.csv             (650 rows)
+research/b12v2_case_results_active_core.csv (400 rows)
+research/b12v2_case_results_density_band.csv (263 rows)
+research/b12v2_report.csv / .md
+research/b12v2_report_active_core.csv / .md
+research/b12v2_report_density_band.csv / .md
+research/b12v2_penultimate_predictions.csv
+research/b12v2_penultimate_predictions_active_core.csv
+research/b12v2_penultimate_predictions_density_band.csv
+
+--------------------------------------------------
+RULES
+--------------------------------------------------
+
+No Phase 2.
+No execution.
+No BUY/SELL.
+Do NOT change Phase1B formulas.
+Do NOT change RDM formulas.
+Do NOT modify B11/B12v2 logic.
+Do NOT download data without explicit request.
+
+--------------------------------------------------
+NEXT RESEARCH CANDIDATE
+--------------------------------------------------
+
+PHASE1B_EXHAUSTED_ZONE_RESEARCH
+Goal: Characterize the remaining false FAIL and false HOLD cases that are
+concentrated in EXHAUSTED_ZONE. Understand whether STABLE trajectory cases
+represent a structural exception or an edge case in B10 trajectory labeling.

@@ -2,15 +2,14 @@
 ======================================================================
 B12v2 — PENULTIMATE-STATE VALIDATION
 ======================================================================
-Run:          2026-06-06 18:46 UTC
+Run:          2026-06-05 22:05 UTC
 Architecture: research/b12v2_architecture.md
 Dataset:      2026-04-30 to 2026-06-02
-Zone mode:    formation
 Functions imported. No modifications to any Phase 1 code.
 Loaded: zone_visit_timeline (3,841 rows)
 Loaded: zone_mechanics_cycle3_results (1,219 rows)
 Loaded: zone_vs_attacker_profile (1,219 rows)
-Loaded: historical_replay_dashboard_v2_episodes (126 rows)
+Loaded: historical_replay_dashboard_v2_episodes (3,850 rows)
 
 ======================================================================
 STEP 1 — VISIT SPLIT

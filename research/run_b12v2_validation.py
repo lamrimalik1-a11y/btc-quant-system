@@ -29,7 +29,7 @@ NEVER OVERWRITES:
 
 Research only. No formula changes. No dashboard work.
 """
-import csv, sys
+import argparse, csv, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +38,13 @@ import pandas as pd
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--zone-mode", default="formation",
+                     choices=["formation", "active_core"],
+                     help="Zone used for visit N outcome detection")
+_args, _ = _parser.parse_known_args()
+ZONE_MODE = _args.zone_mode
 
 ROOT = Path(__file__).resolve().parents[1]
 RES  = ROOT / "research"
@@ -77,6 +84,7 @@ hdr("B12v2 — PENULTIMATE-STATE VALIDATION")
 log(f"Run:          {NOW}")
 log(f"Architecture: research/b12v2_architecture.md")
 log(f"Dataset:      2026-04-30 to 2026-06-02")
+log(f"Zone mode:    {ZONE_MODE}")
 
 from research.zone_mechanics_calculator import (
     build_zone_health_evolution,
@@ -182,11 +190,146 @@ log("  O(t+1)   = visit N in outcome_rows")
 log("  I(t) ∩ O(t+1) = empty set")
 
 # ════════════════════════════════════════════════════════════════════════════
+# STEP 2.5 — PENULTIMATE ACTIVE CORE (only when zone_mode = active_core)
+# Computes per-case Active Core from live rows restricted to visits 1..N-1.
+# Uses these bounds to decide whether visit N actually reached the core.
+# If visit N missed the core, its outcome is reclassified as AMBIGUOUS.
+# I(t) ∩ O(t+1) = ∅ guarantee preserved: core is built from vt_prior rows only.
+# ════════════════════════════════════════════════════════════════════════════
+
+_penultimate_core: dict = {}   # case_id -> (lower, upper, valid_flag)
+_visit_n_in_core:  dict = {}   # case_id -> bool
+
+if ZONE_MODE == "active_core":
+    hdr("STEP 2.5 — PENULTIMATE ACTIVE CORE")
+
+    from research.zone_mechanics_calculator import (
+        temporal_interaction_window,
+        interaction_core_points,
+        adaptive_core_bounds,
+    )
+
+    log("  Loading zone_live_rdm_evolution.csv ...")
+    live_evo = pd.read_csv(RES / "zone_live_rdm_evolution.csv", low_memory=False)
+    live_evo["case_id"]   = live_evo["case_id"].astype(str)
+    live_evo["row_index"] = pd.to_numeric(live_evo["row_index"], errors="coerce")
+    log(f"  Loaded: {len(live_evo):,} rows across {live_evo['case_id'].nunique()} cases")
+
+    # Prior visit row ranges: for each case, rows up to last row of visit N-1
+    _vt_has_rows = "visit_start_row" in vt_prior.columns and "visit_end_row" in vt_prior.columns
+    if not _vt_has_rows:
+        log("  WARNING: visit_start_row/visit_end_row missing from vt_prior — using all prior live rows")
+    prior_max_row = (
+        pd.to_numeric(vt_prior["visit_end_row"], errors="coerce")
+          .groupby(vt_prior["case_id"]).max()
+        if _vt_has_rows
+        else pd.Series(dtype=float)
+    )
+
+    # Visit N row ranges for touchpoint check
+    _out_has_rows = "visit_start_row" in outcome_rows.columns and "visit_end_row" in outcome_rows.columns
+    outcome_row_ranges = {}
+    if _out_has_rows:
+        for _, r in outcome_rows.iterrows():
+            cid  = str(r["case_id"])
+            r_lo = pd.to_numeric(r["visit_start_row"], errors="coerce")
+            r_hi = pd.to_numeric(r["visit_end_row"],   errors="coerce")
+            if not (np.isnan(r_lo) or np.isnan(r_hi)):
+                outcome_row_ranges[cid] = (int(r_lo), int(r_hi))
+
+    live_grouped = {cid: g for cid, g in live_evo.groupby("case_id")}
+
+    n_valid_core = 0
+    n_fallback   = 0
+    n_v_in_core  = 0
+    n_v_out_core = 0
+
+    for case_id in multi_ids:
+        # Formation bounds
+        row_s = results[results["case_id"] == case_id]
+        if row_s.empty:
+            _penultimate_core[case_id] = (0.0, 0.0, False)
+            _visit_n_in_core[case_id]  = True   # don't exclude if missing
+            continue
+        row_r = row_s.iloc[0]
+        f_lo  = float(pd.to_numeric(row_r.get("preparation_low_price"),  errors="coerce") or 0.0)
+        f_hi  = float(pd.to_numeric(row_r.get("preparation_high_price"), errors="coerce") or 0.0)
+        f_w   = max(f_hi - f_lo, 1e-9)
+        f_mid = (f_hi + f_lo) / 2.0
+
+        # Penultimate live rows
+        case_live = live_grouped.get(case_id, pd.DataFrame())
+        if not case_live.empty and case_id in prior_max_row.index:
+            max_prior = prior_max_row[case_id]
+            pen_live  = case_live[case_live["row_index"] <= max_prior].copy()
+        else:
+            pen_live = case_live.copy()
+
+        # Active Core from penultimate rows
+        if not pen_live.empty:
+            t_live  = temporal_interaction_window(pen_live)
+            pts     = interaction_core_points(t_live, f_lo, f_hi, f_w)
+        else:
+            pts = []
+
+        if len(pts) >= 3:
+            raw_lo = min(pts) - max((max(pts) - min(pts)) * 0.10, 5.0)
+            raw_hi = max(pts) + max((max(pts) - min(pts)) * 0.10, 5.0)
+            c_lo   = max(raw_lo, f_lo)
+            c_hi   = min(raw_hi, f_hi)
+            _penultimate_core[case_id] = (c_lo, c_hi, True)
+            n_valid_core += 1
+        else:
+            c_lo, c_hi = adaptive_core_bounds(row_r, f_lo, f_hi, f_w, f_mid)
+            _penultimate_core[case_id] = (c_lo, c_hi, False)
+            n_fallback += 1
+
+        # Did visit N touch the penultimate core?
+        c_lo_v, c_hi_v, _ = _penultimate_core[case_id]
+        if case_id in outcome_row_ranges and case_id in live_grouped:
+            v_lo, v_hi = outcome_row_ranges[case_id]
+            v_rows     = live_grouped[case_id]
+            v_rows     = v_rows[
+                (v_rows["row_index"] >= v_lo) & (v_rows["row_index"] <= v_hi)
+            ]
+            prices = pd.to_numeric(v_rows["price"], errors="coerce").dropna()
+            in_core = bool(
+                len(prices) > 0
+                and (prices >= c_lo_v).any()
+                and (prices <= c_hi_v).any()
+            )
+        else:
+            in_core = True   # no row range data — don't exclude
+
+        _visit_n_in_core[case_id] = in_core
+        if in_core:
+            n_v_in_core  += 1
+        else:
+            n_v_out_core += 1
+
+    n_total_core = len(multi_ids)
+    log(f"  Penultimate cores computed: {n_total_core}")
+    log(f"    From live interaction points: {n_valid_core}")
+    log(f"    Fallback (adaptive bounds):   {n_fallback}")
+    log(f"  Visit N touchpoint check:")
+    log(f"    Reached penultimate core:     {n_v_in_core}")
+    log(f"    Missed penultimate core:      {n_v_out_core} (will be reclassified AMBIGUOUS)")
+
+    # Report Active Core width stats
+    if _penultimate_core:
+        core_widths = [v[1] - v[0] for v in _penultimate_core.values() if v[2]]
+        if core_widths:
+            cw = pd.Series(core_widths)
+            log(f"  Penultimate core width (valid): median={cw.median():.0f}  p25={cw.quantile(.25):.0f}  p75={cw.quantile(.75):.0f}")
+
+    del live_evo   # free 92MB
+
+# ════════════════════════════════════════════════════════════════════════════
 # STEP 3 — OUTCOME CLASSIFICATION
 # Architecture §8: outcome from visit N visit_result ONLY
 # HOLD  = GROWTH / ABSORPTION / REFLECTION / RECLAIM
 # FAIL  = BREAKDOWN
-# AMBIGUOUS = DAMAGE
+# AMBIGUOUS = DAMAGE  (or: visit N missed Active Core when zone_mode=active_core)
 # ════════════════════════════════════════════════════════════════════════════
 hdr("STEP 3 — OUTCOME CLASSIFICATION")
 
@@ -213,6 +356,18 @@ outcome_df.rename(columns={
 }, inplace=True)
 outcome_df["b12v2_outcome"] = outcome_df["visit_N_result"].apply(classify_visit_n_outcome)
 
+# Active Core mode: reclassify outcomes where visit N missed the penultimate core
+if ZONE_MODE == "active_core" and _visit_n_in_core:
+    def _reclassify_for_core(row):
+        if not _visit_n_in_core.get(str(row["case_id"]), True):
+            return "AMBIGUOUS"   # visit N missed the Active Core
+        return row["b12v2_outcome"]
+    n_before_reclass = (outcome_df["b12v2_outcome"] != "AMBIGUOUS").sum()
+    outcome_df["b12v2_outcome"] = outcome_df.apply(_reclassify_for_core, axis=1)
+    n_reclassified = n_before_reclass - (outcome_df["b12v2_outcome"] != "AMBIGUOUS").sum()
+    log(f"  Active Core reclassification: {n_reclassified} visit-N outcomes set to AMBIGUOUS")
+    log(f"  (price at visit N did not reach the penultimate Active Core)")
+
 n_hold_out = (outcome_df["b12v2_outcome"] == "HOLD").sum()
 n_fail_out = (outcome_df["b12v2_outcome"] == "FAIL").sum()
 n_ambig    = (outcome_df["b12v2_outcome"] == "AMBIGUOUS").sum()
@@ -225,6 +380,8 @@ log(f"  Potential evaluable (HOLD+FAIL): {n_hold_out+n_fail_out}")
 log()
 log("  Outcome uses visit_N.visit_result ONLY.")
 log("  No breakdown_count, no health_last_visit threshold.")
+if ZONE_MODE == "active_core":
+    log("  Active Core mode: outcomes excluded where visit N missed penultimate core.")
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 4 — RECOMPUTE B9, B10, B11, SYNTHESIS ON vt_prior
@@ -818,10 +975,13 @@ log(f"  IMPLEMENTATION STATUS: PASS  (zero Phase 1 code changes)")
 # ════════════════════════════════════════════════════════════════════════════
 hdr("SAVING OUTPUTS")
 
+# File suffix based on zone mode
+_sfx = "" if ZONE_MODE == "formation" else f"_{ZONE_MODE}"
+
 # 1 — penultimate predictions
 pred_out = pred_prior.copy()
-pred_out.to_csv(RES / "b12v2_penultimate_predictions.csv", index=False)
-log(f"  Written: b12v2_penultimate_predictions.csv  ({len(pred_out)} rows)")
+pred_out.to_csv(RES / f"b12v2_penultimate_predictions{_sfx}.csv", index=False)
+log(f"  Written: b12v2_penultimate_predictions{_sfx}.csv  ({len(pred_out)} rows)")
 
 # 2 — case results
 case_cols = ["case_id","zone_mechanical_state","structural_trajectory",
@@ -831,8 +991,8 @@ case_cols = ["case_id","zone_mechanical_state","structural_trajectory",
              "health_last_visit","health_slope","omega_total","omega_max",
              "visit_N_result","visit_N_omega","visit_N_health"]
 case_out = evaluable[[c for c in case_cols if c in evaluable.columns]].copy()
-case_out.to_csv(RES / "b12v2_case_results.csv", index=False)
-log(f"  Written: b12v2_case_results.csv  ({len(case_out)} rows)")
+case_out.to_csv(RES / f"b12v2_case_results{_sfx}.csv", index=False)
+log(f"  Written: b12v2_case_results{_sfx}.csv  ({len(case_out)} rows)")
 
 # 3 — report CSV
 def _s(x):
@@ -880,14 +1040,15 @@ summary_rows = [
     ["consistency_status", "PASS"],
     ["evaluation_design", "penultimate_state_N_minus_1"],
     ["circular_validation", "NONE"],
+    ["zone_mode", ZONE_MODE],
 ]
-with open(RES / "b12v2_report.csv", "w", newline="", encoding="utf-8") as f:
+with open(RES / f"b12v2_report{_sfx}.csv", "w", newline="", encoding="utf-8") as f:
     csv.writer(f).writerows(summary_rows)
-log(f"  Written: b12v2_report.csv")
+log(f"  Written: b12v2_report{_sfx}.csv")
 
 # 4 — report MD
-(RES / "b12v2_report.md").write_text("\n".join(_lines), encoding="utf-8")
-log(f"  Written: b12v2_report.md")
+(RES / f"b12v2_report{_sfx}.md").write_text("\n".join(_lines), encoding="utf-8")
+log(f"  Written: b12v2_report{_sfx}.md")
 
 # 5 — Confirm protected files untouched
 log()
@@ -900,6 +1061,7 @@ log()
 log("=" * 70)
 log("B12v2 COMPLETE")
 log(f"  Leakage:        NONE  (I(t) ∩ O(t+1) = empty)")
+log(f"  Zone mode:      {ZONE_MODE}")
 log(f"  Evaluable:      {len(evaluable)}")
 log(f"  Accuracy:       {acc:.1%}  lift={lift:+.1%}")
 log(f"  HOLD F1:        {f1_h:.3f}   FAIL F1: {f1_f:.3f}")

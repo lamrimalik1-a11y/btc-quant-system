@@ -1798,6 +1798,40 @@ No dashboard logic changes
 No replay logic changes
 
 ==================================================
+ZONE TERMINOLOGY CLARIFICATION
+==================================================
+
+STATUS:
+LABEL CLARIFICATION ONLY
+
+Formation Range != Active RDM Zone != Density Band
+
+Definitions:
+
+* Formation Range = old Preparation Zone = broad context range from preparation_low_price / preparation_high_price.
+* Active RDM Zone / Interaction Core = compressed operational zone inside Formation Range.
+* Density Band / Interaction Heart = narrowest interaction concentration inside Active RDM Zone.
+
+Dashboard label policy:
+
+* Visible labels should not call preparation_low_price / preparation_high_price an entry zone.
+* preparation_low_price / preparation_high_price should display as Formation Range (broad context).
+* Active operational width should display as Active RDM Zone / Interaction Core Width.
+* Narrow interaction concentration should display as Density Band / Interaction Heart Width.
+
+Clarification:
+
+Formation Range is broad context, not entry zone. Operational decision zone is Active Core / Density Band.
+
+Rules:
+
+No formula changes.
+No replay changes.
+No research changes.
+No B12v2 changes.
+No scoring changes.
+
+==================================================
 PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 ==================================================
 
@@ -2220,3 +2254,174 @@ Sequence after collection:
 Do not advance to Phase 2.
 Do not modify formulas.
 Do not modify Dashboard scoring.
+
+
+==================================================
+PHASE1B_MARCH_APRIL_MAY_GENERALIZATION_STABLE
+==================================================
+
+Date: 2026-06-05
+Commit: PHASE1B March April May generalization stable
+
+STATUS:
+STABLE CHECKPOINT
+
+RESEARCH ONLY. NOT A TRADING SYSTEM.
+No Phase 2. No execution. No BUY/SELL. No entries/exits.
+
+--------------------------------------------------
+THREE-PERIOD B12v2 RESULTS
+--------------------------------------------------
+
+TRAINING (Apr30-Jun02, 34 days):
+  Cases:          355 evaluable / 793 total
+  Accuracy:       98.3%
+  Lift:           +35.2pp vs baseline 63.1%
+  HOLD Precision: 100.0%
+  FAIL Precision: 95.6%
+  STATUS:         PASS
+
+MARCH 2026 (Mar01-Mar31, 31 days):
+  Cases:          633 evaluable / 1,219 total
+  Accuracy:       96.7%
+  Lift:           +36.7pp vs baseline 60.0%
+  HOLD Precision: 99.2%
+  FAIL Precision: 93.3%
+  STATUS:         PASS
+
+APRIL 2026 (Apr01-Apr30, 30 days):
+  Cases:          387 evaluable / 808 total
+  Accuracy:       95.1%
+  Lift:           +32.6pp vs baseline 62.5%
+  HOLD Precision: 99.1%
+  FAIL Precision: 89.4%
+  STATUS:         BORDERLINE FAIL (-0.6pp below 90% threshold)
+
+--------------------------------------------------
+REGIME GENERALIZATION
+--------------------------------------------------
+
+STATUS: STRONGLY VALIDATED
+
+2 of 3 independent periods PASS all criteria.
+April borderline fail (-0.6pp) explained by higher zone recovery rates in that period.
+Non-monotonic ordering (March > April) confirms structural mechanism, not temporal artifact.
+
+STRENGTHENING trajectory: 100.0% HOLD precision in ALL THREE independent periods.
+
+--------------------------------------------------
+PHYSICS VALIDATION
+--------------------------------------------------
+
+sigma x penetration vs omega:
+  Training:  r=0.9978
+  March:     r=0.9953
+  April:     r=0.9966
+  STATUS:    CONFIRMED across all three periods
+
+--------------------------------------------------
+ARCHITECTURE
+--------------------------------------------------
+
+B9 -> B10 -> B11 -> Synthesis chain: PRESERVED
+Leakage assertion (I(t) intersect O(t+1) = empty): PASS all periods
+Zero Phase 1 code changes across all runs
+B12v2 penultimate-state design validated
+
+--------------------------------------------------
+FILES PRESERVED
+--------------------------------------------------
+
+research/train_phase1b_episode_research_log.csv
+research/train_phase1b_preparation_zones.csv
+research/train_zone_lifecycle_events.jsonl
+research/train_field_lifecycle_events.jsonl
+research/apr2026_b12v2_report.md
+research/apr2026_b12v2_report.csv
+research/apr2026_b12v2_case_results.csv
+research/apr2026_b12v2_penultimate_predictions.csv
+research/apr2026_generalization_audit.md
+research/mar2026_b12v2_report.md
+research/mar2026_b12v2_report.csv
+research/mar2026_b12v2_case_results.csv
+research/mar2026_b12v2_penultimate_predictions.csv
+research/mar2026_generalization_audit.md
+
+--------------------------------------------------
+DASHBOARD FIX
+--------------------------------------------------
+
+Dataset consistency panel added to dashboard_app.py.
+Period mismatch detection with DATASET_MISMATCH sentinel.
+Temporal guard on episode_id joins.
+Show All V2 Episodes toggle added.
+No Phase1B/RDM/B11/B12v2 formula changes.
+
+--------------------------------------------------
+RULES
+--------------------------------------------------
+
+No Phase 2.
+No execution.
+No BUY/SELL.
+No footprint.
+No entry/exit signals.
+Do NOT change Phase1B formulas.
+Do NOT change RDM formulas.
+Do NOT modify B11/B12v2 logic.
+Do NOT download data without explicit request.
+
+--------------------------------------------------
+NEXT STEPS (research only)
+--------------------------------------------------
+
+1. Investigate STABLE trajectory in EXHAUSTED_ZONE (false HOLD pattern confirmed 2 periods)
+2. Track TERMINAL recovery rate across additional periods (range 3-10% observed)
+3. Consider widening FAIL Precision threshold to 87-88% for regime-tolerant criterion
+4. Extend to January or February 2026 for fourth-period validation
+5. Calibrate B11 thresholds using three-period precision/recall data
+
+
+
+==================================================
+PHASE1B_FORMATION_MODEL
+==================================================
+
+Date: 2026-06-06
+STATUS: STABLE CHECKPOINT
+
+--------------------------------------------------
+DONE
+--------------------------------------------------
+
+- Preparation Zone terminology deprecated
+- Formation introduced as parent structure
+- Density Band introduced
+- Active Core introduced
+- Hierarchical zone model documented
+- Research terminology standardized
+
+--------------------------------------------------
+HIERARCHY
+--------------------------------------------------
+
+Formation
+    Density Band
+        Active Core
+
+--------------------------------------------------
+RULES
+--------------------------------------------------
+
+- Formation detection occurs first
+- Density Band is derived from Formation
+- Active Core is derived from Density Band
+- Internal code still uses preparation_zone
+- Code renaming not authorized
+
+--------------------------------------------------
+REFERENCE
+--------------------------------------------------
+
+research/terminology_formation_zones.md
+

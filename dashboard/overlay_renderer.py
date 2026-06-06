@@ -277,13 +277,13 @@ def render_overlay_summary(row: pd.Series) -> None:
 
     columns = st.columns(4)
     summary_items = [
-        ("Active RDM Zone Width", "interaction_core_width"),
-        ("Density Band Width", "interaction_density_width"),
+        ("Active RDM Zone / Interaction Core Width", "interaction_core_width"),
+        ("Density Band / Interaction Heart Width", "interaction_density_width"),
         ("Density State", "interaction_density_state"),
         ("Density Peak", "interaction_density_peak_price"),
         ("Efficiency Ratio", "interaction_core_efficiency_ratio"),
         ("Core State", "interaction_core_width_state"),
-        ("Context / Formation Range", "formation_width"),
+        ("Formation Range Width (broad context)", "formation_width"),
         ("Lifecycle", "true_lifecycle_state"),
         ("Guarded Status", "guarded_live_status"),
         ("Fatigue", "fatigue_live"),
@@ -388,7 +388,7 @@ def build_price_overlay_html(row: pd.Series) -> str:
             formation_upper,
             "#94A3B8",
             0.22,
-            "Formation Range",
+            "Formation Range (broad context)",
         ),
         price_band(
             sy,
@@ -408,7 +408,7 @@ def build_price_overlay_html(row: pd.Series) -> str:
             density_upper,
             "#A855F7",
             0.66,
-            "Interaction Density Band",
+            "Density Band / Interaction Heart",
         ),
     ]
 
@@ -477,7 +477,7 @@ def build_price_overlay_table(row: pd.Series) -> pd.DataFrame:
 
     rows = [
         {
-            "Layer": "Formation Range",
+            "Layer": "Formation Range (broad context)",
             "Lower": format_price(row.get("formation_lower_edge")),
             "Upper": format_price(row.get("formation_upper_edge")),
             "Width": format_price(formation_width),
@@ -491,7 +491,7 @@ def build_price_overlay_table(row: pd.Series) -> pd.DataFrame:
             "Compression Ratio": format_ratio(ratio_value(core_width, formation_width)),
         },
         {
-            "Layer": "Interaction Density Band",
+            "Layer": "Density Band / Interaction Heart",
             "Lower": format_price(row.get("interaction_density_lower_band")),
             "Upper": format_price(row.get("interaction_density_upper_band")),
             "Width": format_price(density_width),

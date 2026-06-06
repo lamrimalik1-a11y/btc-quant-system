@@ -1067,6 +1067,9 @@ def find_preparation_zone(rows, start_row_id):
         if close_low is not None and close_high is not None
         else None
     )
+    _closes_series = numeric_series(previous_rows, "close")
+    tight_low  = float(_closes_series.quantile(0.15)) if not _closes_series.empty else close_low
+    tight_high = float(_closes_series.quantile(0.85)) if not _closes_series.empty else close_high
     zone_classification = classify_preparation_zone(
         previous_rows, close_low, close_high
     )
@@ -1145,6 +1148,8 @@ def find_preparation_zone(rows, start_row_id):
         "preparation_low_price": round_float(close_low) if candidate else "",
         "preparation_high_price": round_float(close_high) if candidate else "",
         "preparation_mid_price": round_float(close_mid) if candidate else "",
+        "tight_formation_low_price":  round_float(tight_low)  if candidate else "",
+        "tight_formation_high_price": round_float(tight_high) if candidate else "",
         "_preparation_zone_low": round_float(close_low) if candidate else "",
         "_preparation_zone_high": round_float(close_high) if candidate else "",
         **zone_classification,

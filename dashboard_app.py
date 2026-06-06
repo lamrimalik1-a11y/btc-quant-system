@@ -10,6 +10,9 @@ from dashboard.overlay_renderer import (
     render_rdm_visual_overlay,
 )
 from dashboard.research_mapping import (
+    PREPARATION_DATASET_MISMATCH,
+    check_period_alignment,
+    get_research_log_date_range,
     load_dashboard_research_mapping,
     map_research_to_dashboard_episodes,
 )
@@ -44,6 +47,7 @@ TIME_DISPLAY_OPTIONS = ["Algeria (UTC+1)", "UTC"]
 
 RESEARCH_DIR = BASE_DIR / "research"
 PREPARATION_LOG_FILE = RESEARCH_DIR / "phase1b_episode_research_log.csv"
+PREPARATION_ZONES_FILE = RESEARCH_DIR / "phase1b_preparation_zones.csv"
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
@@ -294,6 +298,114 @@ def render_replay_source_banner(market_rows, v2_episodes, file_sources):
         f"Time Display: {current_time_display_mode()} | "
         f"Source file: {file_sources.get('market_rows')}"
     )
+
+
+def _file_period_info(path, ts_col, unit="ms"):
+    """Return (min_date, max_date, row_count, mtime_str) for a CSV file."""
+    if path is None or not Path(path).exists():
+        return "N/A", "N/A", 0, "N/A"
+    try:
+        mtime = datetime.fromtimestamp(Path(path).stat().st_mtime, tz=timezone.utc).strftime(
+            "%Y-%m-%d %H:%M UTC"
+        )
+        df = pd.read_csv(path, usecols=[ts_col])
+        if df.empty:
+            return "N/A", "N/A", 0, mtime
+        if unit == "ms":
+            dates = pd.to_datetime(pd.to_numeric(df[ts_col], errors="coerce"), unit="ms", utc=True)
+        else:
+            dates = pd.to_datetime(df[ts_col], errors="coerce", utc=True)
+        dates = dates.dropna()
+        if dates.empty:
+            return "N/A", "N/A", len(df), mtime
+        return (
+            dates.min().strftime("%Y-%m-%d"),
+            dates.max().strftime("%Y-%m-%d"),
+            len(df),
+            mtime,
+        )
+    except Exception:
+        return "N/A", "N/A", 0, "N/A"
+
+
+def render_dataset_consistency_panel(v2_episodes, market_rows):
+    """Show a table of all source files with their periods and last-modified times."""
+    with st.expander("Dataset Consistency Panel", expanded=True):
+        rows_info = []
+
+        obs_min, obs_max, obs_rows, obs_mtime = _file_period_info(
+            HISTORICAL_OBSERVATION_ROWS_FILE, "market_timestamp", unit="ms"
+        )
+        rows_info.append({
+            "File": "outputs/historical_observation_rows.csv",
+            "Period start": obs_min,
+            "Period end": obs_max,
+            "Rows": obs_rows,
+            "Last modified": obs_mtime,
+        })
+
+        v2_min, v2_max, v2_rows, v2_mtime = _file_period_info(
+            HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE,
+            "episode_start_timestamp_utc",
+            unit="ms",
+        )
+        rows_info.append({
+            "File": "outputs/historical_replay_dashboard_v2_episodes.csv",
+            "Period start": v2_min,
+            "Period end": v2_max,
+            "Rows": v2_rows,
+            "Last modified": v2_mtime,
+        })
+
+        res_min, res_max, res_rows, res_mtime = _file_period_info(
+            PREPARATION_LOG_FILE, "episode_start_time_utc", unit="str"
+        )
+        rows_info.append({
+            "File": "research/phase1b_episode_research_log.csv",
+            "Period start": res_min,
+            "Period end": res_max,
+            "Rows": res_rows,
+            "Last modified": res_mtime,
+        })
+
+        pz_min, pz_max, pz_rows, pz_mtime = _file_period_info(
+            PREPARATION_ZONES_FILE, "episode_start_time_utc", unit="str"
+        )
+        rows_info.append({
+            "File": "research/phase1b_preparation_zones.csv",
+            "Period start": pz_min,
+            "Period end": pz_max,
+            "Rows": pz_rows,
+            "Last modified": pz_mtime,
+        })
+
+        st.dataframe(pd.DataFrame(rows_info), use_container_width=True, hide_index=True)
+
+        # Period alignment check
+        period_aligned = check_period_alignment(v2_episodes, PREPARATION_LOG_FILE)
+        if not period_aligned:
+            st.error(
+                "DATASET MISMATCH: outputs and research files are from different periods. "
+                "Research mapping disabled to prevent wrong preparation_candidate values. "
+                f"outputs V2 episodes: {v2_min} to {v2_max} | "
+                f"research log: {res_min} to {res_max}"
+            )
+        else:
+            st.success(
+                f"Dataset periods aligned: outputs {v2_min} to {v2_max} | "
+                f"research {res_min} to {res_max}"
+            )
+
+        st.caption(
+            "preparation_candidate values: "
+            "True = preparation detected | "
+            "False = analyzed, no preparation detected | "
+            "NOT_ANALYZED = same dataset, episode not in research run | "
+            "UNKNOWN = research row exists but value missing | "
+            "DATASET_MISMATCH = outputs and research are from different periods"
+        )
+
+    return period_aligned
 
 
 def dataframe_time_window(dataframe):
@@ -1254,6 +1366,7 @@ def render_historical_dashboard_v2(
     v2_episodes,
     market_rows,
     file_sources,
+    show_all_v2_episodes=False,
 ):
     st.subheader("Dashboard V2 Historical Replay")
     render_replay_source_banner(market_rows, v2_episodes, file_sources)
@@ -1272,12 +1385,26 @@ def render_historical_dashboard_v2(
             "Missing historical_replay_dashboard_v2_episodes.csv"
         )
 
+    period_aligned = render_dataset_consistency_panel(v2_episodes, market_rows)
+
     research_mapping = load_dashboard_research_mapping(BASE_DIR)
-    render_dashboard_v2_episodes(v2_episodes, research_mapping, file_sources=file_sources)
+    render_dashboard_v2_episodes(
+        v2_episodes,
+        research_mapping,
+        file_sources=file_sources,
+        period_aligned=period_aligned,
+        show_all_v2_episodes=show_all_v2_episodes,
+    )
     render_dashboard_v2_events(v2_events)
 
 
-def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_sources=None):
+def render_dashboard_v2_episodes(
+    v2_episodes,
+    research_mapping=None,
+    file_sources=None,
+    period_aligned=True,
+    show_all_v2_episodes=False,
+):
     st.subheader("Dashboard V2 Episodes")
     st.caption(
         "Dashboard V2 episode = period where layer-based statistical "
@@ -1292,11 +1419,20 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_source
         "peak_observation_confidence = confidence / caution label"
     )
     st.caption(
-        "Preparation status: True = preparation detected | "
+        "Preparation status: "
+        "True = preparation detected | "
         "False = analyzed, no preparation detected | "
-        "NOT_ANALYZED = episode was not included in research analysis | "
-        "UNKNOWN = research row exists but preparation value is missing"
+        "NOT_ANALYZED = same dataset, episode not in research run | "
+        "UNKNOWN = research row exists but value missing | "
+        "DATASET_MISMATCH = outputs and research are from different periods"
     )
+
+    if not period_aligned:
+        st.warning(
+            "Research mapping is DISABLED: outputs and research files are from different "
+            "periods. preparation_candidate shows DATASET_MISMATCH to prevent spurious "
+            "episode_id collisions across replay runs."
+        )
 
     if v2_episodes.empty:
         st.info("No Dashboard V2 episodes available yet.")
@@ -1308,6 +1444,7 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_source
         display_episodes = map_research_to_dashboard_episodes(
             display_episodes,
             research_mapping,
+            period_aligned=period_aligned,
         )
 
     if "episode_start_timestamp_utc" in display_episodes.columns:
@@ -1368,10 +1505,23 @@ def render_dashboard_v2_episodes(v2_episodes, research_mapping=None, file_source
         st.info("No Dashboard V2 episodes match the current filters.")
         return
 
+    total = len(filtered_episodes)
+    if show_all_v2_episodes:
+        display_slice = filtered_episodes[columns]
+        st.caption(f"Showing all {total} filtered V2 episodes.")
+    else:
+        display_slice = filtered_episodes[columns].tail(100)
+        hidden = max(0, total - 100)
+        if hidden:
+            st.caption(
+                f"Showing latest 100 of {total} filtered V2 episodes "
+                f"({hidden} older episodes hidden). Enable 'Show all V2 episodes' in sidebar to see all."
+            )
+        else:
+            st.caption(f"Showing all {total} V2 episodes.")
+
     st.dataframe(
-        sanitize_dataframe_for_display(
-            filtered_episodes[columns].tail(100)
-        ),
+        sanitize_dataframe_for_display(display_slice),
         use_container_width=True,
         hide_index=True,
     )
@@ -2193,7 +2343,9 @@ def render_rdm_interaction_core_panel(row):
     st.subheader("RDM Interaction Core Geometry - Research Only")
     st.caption(
         "Separates the large formation range from the smaller price area where "
-        "touch, return, stress, absorption, or rejection actually occurred."
+        "touch, return, stress, absorption, or rejection actually occurred. "
+        "Formation Range is broad context, not entry zone. Operational decision "
+        "zone is Active Core / Density Band."
     )
 
     if safe_research_panel_value(row, "interaction_core_upper_edge") == "N/A":
@@ -2203,21 +2355,21 @@ def render_rdm_interaction_core_panel(row):
     columns = st.columns(3)
     render_research_card(
         columns[0],
-        "Context / Formation Range",
+        "Formation Range (broad context)",
         [
-            ("Formation Upper", "formation_upper_edge", "metric"),
-            ("Formation Lower", "formation_lower_edge", "metric"),
-            ("Context Range", "formation_width", "metric"),
+            ("Formation Range Upper", "formation_upper_edge", "metric"),
+            ("Formation Range Lower", "formation_lower_edge", "metric"),
+            ("Formation Range Width", "formation_width", "metric"),
         ],
         row,
     )
     render_research_card(
         columns[1],
-        "Active RDM Zone",
+        "Active RDM Zone / Interaction Core",
         [
-            ("Active Upper", "interaction_core_upper_edge", "metric"),
-            ("Active Lower", "interaction_core_lower_edge", "metric"),
-            ("Active RDM Zone Width", "interaction_core_width", "metric"),
+            ("Active Core Upper", "interaction_core_upper_edge", "metric"),
+            ("Active Core Lower", "interaction_core_lower_edge", "metric"),
+            ("Active RDM Zone / Interaction Core Width", "interaction_core_width", "metric"),
             ("Efficiency", "interaction_core_efficiency_ratio", "metric"),
         ],
         row,
@@ -2247,11 +2399,11 @@ def render_rdm_interaction_core_panel(row):
     )
     render_research_card(
         density_columns[1],
-        "Density Band",
+        "Density Band / Interaction Heart",
         [
             ("Band Upper", "interaction_density_upper_band", "metric"),
             ("Band Lower", "interaction_density_lower_band", "metric"),
-            ("Band Width", "interaction_density_width", "metric"),
+            ("Density Band / Interaction Heart Width", "interaction_density_width", "metric"),
             ("Points", "interaction_density_points_count", "metric"),
         ],
         row,
@@ -3154,6 +3306,8 @@ def render_final_rdm_result(row):
     st.caption(
         "Final mechanical summary for observation research. Active zone references "
         "use Interaction Core Width, while Formation Range remains background context. "
+        "Formation Range is broad context, not entry zone. Operational decision "
+        "zone is Active Core / Density Band. "
         "This is not a signal, not an entry, not execution, and not Dashboard V2 scoring."
     )
 
@@ -3441,7 +3595,7 @@ def format_research_label(value):
         "EXPANSION_RULE": "Expansion Rule",
         "ELASTIC_RULE": "Elastic Rule",
         "FALLBACK": "Fallback",
-        "PREPARATION_ZONE": "Preparation Zone",
+        "PREPARATION_ZONE": "Formation Range (broad context)",
         "RECOVERY_ZONE": "Recovery Zone",
         "RUPTURE_RESEARCH_ZONE": "Rupture Research Zone",
         "RDM_RESEARCH_ZONE": "RDM Research Zone",
@@ -3516,7 +3670,7 @@ def format_research_label(value):
         "STRESS_TO_BREACH": "Stress To Breach",
         "STRESS_TO_RECOVERY": "Stress To Recovery",
         "AGING_OUTSIDE_ZONE": "Aging Outside Zone",
-        "PREPARATION_ZONE": "Preparation Zone",
+        "PREPARATION_ZONE": "Formation Range (broad context)",
         "EPISODE_PRICE_RANGE": "Episode Price Range",
         "SINGLE_PRICE_WIDTH_ESTIMATE": "Single Price Width Estimate",
         "PLACEHOLDER_FALLBACK": "Placeholder Fallback",
@@ -4197,6 +4351,7 @@ def render_live_observation_panels(
     show_all_episodes,
     episode_sort_order,
     show_archive_field_coverage,
+    show_all_v2_episodes=False,
     force_refresh=False,
 ):
     expected_mode = source_mode_for_observation_mode(observation_mode)
@@ -4296,6 +4451,7 @@ def render_live_observation_panels(
                 v2_episodes,
                 market_rows,
                 file_sources,
+                show_all_v2_episodes=show_all_v2_episodes,
             )
 
     render_active_source_footer(expected_mode)
@@ -4507,6 +4663,11 @@ def main():
             value=False,
             key="show_all_episodes",
         )
+        show_all_v2_episodes = st.checkbox(
+            "Show all V2 episodes",
+            value=False,
+            key="show_all_v2_episodes",
+        )
         episode_sort_order = st.selectbox(
             "Episode sort order",
             ["Newest first", "Oldest first", "Highest score first"],
@@ -4554,6 +4715,7 @@ def main():
                 show_all_episodes,
                 episode_sort_order,
                 show_archive_field_coverage,
+                show_all_v2_episodes=show_all_v2_episodes,
                 force_refresh=force_refresh,
             )
 
@@ -4585,6 +4747,7 @@ def main():
         show_all_episodes,
         episode_sort_order,
         show_archive_field_coverage,
+        show_all_v2_episodes=show_all_v2_episodes,
         force_refresh=force_refresh,
     )
 

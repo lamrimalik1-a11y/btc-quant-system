@@ -19,6 +19,7 @@ RESEARCH_FIELDS = [
 
 PREPARATION_NOT_ANALYZED = "NOT_ANALYZED"
 PREPARATION_UNKNOWN = "UNKNOWN"
+PREPARATION_DATASET_MISMATCH = "DATASET_MISMATCH"
 
 RESEARCH_CASE_FIELDS = [
     "case_id",
@@ -794,9 +795,82 @@ def build_research_mapping(
     return mapping[keep_fields].copy()
 
 
-def map_research_to_dashboard_episodes(episodes, research_mapping):
+def get_research_log_date_range(research_log_path):
+    """Return (min_date_str, max_date_str) from phase1b_episode_research_log.csv.
+
+    Both values are ISO date strings ('YYYY-MM-DD') or None if unreadable.
+    """
+    path = Path(research_log_path)
+    if not path.exists():
+        return None, None
+    try:
+        df = pd.read_csv(path, usecols=["episode_start_time_utc"])
+        if df.empty:
+            return None, None
+        dates = pd.to_datetime(df["episode_start_time_utc"], errors="coerce").dropna()
+        if dates.empty:
+            return None, None
+        return dates.min().strftime("%Y-%m-%d"), dates.max().strftime("%Y-%m-%d")
+    except Exception:
+        return None, None
+
+
+def check_period_alignment(v2_episodes, research_log_path):
+    """Return True if the v2_episodes date range overlaps with the research log date range.
+
+    episode_id is a sequential integer reset on every replay run — it is NOT globally unique
+    across runs from different time periods.  If the date ranges do not overlap, any episode_id
+    match would be a spurious collision and must be rejected.
+    """
+    if v2_episodes is None or v2_episodes.empty:
+        return False
+
+    ts_col = "episode_start_timestamp_utc"
+    if ts_col not in v2_episodes.columns:
+        return False
+
+    try:
+        v2_dates = pd.to_datetime(
+            pd.to_numeric(v2_episodes[ts_col], errors="coerce"), unit="ms", utc=True
+        ).dropna()
+        if v2_dates.empty:
+            return False
+        v2_min = v2_dates.min().date()
+        v2_max = v2_dates.max().date()
+    except Exception:
+        return False
+
+    res_min_str, res_max_str = get_research_log_date_range(research_log_path)
+    if res_min_str is None:
+        return False
+
+    try:
+        import datetime
+        res_min = datetime.date.fromisoformat(res_min_str)
+        res_max = datetime.date.fromisoformat(res_max_str)
+    except Exception:
+        return False
+
+    # Overlap exists if one range starts before the other ends
+    return v2_min <= res_max and res_min <= v2_max
+
+
+def map_research_to_dashboard_episodes(episodes, research_mapping, period_aligned=True):
     if episodes.empty or research_mapping.empty:
         return episodes.copy()
+
+    # If the datasets are from different time periods, episode_id collisions are spurious.
+    # Mark all preparation_candidate values as DATASET_MISMATCH and skip the join entirely.
+    if not period_aligned:
+        mapped = episodes.copy()
+        mapped["preparation_candidate"] = PREPARATION_DATASET_MISMATCH
+        for field in ["case_id", "preparation_strength", "return_to_preparation",
+                      "expansion_type", "expansion_strength", "reversal_type",
+                      "reversal_strength", "comparison_group", "preparation_result",
+                      "hypothesis02_state"]:
+            if field not in mapped.columns:
+                mapped[field] = ""
+        return mapped
 
     mapped = episodes.copy()
 
@@ -814,6 +888,37 @@ def map_research_to_dashboard_episodes(episodes, research_mapping):
         suffixes=("", "_research"),
     )
 
+    # Temporal guard: for rows where an episode_id match occurred, verify the research
+    # episode date is compatible with the v2 episode date.  An episode_id match across
+    # non-overlapping dates is a spurious collision — override those rows to DATASET_MISMATCH.
+    if (
+        "episode_start_timestamp_utc" in mapped.columns
+        and "episode_start_time_utc" in mapped.columns
+    ):
+        try:
+            v2_dates = pd.to_datetime(
+                pd.to_numeric(mapped["episode_start_timestamp_utc"], errors="coerce"),
+                unit="ms",
+                utc=True,
+            ).dt.date
+
+            research_dates = pd.to_datetime(
+                mapped["episode_start_time_utc"], errors="coerce"
+            ).dt.date
+
+            # A match is valid if both dates are the same calendar day.
+            date_mismatch = (
+                v2_dates.notna()
+                & research_dates.notna()
+                & (v2_dates != research_dates)
+            )
+            if date_mismatch.any():
+                mapped["preparation_candidate"] = mapped["preparation_candidate"].astype(object)
+                mapped.loc[date_mismatch, "preparation_candidate"] = PREPARATION_DATASET_MISMATCH
+                mapped.loc[date_mismatch, "case_id"] = ""
+        except Exception:
+            pass
+
     return normalize_preparation_status(mapped)
 
 
@@ -828,11 +933,14 @@ def normalize_preparation_status(mapped):
     # The CSV stores preparation_candidate as bool (True/False).  After a
     # left-join some rows have no match and the column keeps dtype=bool.
     # Assigning 'NOT_ANALYZED' or 'UNKNOWN' to a bool column raises
-    # TypeError in pandas ≥ 2.0.  Casting to object beforehand prevents
+    # TypeError in pandas >= 2.0.  Casting to object beforehand prevents
     # that while preserving True / False values for all matched rows.
     mapped["preparation_candidate"] = mapped["preparation_candidate"].astype(
         object
     )
+
+    # DATASET_MISMATCH rows are already correctly labelled — never override them.
+    mismatch_mask = mapped["preparation_candidate"] == PREPARATION_DATASET_MISMATCH
 
     if "case_id" in mapped.columns:
         analyzed_mask = mapped["case_id"].apply(has_display_value)
@@ -844,12 +952,12 @@ def normalize_preparation_status(mapped):
     )
 
     mapped.loc[
-        ~analyzed_mask,
+        ~analyzed_mask & ~mismatch_mask,
         "preparation_candidate",
     ] = PREPARATION_NOT_ANALYZED
 
     mapped.loc[
-        analyzed_mask & missing_preparation_mask,
+        analyzed_mask & missing_preparation_mask & ~mismatch_mask,
         "preparation_candidate",
     ] = PREPARATION_UNKNOWN
 

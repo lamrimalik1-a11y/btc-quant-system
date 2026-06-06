@@ -1,6 +1,6 @@
 # Zone Evolution Notes
 
-- Run UTC: 2026-06-03T21:57:18+00:00
+- Run UTC: 2026-06-05T21:47:45+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -8,22 +8,22 @@
 - No Dashboard V2 scoring changes
 - No Phase 2
 
-- Evolution rows: 276
-- Evolution history rows: 1401
+- Evolution rows: 1219
+- Evolution history rows: 6357
 
 ## Stage Counts
-- DORMANT_STAGE: 129
-- RECOVERY_STAGE: 24
-- FATIGUE_STAGE: 37
-- EXHAUSTION_STAGE: 68
-- ELASTIC_STAGE: 18
+- DORMANT_STAGE: 484
+- EXHAUSTION_STAGE: 327
+- FATIGUE_STAGE: 258
+- ELASTIC_STAGE: 59
+- RECOVERY_STAGE: 91
 
 ## Transition Target Counts
-- DORMANT_STAGE: 129
-- RECOVERY_STAGE: 24
-- FATIGUE_STAGE: 37
-- EXHAUSTION_STAGE: 68
-- ELASTIC_STAGE: 18
+- DORMANT_STAGE: 484
+- EXHAUSTION_STAGE: 327
+- FATIGUE_STAGE: 258
+- ELASTIC_STAGE: 59
+- RECOVERY_STAGE: 91
 
 ## Interpretation
 - Evolution chart summarizes the mechanical life path of each zone.

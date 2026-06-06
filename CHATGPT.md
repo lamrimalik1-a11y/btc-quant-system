@@ -86,3 +86,37 @@ python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00"
 FOR UNSTABLE NETWORKS:
 
 python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --symbol BTCUSDT --row-size 500 --max-retries 25 --timeout 180
+
+==================================================
+ZONE TERMINOLOGY CLARIFICATION
+==================================================
+
+STATUS:
+LABEL CLARIFICATION ONLY
+
+Formation Range != Active RDM Zone != Density Band
+
+Definitions:
+
+* Formation Range = old Preparation Zone = broad context range from preparation_low_price / preparation_high_price.
+* Active RDM Zone / Interaction Core = compressed operational zone inside Formation Range.
+* Density Band / Interaction Heart = narrowest interaction concentration inside Active RDM Zone.
+
+Dashboard label policy:
+
+* Visible labels should not call preparation_low_price / preparation_high_price an entry zone.
+* preparation_low_price / preparation_high_price should display as Formation Range (broad context).
+* Active operational width should display as Active RDM Zone / Interaction Core Width.
+* Narrow interaction concentration should display as Density Band / Interaction Heart Width.
+
+Clarification:
+
+Formation Range is broad context, not entry zone. Operational decision zone is Active Core / Density Band.
+
+Rules:
+
+No formula changes.
+No replay changes.
+No research changes.
+No B12v2 changes.
+No scoring changes.

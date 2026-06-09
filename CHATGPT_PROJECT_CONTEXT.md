@@ -2,11 +2,15 @@
 
 Current stable checkpoint:
 
-`PHASE1B_RDM_VISUALIZATION_STABLE`
+`PHASE1B_LIVE_ZONE_ENGINE_STABLE`
 
 Commit:
 
-`f818d5f`
+`(see below)`
+
+Prior stable checkpoint:
+
+`PHASE1B_RDM_VISUALIZATION_STABLE` — commit `f818d5f`
 
 Status:
 
@@ -266,3 +270,104 @@ Rules preserved:
 Next task: 45-60 day data collection, then B12 prediction validation.
 
 Do not advance to Phase 2.
+
+
+---
+
+## PHASE1B_LIVE_ZONE_ENGINE_STABLE
+
+DATE: 2026-06-09
+
+STATUS: STABLE
+
+### Objective Achieved
+
+Full LIVE Zone Engine operational from V2 Episode generation through LIVE structural prediction.
+
+### Completed
+
+**LIVE V2 Episodes**
+- LIVE episode closure, dashboard integration, episode persistence, score4+ parity validation
+
+**Preparation Engine**
+- LIVE Preparation snapshots, replay parity validation
+- Score4+ filter enforced: peak_layer_count >= 4 required
+- Preparation Watch dashboard panel
+
+**Lifecycle Engine**
+- ZoneLifecycleMemory, FieldLifecycleMemory
+- LIVE events: zone_created, zone_tested, zone_rejected, zone_reclaimed, expansion_state, reversal_state, hypothesis02_state
+
+**Return Detection Engine**
+- Streaming return detection, replay parity validation
+- Formation-bound detection, CLOSE-only parity with replay
+- Pending zone registry, return_found tracking
+
+**Two-Phase Emit Architecture**
+
+PENDING_FINALIZATION (immediate, at return_found=True):
+- Group A, Group B, B8, B9, B10, B11, Synthesis
+
+FINALIZED_OUTCOME (after both 4h windows):
+- future moves, reversal_type, expansion_type, failed_after_return, max_move_after_return
+
+**RDM LIVE** — Group A, Group B, RDM evolution, Attacker evolution, Timeline, Health evolution
+
+**B10** — Structural trajectory
+
+**B11** — Structural prediction
+
+**Synthesis** — Structural interpretation, prediction reasoning
+
+**Geometry**
+
+| Layer | Fields |
+|---|---|
+| Formation | preparation_low/high/mid_price |
+| Tight Formation | tight_formation_low/high/mid_price |
+| Active Core | interaction_core_lower/upper_edge, mid_price, width |
+| Density Band | interaction_density_lower/upper_band, weighted_center, width |
+
+**Dashboard** — 8 LIVE panels: V2 Episodes, Preparation Watch, Lifecycle Watch, Return Detection, RDM Status, B10 Trajectory, B11 Prediction, Synthesis
+
+### Validation Status
+
+Preparation: PASS | Lifecycle: PASS | Return Detection: PASS | RDM: PASS | B10: PASS | B11: PASS | Synthesis: PASS
+
+Unexplained divergences: ZERO
+
+### Architectural Decisions
+
+- Return Detection: Formation bounds only (close >= zone_low and close <= zone_high). Wick touches ignored.
+- Active Core and Density Band: display-only geometry. Do NOT participate in return detection.
+- Score4+ parity: LIVE mirrors replay. peak_layer_count < 4 blocked before Preparation processing.
+
+### Current Live Status
+
+LIVE system healthy. No active bug.
+
+After restart: 4 V2 episodes observed, 0 score4+ episodes, 0 preparation zones.
+Market has not yet produced a qualifying score4+ episode.
+
+System waiting for: peak_layer_count >= 4 followed by valid Preparation candidate.
+
+### Next Step
+
+Observe LIVE market. Wait for:
+1. score4+ episode
+2. valid Preparation candidate
+3. return_found
+4. first PENDING_FINALIZATION record
+5. first Active Core
+6. first Density Band
+7. first LIVE B11 prediction
+
+Stop here. Do NOT start Footprint. Do NOT start Microstructure. Do NOT start Regime Engine.
+
+### Rules
+
+- No Phase 2. No execution. No BUY/SELL.
+- Do NOT change Phase1B formulas.
+- Do NOT change RDM formulas.
+- Do NOT modify B11/B12v2 logic.
+- Do NOT download data without explicit request.

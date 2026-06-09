@@ -2574,3 +2574,270 @@ PHASE1B_EXHAUSTED_ZONE_RESEARCH
 Goal: Characterize the remaining false FAIL and false HOLD cases that are
 concentrated in EXHAUSTED_ZONE. Understand whether STABLE trajectory cases
 represent a structural exception or an edge case in B10 trajectory labeling.
+
+
+==================================================
+PHASE1B_LIVE_ZONE_ENGINE_STABLE
+==================================================
+
+DATE:
+2026-06-09
+
+STATUS:
+STABLE
+
+OBJECTIVE ACHIEVED:
+
+Full LIVE Zone Engine operational from V2 Episode generation through LIVE structural prediction.
+
+==================================================
+COMPLETED
+==================================================
+
+LIVE V2 Episodes
+
+- LIVE episode closure
+- Dashboard integration
+- Episode persistence
+- Score4+ parity validation
+
+Preparation Engine
+
+- LIVE Preparation snapshots
+- Replay parity validation
+- Score4+ filter enforced
+- peak_layer_count >= 4 required
+- Preparation Watch dashboard
+
+Lifecycle Engine
+
+- ZoneLifecycleMemory
+- FieldLifecycleMemory
+- LIVE lifecycle events
+- zone_created
+- zone_tested
+- zone_rejected
+- zone_reclaimed
+- expansion_state
+- reversal_state
+- hypothesis02_state
+
+Return Detection Engine
+
+- Streaming return detection
+- Replay parity validation
+- Formation-bound detection
+- CLOSE-only parity with replay
+- Pending zone registry
+- return_found tracking
+
+Two-Phase Emit Architecture
+
+PENDING_FINALIZATION:
+
+- Immediate structural output
+- Group A
+- Group B
+- B8
+- B9
+- B10
+- B11
+- Synthesis
+
+FINALIZED_OUTCOME:
+
+- future moves
+- reversal_type
+- expansion_type
+- failed_after_return
+- max_move_after_return
+
+RDM LIVE
+
+- Group A
+- Group B
+- RDM evolution
+- Attacker evolution
+- Timeline
+- Health evolution
+
+B10
+
+- Structural trajectory
+
+B11
+
+- Structural prediction
+
+Synthesis
+
+- Structural interpretation
+- Prediction reasoning
+
+Geometry
+
+Formation
+
+- preparation_low_price
+- preparation_high_price
+- preparation_mid_price
+
+Tight Formation
+
+- tight_formation_low_price
+- tight_formation_high_price
+- tight_formation_mid_price
+
+Active Core
+
+- interaction_core_lower_edge
+- interaction_core_upper_edge
+- interaction_core_mid_price
+- interaction_core_width
+
+Density Band
+
+- interaction_density_lower_band
+- interaction_density_upper_band
+- interaction_density_weighted_center
+- interaction_density_width
+
+Dashboard
+
+8 LIVE panels operational:
+
+1. Live V2 Episodes
+2. Preparation Watch
+3. Lifecycle Watch
+4. Return Detection
+5. RDM Status
+6. B10 Trajectory
+7. B11 Prediction
+8. Synthesis
+
+==================================================
+VALIDATION STATUS
+==================================================
+
+Preparation:
+PASS
+
+Lifecycle:
+PASS
+
+Return Detection:
+PASS
+
+RDM:
+PASS
+
+B10:
+PASS
+
+B11:
+PASS
+
+Synthesis:
+PASS
+
+Unexplained divergences:
+ZERO
+
+==================================================
+ARCHITECTURAL DECISIONS
+==================================================
+
+Replay parity preserved.
+
+Return Detection uses:
+
+Formation bounds only
+
+Condition:
+
+close >= zone_low
+and
+close <= zone_high
+
+Wick touches are ignored.
+
+Active Core and Density Band:
+
+Display-only geometry layers.
+
+Do NOT participate in return detection.
+
+Score4+ parity:
+
+LIVE now mirrors replay.
+
+Episodes with:
+
+peak_layer_count < 4
+
+are ignored before Preparation processing.
+
+==================================================
+CURRENT LIVE STATUS
+==================================================
+
+LIVE system healthy.
+
+No active bug.
+
+After restart:
+
+V2 episodes observed:
+4
+
+Score4+ episodes:
+0
+
+Preparation zones:
+0
+
+Reason:
+
+Market has not yet produced a qualifying score4+ episode.
+
+System waiting for:
+
+peak_layer_count >= 4
+
+followed by
+
+valid Preparation candidate.
+
+==================================================
+NEXT STEP
+==================================================
+
+Observe LIVE market.
+
+Wait for:
+
+1. score4+ episode
+2. valid Preparation candidate
+3. return_found
+4. first PENDING_FINALIZATION record
+5. first Active Core
+6. first Density Band
+7. first LIVE B11 prediction
+
+Stop here.
+
+Do NOT start Footprint.
+Do NOT start Microstructure.
+Do NOT start Regime Engine.
+
+--------------------------------------------------
+RULES
+--------------------------------------------------
+
+No Phase 2.
+No execution.
+No BUY/SELL.
+Do NOT change Phase1B formulas.
+Do NOT change RDM formulas.
+Do NOT modify B11/B12v2 logic.
+Do NOT download data without explicit request.

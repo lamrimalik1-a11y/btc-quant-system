@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -48,6 +49,16 @@ TIME_DISPLAY_OPTIONS = ["Algeria (UTC+1)", "UTC"]
 RESEARCH_DIR = BASE_DIR / "research"
 PREPARATION_LOG_FILE = RESEARCH_DIR / "phase1b_episode_research_log.csv"
 PREPARATION_ZONES_FILE = RESEARCH_DIR / "phase1b_preparation_zones.csv"
+LIVE_PREPARATION_FILE = OUTPUT_DIR / "live_preparation_zones.csv"
+LIVE_LIFECYCLE_EVENTS_FILE = OUTPUT_DIR / "live_lifecycle_events.jsonl"
+LIVE_FIELD_LIFECYCLE_EVENTS_FILE = OUTPUT_DIR / "live_field_lifecycle_events.jsonl"
+LIVE_LIFECYCLE_STATE_FILE = OUTPUT_DIR / "live_lifecycle_state.csv"
+LIVE_DASHBOARD_V2_EPISODES_FILE = OUTPUT_DIR / "dashboard_v2_episodes.csv"
+LIVE_RETURN_DETECTION_FILE = OUTPUT_DIR / "live_return_detection.csv"
+LIVE_RDM_STATE_FILE = OUTPUT_DIR / "live_rdm_state.csv"
+LIVE_B10_TRAJECTORY_FILE = OUTPUT_DIR / "live_b10_trajectory.csv"
+LIVE_B11_PREDICTION_FILE = OUTPUT_DIR / "live_b11_prediction.csv"
+LIVE_SYNTHESIS_FILE = OUTPUT_DIR / "live_synthesis.csv"
 
 OBSERVATION_FILE_SOURCES = {
     "LIVE": {
@@ -4336,6 +4347,495 @@ def render_preparation_watch_panel():
     )
 
 
+def _live_csv_panel(file_path, subheader, caption, waiting_msg, cols):
+    """Shared loader for all simple live CSV panels."""
+    st.subheader(subheader)
+    st.caption(caption)
+    if not file_path.exists():
+        st.info(waiting_msg)
+        return None
+    try:
+        df = pd.read_csv(file_path, low_memory=False)
+    except Exception as err:
+        st.warning(f"Could not read {file_path.name}: {err}")
+        return None
+    if df.empty:
+        st.info(waiting_msg)
+        return None
+    return df
+
+
+def render_live_v2_episodes_panel():
+    """LIVE V2 Episodes — closed episodes logged by core.observation_logger. Research only."""
+    df = _live_csv_panel(
+        LIVE_DASHBOARD_V2_EPISODES_FILE,
+        "Live V2 Episodes",
+        "Completed V2 observation episodes from core.observation_logger. Research only — not a signal.",
+        "No live V2 episodes yet. Waiting for episodes to close...",
+        [],
+    )
+    if df is None:
+        return
+    cols = [
+        "episode_id", "episode_start_timestamp_utc", "episode_end_timestamp_utc",
+        "peak_state", "peak_layer_count", "peak_max_severity",
+        "peak_primary_context", "peak_observation_confidence",
+    ]
+    available = [c for c in cols if c in df.columns]
+    display_df = (
+        df[available].sort_values("episode_id", ascending=False)
+        if "episode_id" in available else df[available]
+    )
+    st.metric("Total V2 episodes", len(df))
+    st.dataframe(sanitize_dataframe_for_display(display_df), use_container_width=True, hide_index=True)
+
+
+def render_live_return_detection_panel():
+    """LIVE Return Detection — zones resolved by core.live_return_detection. Research only."""
+    df = _live_csv_panel(
+        LIVE_RETURN_DETECTION_FILE,
+        "Return Detection (LIVE)",
+        "Zone return-to-preparation events resolved by core.live_return_detection. Research only.",
+        "No return detection records yet. Waiting for zones to resolve...",
+        [],
+    )
+    if df is None:
+        return
+
+    has_status = "emit_status" in df.columns
+    pending_df = df[df["emit_status"] == "PENDING_FINALIZATION"] if has_status else df
+    final_df   = df[df["emit_status"] == "FINALIZED_OUTCOME"]   if has_status else pd.DataFrame()
+
+    unique_zones = df["zone_id"].nunique() if "zone_id" in df.columns else len(df)
+    st.metric("Zones with return detected", unique_zones)
+
+    if not pending_df.empty:
+        st.markdown("**Prediction available — outcome pending**")
+        cols_pending = [
+            "episode_id", "zone_id", "emit_status",
+            "preparation_low_price", "preparation_high_price",
+            "return_to_preparation", "return_price", "return_timestamp",
+            "resolved_at_timestamp_utc",
+        ]
+        avail = [c for c in cols_pending if c in pending_df.columns]
+        disp = pending_df[avail].sort_values("episode_id", ascending=False) if "episode_id" in avail else pending_df[avail]
+        st.dataframe(sanitize_dataframe_for_display(disp), use_container_width=True, hide_index=True)
+
+    if not final_df.empty:
+        st.markdown("**Prediction + observed outcome available**")
+        cols_final = [
+            "episode_id", "zone_id", "emit_status",
+            "return_price", "return_timestamp",
+            "failed_after_return", "expansion_type", "expansion_strength",
+            "reversal_type", "reversal_strength",
+            "resolved_at_timestamp_utc",
+        ]
+        avail = [c for c in cols_final if c in final_df.columns]
+        disp = final_df[avail].sort_values("episode_id", ascending=False) if "episode_id" in avail else final_df[avail]
+        st.dataframe(sanitize_dataframe_for_display(disp), use_container_width=True, hide_index=True)
+
+
+def render_live_rdm_status_panel():
+    """LIVE RDM Status — mechanical state summary from core.live_rdm. Research only."""
+    df = _live_csv_panel(
+        LIVE_RDM_STATE_FILE,
+        "RDM Status (LIVE)",
+        "Zone mechanical state summary from core.live_rdm (Group A + B). Research only.",
+        "No RDM results yet. Waiting for zones to resolve through RDM...",
+        [],
+    )
+    if df is None:
+        return
+
+    has_status = "emit_status" in df.columns
+    pending_df = df[df["emit_status"] == "PENDING_FINALIZATION"] if has_status else df
+    final_df   = df[df["emit_status"] == "FINALIZED_OUTCOME"]   if has_status else pd.DataFrame()
+
+    unique_zones = df["episode_id"].nunique() if "episode_id" in df.columns else len(df)
+    st.metric("RDM zones", unique_zones)
+
+    if not pending_df.empty:
+        st.markdown("**Structural prediction (PENDING_FINALIZATION)**")
+        cols = [
+            "episode_id", "case_id", "emit_status",
+            "mechanical_family", "mechanical_subtype", "rdm_zone_status",
+            "rdm_health_score", "rdm_risk_level", "rdm_watch_action",
+            "rdm_short_reason", "resolved_at_timestamp_utc",
+        ]
+        avail = [c for c in cols if c in pending_df.columns]
+        disp = pending_df[avail].sort_values("episode_id", ascending=False) if "episode_id" in avail else pending_df[avail]
+        st.dataframe(sanitize_dataframe_for_display(disp), use_container_width=True, hide_index=True)
+
+    if not final_df.empty:
+        st.markdown("**Observed outcome (FINALIZED_OUTCOME)**")
+        cols = [
+            "episode_id", "case_id", "emit_status",
+            "failed_after_return", "reversal_type", "reversal_strength",
+            "expansion_type", "expansion_strength",
+            "max_move_after_return", "direction_after_return",
+            "resolved_at_timestamp_utc",
+        ]
+        avail = [c for c in cols if c in final_df.columns]
+        disp = final_df[avail].sort_values("episode_id", ascending=False) if "episode_id" in avail else final_df[avail]
+        st.dataframe(sanitize_dataframe_for_display(disp), use_container_width=True, hide_index=True)
+
+
+def render_live_b10_trajectory_panel():
+    """LIVE B10 Structural Trajectory — from core.live_rdm. Research only."""
+    df = _live_csv_panel(
+        LIVE_B10_TRAJECTORY_FILE,
+        "B10 Structural Trajectory (LIVE)",
+        "Zone structural trajectory (B8→B9→B10) from core.live_rdm. Research only.",
+        "No B10 trajectory data yet. Waiting for zones to resolve through RDM...",
+        [],
+    )
+    if df is None:
+        return
+    cols = [
+        "episode_id", "zone_id", "emit_status", "zone_mechanical_state",
+        "visit_count", "health_state", "health_slope",
+        "structural_trajectory", "trajectory_score",
+        "trajectory_confidence", "trajectory_reason",
+    ]
+    available = [c for c in cols if c in df.columns]
+    display_df = (
+        df[available].sort_values("episode_id", ascending=False)
+        if "episode_id" in available else df[available]
+    )
+    st.metric("B10 records", len(df))
+    st.dataframe(sanitize_dataframe_for_display(display_df), use_container_width=True, hide_index=True)
+
+
+def render_live_b11_prediction_panel():
+    """LIVE B11 Structural Prediction — from core.live_rdm. Research only."""
+    df = _live_csv_panel(
+        LIVE_B11_PREDICTION_FILE,
+        "B11 Structural Prediction (LIVE)",
+        "Zone structural prediction (B11) from core.live_rdm. Research only.",
+        "No B11 prediction data yet. Waiting for zones to resolve through RDM...",
+        [],
+    )
+    if df is None:
+        return
+    cols = [
+        "episode_id", "zone_id", "emit_status", "zone_mechanical_state",
+        "structural_prediction", "prediction_confidence",
+        "prediction_reason", "prediction_score",
+    ]
+    available = [c for c in cols if c in df.columns]
+    display_df = (
+        df[available].sort_values("episode_id", ascending=False)
+        if "episode_id" in available else df[available]
+    )
+    st.metric("B11 records", len(df))
+    st.dataframe(sanitize_dataframe_for_display(display_df), use_container_width=True, hide_index=True)
+
+
+def render_live_synthesis_panel():
+    """LIVE Synthesis — from core.live_rdm. Research only."""
+    df = _live_csv_panel(
+        LIVE_SYNTHESIS_FILE,
+        "Synthesis (LIVE)",
+        "Zone synthesis output from core.live_rdm. Research only.",
+        "No synthesis data yet. Waiting for zones to resolve through RDM...",
+        [],
+    )
+    if df is None:
+        return
+    cols = [
+        "episode_id", "zone_id", "emit_status", "zone_mechanical_state",
+        "context", "structure", "engagement",
+        "flow", "prediction", "coherence", "interpretation",
+    ]
+    available = [c for c in cols if c in df.columns]
+    display_df = (
+        df[available].sort_values("episode_id", ascending=False)
+        if "episode_id" in available else df[available]
+    )
+    st.metric("Synthesis records", len(df))
+    st.dataframe(sanitize_dataframe_for_display(display_df), use_container_width=True, hide_index=True)
+
+
+def render_live_preparation_watch_panel():
+    """
+    LIVE Preparation Watch Panel — research display only.
+    Shows Preparation snapshots frozen at LIVE V2 episode close, computed by
+    core.observation_logger using the same validated find_preparation_zone /
+    ResearchRowIndex / prepare_rows logic as the offline research pipeline
+    (imported directly — zero formula drift), applied to a bounded live row
+    buffer instead of the full historical dataset.
+
+    Geometry display contract:
+    - Formation + Tight Formation: always shown at zone creation.
+    - Active Core + Density Band: shown after return_found=True (from
+      live_rdm_state.csv PENDING_FINALIZATION record). Zones not yet returned
+      show "awaiting return" status.
+    - Return Detection uses Formation bounds only (replay parity).
+    """
+    st.subheader("Preparation Watch (LIVE)")
+    st.caption(
+        "Preparation zones frozen at LIVE V2 episode close, using the same "
+        "validated Preparation logic as offline research. "
+        "Use episode_id or episode_start_timestamp_utc to locate the zone "
+        "on the live price chart. Research observation only — not a signal."
+    )
+
+    if not LIVE_PREPARATION_FILE.exists():
+        st.info("No live preparation snapshots yet. Waiting for V2 episodes to close...")
+        return
+
+    try:
+        prep_df = pd.read_csv(LIVE_PREPARATION_FILE)
+    except Exception as err:
+        st.warning(f"Could not read live preparation log: {err}")
+        return
+
+    if prep_df.empty:
+        st.info("No live preparation snapshots yet. Waiting for V2 episodes to close...")
+        return
+
+    if "preparation_candidate" in prep_df.columns:
+        prep_df = prep_df[
+            prep_df["preparation_candidate"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .isin(["true", "1", "yes"])
+        ].copy()
+
+    if prep_df.empty:
+        st.info("No live preparation candidates yet.")
+        return
+
+    st.caption(
+        "Return Detection uses Formation bounds only for replay parity. "
+        "Active Core and Density Band are structural context after return. "
+        "Return Detection uses CLOSE-only parity with replay — wick touches are not counted."
+    )
+
+    # --- Section 1: Formation + Tight Formation (always available) ---
+    st.markdown("**Formation Geometry** — frozen at zone creation")
+    formation_cols = [
+        "episode_id",
+        "episode_start_timestamp_utc",
+        "frozen_at_row_id",
+        "preparation_candidate",
+        "preparation_low_price",
+        "preparation_high_price",
+        "preparation_mid_price",
+        "tight_formation_low_price",
+        "tight_formation_high_price",
+        "tight_formation_mid_price",
+        "prep_family",
+        "prep_family_confidence",
+        "zone_type",
+        "manipulation_risk_score",
+        "pre_setup_reason",
+    ]
+    avail_formation = [c for c in formation_cols if c in prep_df.columns]
+    formation_display = (
+        prep_df[avail_formation].sort_values("episode_id", ascending=False)
+        if "episode_id" in avail_formation else prep_df[avail_formation]
+    )
+    st.dataframe(
+        sanitize_dataframe_for_display(formation_display),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    # --- Section 2: Active Core + Density Band (available after return_found=True) ---
+    st.markdown("**Active Core + Density Band** — populated after return_found=True")
+
+    rdm_pending = pd.DataFrame()
+    if LIVE_RDM_STATE_FILE.exists():
+        try:
+            rdm_df = pd.read_csv(LIVE_RDM_STATE_FILE)
+            if "emit_status" in rdm_df.columns:
+                rdm_pending = rdm_df[
+                    rdm_df["emit_status"] == "PENDING_FINALIZATION"
+                ].copy()
+        except Exception:
+            pass
+
+    _GEOMETRY_COLS = [
+        "episode_id",
+        "interaction_core_upper_edge",
+        "interaction_core_lower_edge",
+        "interaction_core_mid_price",
+        "interaction_core_width",
+        "interaction_core_source",
+        "interaction_core_valid_flag",
+        "interaction_density_upper_band",
+        "interaction_density_lower_band",
+        "interaction_density_weighted_center",
+        "interaction_density_width",
+        "interaction_density_score",
+    ]
+
+    prep_episode_ids = set(prep_df["episode_id"].astype(str)) if "episode_id" in prep_df.columns else set()
+
+    if not rdm_pending.empty and "episode_id" in rdm_pending.columns:
+        geom_avail = [c for c in _GEOMETRY_COLS if c in rdm_pending.columns]
+        geom_df = rdm_pending[geom_avail].copy()
+        geom_df = geom_df[
+            geom_df["episode_id"].astype(str).isin(prep_episode_ids)
+        ]
+        geom_df = (
+            geom_df.sort_values("episode_id", ascending=False)
+            if "episode_id" in geom_df.columns else geom_df
+        )
+        if not geom_df.empty:
+            st.dataframe(
+                sanitize_dataframe_for_display(geom_df),
+                use_container_width=True,
+                hide_index=True,
+            )
+        rdm_episode_ids = set(rdm_pending["episode_id"].astype(str))
+        awaiting = sorted(prep_episode_ids - rdm_episode_ids, key=lambda x: int(x) if x.isdigit() else 0, reverse=True)
+        if awaiting:
+            st.caption(f"Awaiting return (Active Core / Density Band not yet computed): episodes {', '.join(awaiting)}")
+    else:
+        st.info("Active Core: awaiting return. Density Band: awaiting return.")
+
+
+def _read_jsonl_tail(path, limit):
+    if not path.exists():
+        return pd.DataFrame()
+
+    try:
+        records = []
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                records.append(json.loads(line))
+    except Exception:
+        return pd.DataFrame()
+
+    if not records:
+        return pd.DataFrame()
+
+    return pd.DataFrame(records[-limit:])
+
+
+def render_live_lifecycle_panel():
+    """
+    LIVE Lifecycle Watch Panel — research display only.
+    Shows zone/field lifecycle events fed live (at LIVE V2 episode close)
+    into the existing, validated context_memory.ZoneLifecycleMemory /
+    FieldLifecycleMemory layers via core.live_lifecycle — the same memory
+    classes and lifecycle states/thresholds the offline research pipeline
+    uses (zero formula drift). Research observation only — not a signal.
+    """
+    st.subheader("Lifecycle Watch (LIVE)")
+    st.caption(
+        "Zone and field lifecycle state fed live into ZoneLifecycleMemory / "
+        "FieldLifecycleMemory at LIVE V2 episode close — zone_created plus "
+        "delta_zscore / preparation_candidate field events (the subset "
+        "computable without forward look-ahead). Research observation only."
+    )
+
+    if not LIVE_LIFECYCLE_STATE_FILE.exists():
+        st.info("No live lifecycle state yet. Waiting for V2 episodes to close...")
+        return
+
+    try:
+        state_df = pd.read_csv(LIVE_LIFECYCLE_STATE_FILE)
+    except Exception as err:
+        st.warning(f"Could not read live lifecycle state log: {err}")
+        return
+
+    if state_df.empty:
+        st.info("No live lifecycle zones yet. Waiting for V2 episodes to close...")
+        return
+
+    active_states = {"zone_created", "zone_active", "zone_tested", "zone_reclaimed"}
+    active_df = state_df[state_df["lifecycle_state"].isin(active_states)].copy() \
+        if "lifecycle_state" in state_df.columns else state_df.copy()
+
+    metric_columns = st.columns(2)
+    metric_columns[0].metric("Tracked zones", len(state_df))
+    metric_columns[1].metric("Active zones", len(active_df))
+
+    state_columns = [
+        "zone_id",
+        "zone_type",
+        "zone_price",
+        "zone_strength",
+        "lifecycle_state",
+        "lifecycle_path",
+        "test_count",
+        "rejection_count",
+        "reclaim_count",
+        "related_episode_id",
+        "created_at",
+        "last_seen_at",
+    ]
+    available_state_columns = [c for c in state_columns if c in state_df.columns]
+
+    st.caption("Active zones")
+    st.dataframe(
+        sanitize_dataframe_for_display(active_df[available_state_columns]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    with st.expander("All tracked zones (current state)"):
+        st.dataframe(
+            sanitize_dataframe_for_display(state_df[available_state_columns]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    zone_events_df = _read_jsonl_tail(LIVE_LIFECYCLE_EVENTS_FILE, limit=50)
+    field_events_df = _read_jsonl_tail(LIVE_FIELD_LIFECYCLE_EVENTS_FILE, limit=50)
+
+    event_columns = [
+        "event_timestamp_utc",
+        "event_state",
+        "zone_id",
+        "zone_type",
+        "zone_price",
+        "related_episode_id",
+    ]
+    field_event_columns = [
+        "event_timestamp_utc",
+        "event_state",
+        "field_id",
+        "field_type",
+        "field_value",
+        "field_strength",
+        "related_episode_id",
+    ]
+
+    left_column, right_column = st.columns([1, 1])
+
+    with left_column:
+        st.caption("Recent zone lifecycle events")
+        if zone_events_df.empty:
+            st.info("No zone lifecycle events yet.")
+        else:
+            available = [c for c in event_columns if c in zone_events_df.columns]
+            st.dataframe(
+                sanitize_dataframe_for_display(zone_events_df[available].iloc[::-1]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    with right_column:
+        st.caption("Recent field lifecycle events")
+        if field_events_df.empty:
+            st.info("No field lifecycle events yet.")
+        else:
+            available = [c for c in field_event_columns if c in field_events_df.columns]
+            st.dataframe(
+                sanitize_dataframe_for_display(field_events_df[available].iloc[::-1]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
 def render_live_observation_panels(
     observation_mode,
     file_sources,
@@ -4459,6 +4959,24 @@ def render_live_observation_panels(
     if observation_mode == "HISTORICAL REPLAY":
         st.divider()
         render_preparation_watch_panel()
+
+    if observation_mode == "LIVE":
+        st.divider()
+        render_live_v2_episodes_panel()
+        st.divider()
+        render_live_preparation_watch_panel()
+        st.divider()
+        render_live_lifecycle_panel()
+        st.divider()
+        render_live_return_detection_panel()
+        st.divider()
+        render_live_rdm_status_panel()
+        st.divider()
+        render_live_b10_trajectory_panel()
+        st.divider()
+        render_live_b11_prediction_panel()
+        st.divider()
+        render_live_synthesis_panel()
 
 
 def render_active_source_footer(source_mode):

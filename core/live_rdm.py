@@ -140,6 +140,10 @@ OUTPUT_DIR = Path("outputs")
 LIVE_RDM_RESULTS_FILE = OUTPUT_DIR / "live_rdm_results.csv"
 LIVE_RDM_EVOLUTION_FILE = OUTPUT_DIR / "live_rdm_evolution.csv"
 LIVE_RDM_STATE_FILE = OUTPUT_DIR / "live_rdm_state.csv"
+
+# B12 (Live Validation Instrumentation) -- ADDITIVE, research-only. Own file;
+# does not alter any existing output file's columns or rows.
+LIVE_B12_VALIDATION_FILE = OUTPUT_DIR / "live_b12_validation.csv"
 LIVE_B10_TRAJECTORY_FILE = OUTPUT_DIR / "live_b10_trajectory.csv"
 LIVE_B11_PREDICTION_FILE = OUTPUT_DIR / "live_b11_prediction.csv"
 LIVE_SYNTHESIS_FILE = OUTPUT_DIR / "live_synthesis.csv"
@@ -607,6 +611,89 @@ def append_live_outcome_for_case(pending, merged_row, event_timestamp):
     with LIVE_RDM_STATE_FILE.open(mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=_STATE_FIELDNAMES, extrasaction="ignore")
         writer.writerow(state_row)
+
+
+def _append_b12_validation_csv(record):
+    """
+    B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+    Appends one record to its own new file (LIVE_B12_VALIDATION_FILE).
+    Does not read or write LIVE_RDM_STATE_FILE / LIVE_RDM_RESULTS_FILE /
+    LIVE_RDM_EVOLUTION_FILE or any other existing tracked output.
+    """
+    fieldnames = list(record.keys())
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_csv(LIVE_B12_VALIDATION_FILE, fieldnames)
+    with LIVE_B12_VALIDATION_FILE.open(mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writerow(record)
+
+
+def append_live_b12_validation_for_case(pending, event_timestamp):
+    """
+    B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+
+    Mechanical ground-truth observer for B11. Called once a zone's two 4h
+    windows are complete (the same point append_live_outcome_for_case is
+    called from), reusing the PENDING_FINALIZATION record already computed
+    and persisted by compute_live_rdm_for_case (Group A/B/B8-B11/Synthesis
+    are NOT re-run here -- this function only reads that record plus the new
+    post_return_feature_window_rows buffer).
+
+    If no PENDING_FINALIZATION record exists for this case (e.g.
+    interaction_core_valid_flag never computed), or anything else prevents
+    computation, writes a NOT_TESTED record rather than raising -- B12 must
+    never affect existing finalization (lifecycle events, FINALIZED_OUTCOME
+    state row) regardless of its own outcome.
+    """
+    from core.live_b12_validation import compute_b12_validation_for_case
+
+    case_id = _live_case_identifier(pending.episode_id)
+    cached = _live_rdm_state.get(case_id)
+
+    if cached is None:
+        record = {
+            "analysis_run_utc": utc_now(),
+            "research_only": True,
+            "case_id": case_id,
+            "episode_id": pending.episode_id,
+            "zone_id": "",
+            "b11_prediction_label": "",
+            "interaction_core_lower_edge": "",
+            "interaction_core_upper_edge": "",
+            "interaction_core_valid_flag": "",
+            "rigidity_birth": "",
+            "capacity_birth": "",
+            "fatigue_birth": "",
+            "rigidity_at_return": "",
+            "capacity_at_return": "",
+            "fatigue_at_return": "",
+            "observation_window_hours": 4.0,
+            "post_return_rows_captured": 0,
+            "segment_found": False,
+            "segment_source": "",
+            "segment_start_row": "",
+            "segment_end_row": "",
+            "visit_classification": "",
+            "rigidity_v_n1": "",
+            "capacity_v_n1": "",
+            "fatigue_v_n1": "",
+            "inside_count_n1": 0,
+            "max_pen_n1": "",
+            "b12_verdict": "NOT_TESTED",
+            "not_tested_reason": "NO_PENDING_FINALIZATION_RECORD",
+        }
+        _append_b12_validation_csv(record)
+        return record
+
+    case_record = cached.get("result_row", {})
+    prediction_df = cached.get("prediction")
+    prediction_label = None
+    if prediction_df is not None and not prediction_df.empty:
+        prediction_label = prediction_df.iloc[0].get("structural_prediction")
+
+    record = compute_b12_validation_for_case(pending, case_record, prediction_label)
+    _append_b12_validation_csv(record)
+    return record
 
 
 def _append_b10_trajectory_csv(trajectory_df, emit_status="PENDING_FINALIZATION"):

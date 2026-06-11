@@ -96,7 +96,11 @@ from core.live_lifecycle import (
     record_live_return_field_lifecycle_events,
     record_live_return_lifecycle_events,
 )
-from core.live_rdm import append_live_outcome_for_case, compute_live_rdm_for_case
+from core.live_rdm import (
+    append_live_b12_validation_for_case,
+    append_live_outcome_for_case,
+    compute_live_rdm_for_case,
+)
 
 OUTPUT_DIR = Path("outputs")
 LIVE_RETURN_DETECTION_FILE = OUTPUT_DIR / "live_return_detection.csv"
@@ -194,6 +198,8 @@ class _PendingReturnZone:
         "feature_window_rows",
         "feature_capture_complete",
         "early_emit_done",
+        "post_return_feature_window_rows",
+        "post_return_capture_complete",
     )
 
     def __init__(
@@ -247,6 +253,18 @@ class _PendingReturnZone:
         self.feature_window_rows = list(feature_seed_rows)
         self.feature_capture_complete = False
         self.early_emit_done = False
+
+        # B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+        # Mirrors feature_window_rows' shape (FEATURE_WINDOW_FIELDS) but spans
+        # the POST-return period [return_dt, return_dt + FOUR_HOURS], the same
+        # bound already used for return_window_rows. This is the new buffer
+        # that makes the rich per-row inputs (delta/zscores/regime/state)
+        # available after the return point, where feature_window_rows (capped
+        # at feature_capture_complete=True, set the instant return_found flips
+        # True) does not reach. Does not alter feature_window_rows or any
+        # existing buffer/flag.
+        self.post_return_feature_window_rows = []
+        self.post_return_capture_complete = False
 
     def is_ready_to_finalize(self):
         return (
@@ -571,6 +589,20 @@ def _advance_pending_zone(pending, market_dt, close_price, row_id, raw_row, feat
         if pending.return_found:
             pending.feature_capture_complete = True
 
+    # B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+    # Bounded [return_dt, return_dt + 4h] accumulation of FEATURE_WINDOW_FIELDS
+    # rows -- the same inclusive bounds and same FOUR_HOURS anchor as
+    # return_window_rows above, just carrying the richer feature_row instead
+    # of raw_row. This is new, independent state: it does not read from or
+    # write to feature_window_rows / return_window_rows / feature_capture_complete,
+    # and does not change when/whether early-emit or finalization fire.
+    if pending.return_found and not pending.post_return_capture_complete:
+        post_return_window_end = pending.return_dt + FOUR_HOURS
+        if pending.return_dt <= market_dt <= post_return_window_end:
+            pending.post_return_feature_window_rows.append(feature_row)
+        if market_dt > post_return_window_end:
+            pending.post_return_capture_complete = True
+
 
 def _finalize_pending_zone(pending, event_timestamp):
     """
@@ -608,6 +640,15 @@ def _finalize_pending_zone(pending, event_timestamp):
         # Append FINALIZED_OUTCOME state row with outcome fields only.
         # Group A/B/B8-B11/Synthesis were already run at return_found time.
         append_live_outcome_for_case(pending, merged_row, event_timestamp)
+
+        # B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+        # Reads the PENDING_FINALIZATION record + new post-return buffer;
+        # writes its own file. Isolated try/except so a B12 failure can never
+        # prevent the FINALIZED_OUTCOME row / lifecycle events above.
+        try:
+            append_live_b12_validation_for_case(pending, event_timestamp)
+        except Exception:
+            pass
     except Exception:
         return
 
@@ -753,6 +794,29 @@ def build_zone_feature_window(pending):
         return pd.DataFrame(columns=FEATURE_WINDOW_FIELDS)
 
     frame = pd.DataFrame(pending.feature_window_rows, columns=FEATURE_WINDOW_FIELDS)
+    frame["row_id_numeric"] = pd.to_numeric(frame["row_id"], errors="coerce")
+    frame = frame.dropna(subset=["row_id_numeric"])
+    frame = frame.sort_values("row_id_numeric").drop_duplicates("row_id_numeric", keep="last")
+    return frame.drop(columns=["row_id_numeric"]).reset_index(drop=True)
+
+
+def build_zone_post_return_feature_window(pending):
+    """
+    B12 (Live Validation Instrumentation) -- ADDITIVE, research-only.
+
+    Assembles a finalized pending zone's captured POST-RETURN per-zone
+    row-feature window (post_return_feature_window_rows, spanning
+    [return_dt, return_dt + FOUR_HOURS]) into the same FEATURE_WINDOW_FIELDS
+    shape build_zone_feature_window returns -- the "historical_rows" companion
+    for computing an Active-Core-keyed live evolution stream over the
+    post-return observation window. Mirrors build_zone_feature_window's
+    dedup/sort logic exactly; reads only the new buffer, leaves
+    feature_window_rows / build_zone_feature_window untouched.
+    """
+    if not pending.post_return_feature_window_rows:
+        return pd.DataFrame(columns=FEATURE_WINDOW_FIELDS)
+
+    frame = pd.DataFrame(pending.post_return_feature_window_rows, columns=FEATURE_WINDOW_FIELDS)
     frame["row_id_numeric"] = pd.to_numeric(frame["row_id"], errors="coerce")
     frame = frame.dropna(subset=["row_id_numeric"])
     frame = frame.sort_values("row_id_numeric").drop_duplicates("row_id_numeric", keep="last")

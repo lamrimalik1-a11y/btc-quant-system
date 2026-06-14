@@ -22,24 +22,38 @@ Recommended additional source files:
 
 ```text
 You are working on my BTC Quant repo in PHASE 1B+ Research Expansion.
-Current checkpoint: PHASE1B_SYNTHESIS_ENGINE_STABLE.
+Current checkpoint: PHASE1B_STREAMING_REPLAY_STABLE.
 
 Rules:
 - Research only, no Phase 2, no execution, no entries, no live signals
 - No scoring changes, no RDM formula changes, no lifecycle changes
 
 Current state:
-- Phase 1 is now structurally coherent
-- Synthesis Engine (research/synthesis_engine.py) connects all B1-B11 outputs
-  into one MarketInterpretation per zone case (research/zone_synthesis.csv)
-- 276 zones, 12-day archive, prediction distribution: HOLD=90, FAIL=65,
-  NO_PREDICTION=115, UNCERTAIN=6
+- tools/generate_binance_historical_replay.py has a new, additive,
+  opt-in --stream flag: a bounded-memory rebuild path for long
+  continuous multi-month windows (target: 2026-02-01 -> 2026-06-06,
+  126 days, zero window seams).
+- --stream Stages 1-2 (CLI flag + streaming reader + streaming
+  consumer with persistent tick_buffer / continuous StatisticsEngine /
+  warmup deque / incremental CSV writes / row-count invariants) are
+  implemented and additive-verified (compiles, 0 deletions, old path
+  unchanged).
+- --stream Stage 3 (April 2026-04-01 -> 2026-05-01 byte-identical
+  sha256 equivalence test vs the old in-memory path) is PENDING --
+  not yet confirmed. --stream is EXPERIMENTAL until that passes; do
+  not use it for any dataset feeding B9-B12/Synthesis yet.
+- Synthesis Engine (research/synthesis_engine.py) still connects all
+  B1-B11 outputs into one MarketInterpretation per zone case
+  (research/zone_synthesis.csv). NOTE: the 276-row/12-day-archive
+  figures from the prior checkpoint predate later
+  March/April/May/B12v2 work -- re-check the CSV before citing counts.
 
 Next task:
-- Long data collection: 45-60 days of BTCUSDT historical data
-- After collection: full pipeline rebuild + B12 prediction validation
-- B12 validates structural_prediction vs observed market outcomes
-- Only then: large-scale backtesting
+- Confirm Stage 3 streaming equivalence (see RUN_COMMANDS.md "Stage 3
+  equivalence test")
+- If PASS: make --stream the default and run the 126-day continuous
+  rebuild
+- After that rebuild: re-run B9-B12v2 / Synthesis on the unified dataset
 
 Key validated finding:
 - Omega = sigma x penetration (r=0.9935)
@@ -48,6 +62,16 @@ Key validated finding:
 ```
 
 ## Priority Workflow (next session)
+
+### Step 0: Confirm --stream Stage 3 equivalence (PENDING)
+
+Run the April equivalence test in RUN_COMMANDS.md ("Stage 3
+equivalence test"). PASS = all 3 sha256 hash pairs
+(historical_observation_rows.csv, historical_market_rows.csv,
+historical_replay_dashboard_v2_episodes.csv) identical between the
+old in-memory run and the --stream run. Only after PASS: proceed to
+make --stream the default and run the 126-day rebuild (Step 1 below
+becomes the streaming version of this command).
 
 ### Step 1: Extended Data Collection (45-60 days)
 

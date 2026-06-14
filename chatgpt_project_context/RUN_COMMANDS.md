@@ -32,6 +32,55 @@ CLI flags:
     --slow-mode         Sets request_sleep=2.0s, timeout=240s, max_retries=40
     --max-retries N     Override max retry attempts per API batch
     --timeout N         Override HTTP timeout in seconds
+    --stream            Bounded-memory streaming rebuild path (PHASE1B_STREAMING_REPLAY_STABLE,
+                        EXPERIMENTAL until Stage 3 equivalence below is confirmed PASS).
+                        Requires all needed days already in the Tier-1 raw-trade cache
+                        (raises SystemExit on any missing day -- never downloads).
+
+## Streaming Replay (--stream, bounded memory) -- EXPERIMENTAL
+
+Same CLI as the standard command, with `--stream` added. Output files
+and locations are identical (outputs/historical_*.csv). Use only after
+pre-caching the window with a normal (non-stream) run.
+
+```powershell
+python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --symbol BTCUSDT --row-size 500 --stream
+```
+
+### Stage 3 equivalence test (April 2026-04-01 -> 2026-05-01)
+
+Proves the streaming path is byte-identical to the in-memory path.
+Run sequentially (both write to outputs/, so copy results out between runs):
+
+```powershell
+New-Item -ItemType Directory -Force -Path "research\equivalence_april\inmemory" | Out-Null
+New-Item -ItemType Directory -Force -Path "research\equivalence_april\stream"   | Out-Null
+
+# 1. OLD in-memory run
+python tools\generate_binance_historical_replay.py --start "2026-04-01 00:00:00" --end "2026-05-01 00:00:00" --row-size 500 --no-zip --overwrite --overwrite-archive
+
+# 2. Preserve its outputs
+Copy-Item outputs\historical_observation_rows.csv             research\equivalence_april\inmemory\
+Copy-Item outputs\historical_market_rows.csv                   research\equivalence_april\inmemory\
+Copy-Item outputs\historical_replay_dashboard_v2_episodes.csv  research\equivalence_april\inmemory\
+
+# 3. NEW streaming run (same window, overwrites outputs/)
+python tools\generate_binance_historical_replay.py --start "2026-04-01 00:00:00" --end "2026-05-01 00:00:00" --row-size 500 --overwrite --overwrite-archive --stream
+
+# 4. Preserve its outputs
+Copy-Item outputs\historical_observation_rows.csv             research\equivalence_april\stream\
+Copy-Item outputs\historical_market_rows.csv                   research\equivalence_april\stream\
+Copy-Item outputs\historical_replay_dashboard_v2_episodes.csv  research\equivalence_april\stream\
+
+# 5. Compare
+Get-FileHash research\equivalence_april\inmemory\historical_observation_rows.csv, research\equivalence_april\stream\historical_observation_rows.csv -Algorithm SHA256
+Get-FileHash research\equivalence_april\inmemory\historical_market_rows.csv, research\equivalence_april\stream\historical_market_rows.csv -Algorithm SHA256
+Get-FileHash research\equivalence_april\inmemory\historical_replay_dashboard_v2_episodes.csv, research\equivalence_april\stream\historical_replay_dashboard_v2_episodes.csv -Algorithm SHA256
+```
+
+PASS = all 3 hash pairs identical. If only the V2 episodes hash
+differs, suspect the `pd.read_csv` read-back dtype issue (see
+CURRENT_CHECKPOINT.md "Outstanding before --stream is trusted").
 
 ## Rebuild Research Dataset (Episode Research + RDM)
 

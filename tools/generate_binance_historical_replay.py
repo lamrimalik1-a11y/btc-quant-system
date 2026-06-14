@@ -8,6 +8,7 @@ import socket
 import sys
 import time
 import zipfile
+from collections import deque
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -200,6 +201,18 @@ def parse_args():
             "Useful when data.binance.vision is unavailable or for API testing."
         ),
     )
+    parser.add_argument(
+        "--stream",
+        action="store_true",
+        help=(
+            "Use the bounded-memory STREAMING rebuild path instead of the "
+            "default in-memory path. Reads cached day-files one at a time so "
+            "a continuous multi-month window fits in limited RAM with zero "
+            "window seams. Requires all needed days to be present in the "
+            "Tier-1 raw cache (no download). When absent, behaviour is "
+            "byte-for-byte identical to before this flag existed."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -254,6 +267,19 @@ def main():
             0,
             start_ms - WARMUP_LOOKBACK_MS,
         )
+
+        if args.stream:
+            # STAGE 2: bounded-memory streaming consumer. Fully separate
+            # code path from everything below -- the default (no --stream)
+            # in-memory path is untouched and unreachable from here.
+            run_streaming_pipeline(
+                args=args,
+                profiler=profiler,
+                warmup_start_ms=warmup_start_ms,
+                start_ms=start_ms,
+                end_ms=end_ms,
+            )
+            return
 
         if args.overwrite:
             clear_download_checkpoint()
@@ -593,6 +619,311 @@ def try_load_raw_trade_cache(symbol: str, date_str: str):
 
     print(f"  CACHE HIT | {date_str} | {len(trades):,} trades | {path}")
     return trades
+
+
+def stream_cached_day_trades(symbol: str, start_ms: int, end_ms: int):
+    """STREAMING reader (used only by the --stream path).
+
+    Yield aggTrade dicts for the inclusive range [start_ms, end_ms], reading
+    ONE cached UTC day-file at a time so peak memory is O(one day), not
+    O(window).  Each day is loaded and verified via try_load_raw_trade_cache
+    (the SAME parser + _verify_raw_trades gate the in-memory cache branch
+    uses), then filtered to the day's effective sub-range and yielded trade by
+    trade.  The previous day's list is released before the next is loaded.
+
+    Because parsing, verification, day ordering, and the per-trade time filter
+    are identical to download_agg_trades' Tier-1 cache branch, the yielded
+    sequence equals the concatenated list that branch would have built — which
+    is what guarantees byte-identical output vs the in-memory path.
+
+    Streaming rebuild requires every needed day to be present in the Tier-1
+    raw cache; a missing/unverifiable day raises (no download from here).
+    This function only READS the cache; it builds no rows and changes no
+    formula/statistics state.
+    """
+    for date_str in _iter_utc_days(start_ms, end_ms):
+        day_start_ms, day_end_ms = _day_ms_range(date_str)
+        eff_start = max(day_start_ms, start_ms)
+        eff_end   = min(day_end_ms, end_ms)
+
+        day_trades = try_load_raw_trade_cache(symbol, date_str)
+        if day_trades is None:
+            raise SystemExit(
+                f"--stream requires cached day {date_str} but it was not found "
+                f"or failed verification in the Tier-1 raw cache "
+                f"({_raw_trade_cache_path(symbol, date_str)}). "
+                f"Pre-cache it (a normal in-memory run downloads + caches days) "
+                f"before using --stream."
+            )
+
+        for t in day_trades:
+            ts = int(t["T"])
+            if eff_start <= ts <= eff_end:
+                yield t
+        # day_trades released here before the next day loads -> bounded memory
+
+
+def run_streaming_pipeline(args, profiler, warmup_start_ms, start_ms, end_ms):
+    """STAGE 2: bounded-memory streaming consumer for --stream.
+
+    Reads cached day-files one at a time via stream_cached_day_trades,
+    maintains ONE persistent tick_buffer across day-file boundaries
+    (flushed only when it reaches args.row_size, never at a day seam), runs
+    ONE continuous StatisticsEngine / RenkoEngine / observation-state
+    instance for the whole window, primes warmup via a
+    deque(maxlen=WARMUP_TARGET_ROWS), and writes the market-rows /
+    observation-rows CSVs incrementally row by row.
+
+    build_trade_row, process_historical_row, build_observation_row and
+    reset_observation_state are reused UNCHANGED -- only the data flow
+    (stream vs in-memory list) differs from the default path.
+    """
+    if args.save_raw:
+        raise SystemExit(
+            "--save-raw is not supported together with --stream (out of "
+            "scope for the streaming rebuild path). Run without --stream "
+            "to save raw aggTrades."
+        )
+
+    if args.overwrite:
+        clear_download_checkpoint()
+
+    run_days = _iter_utc_days(warmup_start_ms, end_ms)
+    any_cached = any(
+        _raw_trade_cache_path(args.symbol, d).exists() for d in run_days
+    )
+    ensure_outputs_can_be_written(
+        overwrite=args.overwrite,
+        save_raw=False,
+        resume_active=any_cached,
+    )
+
+    print(f"Symbol:      {args.symbol}")
+    print(f"Start:       {args.start}")
+    print(f"End:         {args.end}")
+    print(f"Row size:    {args.row_size}")
+    print("Mode:        STREAMING (--stream) -- bounded-memory, Tier-1 cache only")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    reset_observation_state()
+    statistics_engine = StatisticsEngine()
+    renko_engine = RenkoEngine()
+
+    # ---- WARMUP PHASE ----
+    # Stream the warmup region [warmup_start_ms, start_ms - 1], batching
+    # into row_size ticks exactly like build_historical_rows, keeping only
+    # the last WARMUP_TARGET_ROWS built rows (deque), then priming the
+    # engine with those rows via process_historical_row -- matching the
+    # old build_historical_rows(...)[-WARMUP_TARGET_ROWS:] + process loop.
+    with profiler.step("streaming_warmup"):
+        warmup_tick_buffer = []
+        warmup_row_deque = deque(maxlen=WARMUP_TARGET_ROWS)
+        warmup_row_counter = 0
+        warmup_trade_count = 0
+
+        if warmup_start_ms < start_ms:
+            for trade in stream_cached_day_trades(args.symbol, warmup_start_ms, start_ms - 1):
+                warmup_trade_count += 1
+                warmup_tick_buffer.append(agg_trade_to_tick(trade))
+
+                if len(warmup_tick_buffer) == args.row_size:
+                    warmup_row_counter += 1
+                    row = build_trade_row(warmup_tick_buffer)
+                    row["row_id"] = warmup_row_counter
+                    row["market_timestamp"] = row.get("end_ts")
+                    row["duration_seconds"] = row.get("duration_sec")
+                    warmup_row_deque.append(row)
+                    warmup_tick_buffer = []
+
+            if warmup_tick_buffer:
+                warmup_row_counter += 1
+                row = build_trade_row(warmup_tick_buffer)
+                row["row_id"] = warmup_row_counter
+                row["market_timestamp"] = row.get("end_ts")
+                row["duration_seconds"] = row.get("duration_sec")
+                warmup_row_deque.append(row)
+                warmup_tick_buffer = []
+
+        if len(warmup_row_deque) < WARMUP_TARGET_ROWS:
+            print(
+                "WARNING: Fewer than 500 warmup rows available. "
+                f"Available warmup rows: {len(warmup_row_deque)}"
+            )
+        print(f"WARMUP_ROWS_USED = {len(warmup_row_deque)}")
+
+        for row in warmup_row_deque:
+            process_historical_row(
+                row=row,
+                statistics_engine=statistics_engine,
+                renko_engine=renko_engine,
+            )
+
+    # ---- TARGET PHASE ----
+    # tick_buffer is reset here (warmup -> target boundary), matching the
+    # old two-separate-calls behaviour: build_historical_rows is called
+    # once for warmup_agg_trades and once for target_agg_trades, each
+    # starting batching from index 0, so target row 1 starts at the first
+    # target trade.
+    tick_buffer = []
+    row_id = 0
+    target_trade_count = 0
+    row_tick_counts = []
+
+    market_fh = HISTORICAL_MARKET_ROWS_FILE.open("w", newline="")
+    observation_fh = HISTORICAL_OBSERVATION_ROWS_FILE.open("w", newline="")
+    market_writer = None
+    observation_writer = None
+
+    def flush_row(buf):
+        nonlocal row_id, market_writer, observation_writer
+
+        row_id += 1
+        row = build_trade_row(buf)
+        row["row_id"] = row_id
+        row["market_timestamp"] = row.get("end_ts")
+        row["duration_seconds"] = row.get("duration_sec")
+
+        if market_writer is None:
+            market_writer = csv.DictWriter(market_fh, fieldnames=list(row.keys()))
+            market_writer.writeheader()
+        market_writer.writerow(row)
+
+        row, statistics = process_historical_row(
+            row=row,
+            statistics_engine=statistics_engine,
+            renko_engine=renko_engine,
+        )
+        observation_row = build_observation_row(
+            row=row,
+            statistics=statistics,
+            row_id=row["row_id"],
+        )
+
+        if observation_writer is None:
+            observation_writer = csv.DictWriter(
+                observation_fh, fieldnames=OBSERVATION_FIELDNAMES
+            )
+            observation_writer.writeheader()
+        observation_writer.writerow(observation_row)
+
+        row_tick_counts.append(row["tick_count"])
+
+    try:
+        with profiler.step("streaming_target"):
+            for trade in stream_cached_day_trades(args.symbol, start_ms, end_ms):
+                target_trade_count += 1
+                tick_buffer.append(agg_trade_to_tick(trade))
+
+                if len(tick_buffer) == args.row_size:
+                    flush_row(tick_buffer)
+                    tick_buffer = []
+
+            # Trailing partial row (matches build_historical_rows, which
+            # processes every non-empty batch including a final partial one).
+            if tick_buffer:
+                flush_row(tick_buffer)
+                tick_buffer = []
+    finally:
+        market_fh.close()
+        observation_fh.close()
+
+    rows_written = len(row_tick_counts)
+
+    # ---- ROW-COUNT INVARIANT ASSERTIONS (anti-seam proof) ----
+    expected_rows = -(-target_trade_count // args.row_size)  # ceil division
+    if rows_written != expected_rows:
+        raise AssertionError(
+            "STREAMING ROW-COUNT INVARIANT FAILED: "
+            f"rows_written={rows_written} != expected={expected_rows} "
+            f"(target_trade_count={target_trade_count}, row_size={args.row_size}). "
+            "This indicates a day-seam off-by-one in the streaming consumer."
+        )
+    for i, tick_count in enumerate(row_tick_counts):
+        is_final = i == len(row_tick_counts) - 1
+        if not is_final and tick_count != args.row_size:
+            raise AssertionError(
+                "STREAMING ROW-COUNT INVARIANT FAILED: "
+                f"non-final row {i + 1} has tick_count={tick_count} "
+                f"!= row_size={args.row_size}. This indicates a day-seam "
+                "off-by-one in the streaming consumer."
+            )
+
+    print(f"Trades downloaded: {warmup_trade_count + target_trade_count}")
+    print(f"Target trades processed: {target_trade_count}")
+    print(f"Rows built: {rows_written}")
+    print(f"TARGET_ROWS_WRITTEN = {rows_written}")
+    print(f"Historical observation rows written: {rows_written}")
+    print(f"Historical market rows: {HISTORICAL_MARKET_ROWS_FILE}")
+    print(f"Historical observation rows: {HISTORICAL_OBSERVATION_ROWS_FILE}")
+
+    # ---- V1/V2 REPLAY + EPISODES ----
+    # Re-read the observation rows just written from disk, then run the
+    # SAME (unchanged) replay-observation builders the in-memory path uses.
+    with profiler.step("pandas_dataframe_build"):
+        observation_dataframe = pd.read_csv(
+            HISTORICAL_OBSERVATION_ROWS_FILE, low_memory=False
+        )
+
+    with profiler.step("replay_v1_build"):
+        replay_events, replay_episodes = build_replay_observation(
+            observation_dataframe
+        )
+    with profiler.step("replay_v2_build"):
+        replay_v2_events, replay_v2_episodes = build_replay_observation_v2(
+            observation_dataframe
+        )
+
+    with profiler.step("csv_write_replay_v1_events"):
+        write_dict_rows(HISTORICAL_REPLAY_EVENTS_FILE, EVENT_FIELDNAMES, replay_events)
+    with profiler.step("csv_write_replay_v1_episodes"):
+        write_dict_rows(HISTORICAL_REPLAY_EPISODES_FILE, EPISODE_FIELDNAMES, replay_episodes)
+    with profiler.step("csv_write_replay_v2_events"):
+        write_dict_rows(HISTORICAL_REPLAY_V2_EVENTS_FILE, V2_EVENT_FIELDNAMES, replay_v2_events)
+    with profiler.step("csv_write_replay_v2_episodes"):
+        write_dict_rows(HISTORICAL_REPLAY_V2_EPISODES_FILE, V2_EPISODE_FIELDNAMES, replay_v2_episodes)
+
+    print(f"Historical events found: {len(replay_events)}")
+    print(f"Historical episodes found: {len(replay_episodes)}")
+    print(f"Historical V2 events found: {len(replay_v2_events)}")
+    print(f"Historical V2 episodes found: {len(replay_v2_episodes)}")
+    print(f"Historical replay events: {HISTORICAL_REPLAY_EVENTS_FILE}")
+    print(f"Historical replay episodes: {HISTORICAL_REPLAY_EPISODES_FILE}")
+    print(f"Historical replay V2 events: {HISTORICAL_REPLAY_V2_EVENTS_FILE}")
+    print(
+        "Historical replay V2 episodes: "
+        f"{HISTORICAL_REPLAY_V2_EPISODES_FILE}"
+    )
+
+    with profiler.step("archive_historical_outputs"):
+        archive_summary = archive_historical_outputs(
+            symbol=args.symbol,
+            start_date=args.start,
+            end_date=args.end,
+            save_raw=False,
+            overwrite_archive=args.overwrite_archive,
+        )
+
+    clear_download_checkpoint()
+
+    profiler.add_metric("trades_processed", target_trade_count)
+    profiler.add_metric("warmup_trades_processed", warmup_trade_count)
+    profiler.add_metric("warmup_rows_used", len(warmup_row_deque))
+    profiler.add_metric("rows_processed", rows_written)
+    profiler.add_metric("observation_rows_processed", rows_written)
+    profiler.add_metric("v1_events", len(replay_events))
+    profiler.add_metric("v1_episodes", len(replay_episodes))
+    profiler.add_metric("v2_events", len(replay_v2_events))
+    profiler.add_metric("v2_episodes", len(replay_v2_episodes))
+    profiler.add_metric("archive_days", archive_summary["archive_days"])
+    profiler.add_metric("archive_files_written", archive_summary["files_written"])
+
+    print(
+        "Archived historical market dates: "
+        f"{archive_summary['archive_days']} | "
+        f"files written: {archive_summary['files_written']}"
+    )
+    print(f"Archive index: {archive_summary['archive_index']}")
 
 
 def save_raw_trade_cache(symbol: str, date_str: str, trades: list) -> bool:

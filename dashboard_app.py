@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -43,7 +44,8 @@ HISTORICAL_REPLAY_DASHBOARD_V2_EPISODES_FILE = (
     OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
 )
 LIVE_HEARTBEAT_SECONDS = 5
-ALGERIA_TIMEZONE = timezone(timedelta(hours=1))
+ALGERIA_TZ = ZoneInfo("Africa/Algiers")
+ALGERIA_TIMEZONE = ALGERIA_TZ
 TIME_DISPLAY_OPTIONS = ["Algeria (UTC+1)", "UTC"]
 
 RESEARCH_DIR = BASE_DIR / "research"
@@ -163,6 +165,48 @@ def read_csv_safely(path):
     except Exception as error:
         st.warning(f"Could not read {path.name}: {error}")
         return pd.DataFrame()
+
+
+_DATE_FILTER_COLUMNS = ["market_timestamp", "timestamp", "date", "datetime", "time"]
+
+
+def get_date_column(df):
+    for col in _DATE_FILTER_COLUMNS:
+        if col in df.columns:
+            return col
+    return None
+
+
+def _parse_df_dates_utc(df, col):
+    if pd.api.types.is_numeric_dtype(df[col]):
+        return pd.to_datetime(
+            pd.to_numeric(df[col], errors="coerce"), unit="ms", utc=True
+        )
+    return pd.to_datetime(df[col], errors="coerce", utc=True)
+
+
+def apply_date_range_filter(df, from_date, to_date):
+    if df.empty or from_date is None or to_date is None:
+        return df
+    col = get_date_column(df)
+    if col is None:
+        return df
+    dates = _parse_df_dates_utc(df, col).dt.date
+    mask = (dates >= from_date) & (dates <= to_date)
+    return df[mask].copy()
+
+
+def _compute_data_date_bounds(df):
+    col = get_date_column(df)
+    if col is None or df.empty:
+        return None, None
+    try:
+        dates = _parse_df_dates_utc(df, col).dropna()
+        if dates.empty:
+            return None, None
+        return dates.min().date(), dates.max().date()
+    except Exception:
+        return None, None
 
 
 def ensure_csv_cache_state():
@@ -4853,6 +4897,8 @@ def render_live_observation_panels(
     show_archive_field_coverage,
     show_all_v2_episodes=False,
     force_refresh=False,
+    date_range_from=None,
+    date_range_to=None,
 ):
     expected_mode = source_mode_for_observation_mode(observation_mode)
     if not assert_source_mode(file_sources, expected_mode):
@@ -4872,6 +4918,12 @@ def render_live_observation_panels(
         v2_events, v2_episodes = load_historical_dashboard_v2_data(
             force_refresh=force_refresh,
         )
+
+    market_rows = apply_date_range_filter(market_rows, date_range_from, date_range_to)
+    observation_events = apply_date_range_filter(observation_events, date_range_from, date_range_to)
+    dashboard_episodes = apply_date_range_filter(dashboard_episodes, date_range_from, date_range_to)
+    v2_events = apply_date_range_filter(v2_events, date_range_from, date_range_to)
+    v2_episodes = apply_date_range_filter(v2_episodes, date_range_from, date_range_to)
 
     if (
         market_rows.empty
@@ -5062,6 +5114,7 @@ def main():
 
     st.title("BTC Quant Observation Studio V1.6")
     st.caption("PHASE 1B Observation / Calibration - read-only CSV interface")
+    st.caption("All times shown in Algeria time (UTC+1).")
 
     with st.sidebar:
         st.header("Observation Mode")
@@ -5079,6 +5132,7 @@ def main():
         st.caption(
             "Stored timestamps remain UTC. This option changes display only."
         )
+        st.caption("All times shown in Algeria time (UTC+1).")
         file_sources = OBSERVATION_FILE_SOURCES[observation_mode]
         sidebar_market_rows, _, sidebar_dashboard_episodes = load_dashboard_data(
             file_sources,
@@ -5107,6 +5161,30 @@ def main():
             not in episode_id_options
         ):
             st.session_state["episode_id_filter"] = "All episodes"
+
+        _dmin, _dmax = _compute_data_date_bounds(sidebar_market_rows)
+        _today = datetime.today().date()
+        _dfrom = _dmin or _today
+        _dto = _dmax or _today
+        if "date_range_from" not in st.session_state:
+            st.session_state["date_range_from"] = _dfrom
+        if "date_range_to" not in st.session_state:
+            st.session_state["date_range_to"] = _dto
+
+        st.header("Date Range Filter")
+        _dr_cols = st.columns([3, 1])
+        with _dr_cols[0]:
+            from_date = st.date_input("From", key="date_range_from")
+            to_date = st.date_input("To", key="date_range_to")
+        with _dr_cols[1]:
+            st.write("")
+            st.write("")
+            if st.button("Reset", key="reset_date_range"):
+                st.session_state["date_range_from"] = _dfrom
+                st.session_state["date_range_to"] = _dto
+                st.rerun()
+        if from_date > to_date:
+            st.warning("From > To — no data will be shown.")
 
         st.header("Refresh")
         st.checkbox("Auto refresh", key="auto_refresh")
@@ -5235,6 +5313,8 @@ def main():
                 show_archive_field_coverage,
                 show_all_v2_episodes=show_all_v2_episodes,
                 force_refresh=force_refresh,
+                date_range_from=from_date,
+                date_range_to=to_date,
             )
 
         live_observation_fragment()
@@ -5267,6 +5347,8 @@ def main():
         show_archive_field_coverage,
         show_all_v2_episodes=show_all_v2_episodes,
         force_refresh=force_refresh,
+        date_range_from=from_date,
+        date_range_to=to_date,
     )
 
 

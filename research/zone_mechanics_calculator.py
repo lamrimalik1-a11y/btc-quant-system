@@ -1909,23 +1909,47 @@ def build_static_live_rdm_evolution(results: pd.DataFrame, run_utc: str) -> pd.D
     return pd.DataFrame(rows)
 
 
-def live_row_window(zone: pd.Series, rows_source: pd.DataFrame) -> tuple[float, float]:
+def live_row_window(
+    zone: pd.Series,
+    rows_source: pd.DataFrame,
+    post_return_rows: int = 500,
+) -> tuple[float, float]:
+    return_row = to_float(zone.get("return_row"))
     candidates_start = [
         to_float(zone.get("preparation_start_row")),
         to_float(zone.get("start_row_id")),
         to_float(zone.get("return_row")),
     ]
+    # End candidates EXCLUDING return_row; the bounded return horizon is
+    # added below so the window can extend past the return event.
     candidates_end = [
         to_float(zone.get("end_row_id")),
-        to_float(zone.get("return_row")),
         to_float(zone.get("preparation_end_row")),
     ]
     valid_start = [item for item in candidates_start if item is not None and item > 0]
     valid_end = [item for item in candidates_end if item is not None and item > 0]
     start = min(valid_start) if valid_start else float(rows_source["row_id_numeric"].min())
-    end = max(valid_end) if valid_end else start + 120.0
+
+    # Stage 1 (B12.5): extend the live window by a STRICTLY BOUNDED horizon
+    # past the return event so post-return visits can be scanned. The +N
+    # horizon is mandatory-capped at max_observed_row_id below to prevent the
+    # unbounded return_row window blow-up that previously filled the disk.
+    if return_row is not None and return_row > 0:
+        post_return_end = return_row + float(post_return_rows)
+        end = max(valid_end + [post_return_end])
+    else:
+        end = max(valid_end) if valid_end else start + 120.0
+
     if end <= start:
         end = start + 120.0
+
+    # HARD CAP (mandatory): never scan past the last observed row.
+    max_observed_row_id = float(rows_source["row_id_numeric"].max())
+    end = min(end, max_observed_row_id)
+    assert end <= max_observed_row_id, (
+        f"Window end {end} exceeds max row {max_observed_row_id}"
+    )
+
     return start, end
 
 

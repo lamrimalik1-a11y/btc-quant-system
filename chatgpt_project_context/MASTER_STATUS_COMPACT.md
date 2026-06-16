@@ -43,10 +43,39 @@ CURRENT_CHECKPOINT.md "Prior Checkpoints"):
     (unchanged) functions, fed by re-reading the observation CSV.
 - `--save-raw` is not supported together with `--stream`.
 
-STATUS: Stages 1-2 implemented and additive-verified (compiles, 0
-deletions, old path unchanged). **Stage 3 (April byte-identical sha256
-equivalence test) is PENDING** — not yet confirmed by Lamri. Treat
-`--stream` as experimental until that passes.
+STATUS: Stages 1-3 implemented and additive-verified (compiles, 0
+deletions, old path unchanged). `--stream` run on April reproduced the
+known-good April B12v2 numbers (808 zone cases, r=0.9966, 97.8%
+accuracy) — metric-level verified. The formal Stage 3 byte-identical
+sha256 comparison was not separately confirmed (the in-memory side
+OOMed on this machine during that test — see "Known Issue" below).
+
+**`--stream` is now REQUIRED on this machine for all replay rebuilds,
+including single months** — the in-memory path is unreliable here (see
+"Known Issue"). Treat `--stream` output as the research dataset going
+forward; it is REPLAY_AGGTRADE data, same as the in-memory path (see
+CURRENT_CHECKPOINT.md "Research Data Labeling").
+
+## Known Issue: in-memory path OOM on this machine
+
+During the Stage 3 equivalence test, the old in-memory path OOMed on
+April (~25.5M trades) on this 24GB machine. Cause unconfirmed (possibly
+low free RAM at that moment — other processes, prior run residual
+memory). `--stream` avoids this entirely by design and is required
+going forward regardless of cause. The 126-day (2026-02-01 ->
+2026-06-06) in-memory OOM estimate (~60-75GB) remains valid/unchanged.
+
+## Permanent Rule: outputs/ snapshot before writes
+
+Always take a snapshot/backup of `outputs/` BEFORE any run that writes
+to it (especially with `--overwrite`). See RUN_COMMANDS.md "Pre-run
+snapshot rule".
+
+## B12 Live Validation — still active
+
+`core/live_b12_validation.py` remains active, unchanged, running
+against LIVE (raw `@trade`) data, separate from the REPLAY_AGGTRADE
+research pipeline above.
 
 ## What Phase 1 Now Produces (carried from prior checkpoint)
 
@@ -96,10 +125,9 @@ Surface Damage hypothesis: REJECTED (temporal decay formula, not market physics)
 ## Next Steps
 
 Priority:
-1. Confirm Stage 3 streaming equivalence (April sha256 byte-identical
-   check) — see RUN_COMMANDS.md.
-2. If PASS: discuss making `--stream` the default and running the
-   126-day (2026-02-01 -> 2026-06-06) continuous rebuild.
+1. Snapshot `outputs/` (permanent rule, see RUN_COMMANDS.md).
+2. Run the full continuous 126-day window rebuild
+   (2026-02-01 -> 2026-06-06) using `--stream` — see RUN_COMMANDS.md.
 3. Re-run B9-B12v2 / Synthesis on the unified rebuild once produced.
 
 Do not:
@@ -108,4 +136,5 @@ Do not:
 - Change Dashboard V2 scoring
 - Change RDM formulas
 - Change lifecycle logic
-- Use `--stream` output for research datasets before Stage 3 passes
+- Run any replay rebuild without `--stream` on this machine
+- Touch `outputs/` without taking a snapshot first

@@ -41,7 +41,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 _parser = argparse.ArgumentParser(add_help=False)
 _parser.add_argument("--zone-mode", default="formation",
-                     choices=["formation", "active_core"],
+                     choices=["formation", "active_core", "density_band"],
                      help="Zone used for visit N outcome detection")
 _args, _ = _parser.parse_known_args()
 ZONE_MODE = _args.zone_mode
@@ -190,18 +190,25 @@ log("  O(t+1)   = visit N in outcome_rows")
 log("  I(t) ∩ O(t+1) = empty set")
 
 # ════════════════════════════════════════════════════════════════════════════
-# STEP 2.5 — PENULTIMATE ACTIVE CORE (only when zone_mode = active_core)
-# Computes per-case Active Core from live rows restricted to visits 1..N-1.
-# Uses these bounds to decide whether visit N actually reached the core.
-# If visit N missed the core, its outcome is reclassified as AMBIGUOUS.
-# I(t) ∩ O(t+1) = ∅ guarantee preserved: core is built from vt_prior rows only.
+# STEP 2.5 — PENULTIMATE ZONE BOUNDS (active_core | density_band modes)
+# Computes per-case interaction_core bounds from live rows restricted to
+# visits 1..N-1. Both modes use interaction_core_lower/upper_edge logic.
+#
+# active_core:   raw clamped bounds (min/max of pts ± margin, clamped to Formation)
+# density_band:  adds compression step → canonical interaction_core_* columns
+#                (matches build_interaction_core_geometry: compress if width > 50% Formation)
+#
+# If visit N missed the penultimate zone, outcome is reclassified as AMBIGUOUS.
+# I(t) ∩ O(t+1) = ∅ guarantee preserved: bounds built from vt_prior rows only.
 # ════════════════════════════════════════════════════════════════════════════
 
 _penultimate_core: dict = {}   # case_id -> (lower, upper, valid_flag)
 _visit_n_in_core:  dict = {}   # case_id -> bool
 
-if ZONE_MODE == "active_core":
-    hdr("STEP 2.5 — PENULTIMATE ACTIVE CORE")
+_mode_label = {"active_core": "ACTIVE CORE", "density_band": "DENSITY BAND"}
+
+if ZONE_MODE in ("active_core", "density_band"):
+    hdr(f"STEP 2.5 — PENULTIMATE {_mode_label[ZONE_MODE]}")
 
     from research.zone_mechanics_calculator import (
         temporal_interaction_window,
@@ -277,6 +284,15 @@ if ZONE_MODE == "active_core":
             raw_hi = max(pts) + max((max(pts) - min(pts)) * 0.10, 5.0)
             c_lo   = max(raw_lo, f_lo)
             c_hi   = min(raw_hi, f_hi)
+            # Density Band mode: apply compression matching build_interaction_core_geometry.
+            # Compress if width exceeds 50% of Formation → cap at 25% centered on pts median.
+            if ZONE_MODE == "density_band":
+                db_w = max(c_hi - c_lo, 0.0)
+                if db_w / f_w > 0.50:
+                    compressed_w = min(db_w, f_w * 0.25)
+                    w_ctr = float(pd.Series(pts).median())
+                    c_lo  = max(w_ctr - compressed_w / 2.0, f_lo)
+                    c_hi  = min(w_ctr + compressed_w / 2.0, f_hi)
             _penultimate_core[case_id] = (c_lo, c_hi, True)
             n_valid_core += 1
         else:
@@ -315,12 +331,12 @@ if ZONE_MODE == "active_core":
     log(f"    Reached penultimate core:     {n_v_in_core}")
     log(f"    Missed penultimate core:      {n_v_out_core} (will be reclassified AMBIGUOUS)")
 
-    # Report Active Core width stats
+    # Report penultimate zone width stats
     if _penultimate_core:
         core_widths = [v[1] - v[0] for v in _penultimate_core.values() if v[2]]
         if core_widths:
             cw = pd.Series(core_widths)
-            log(f"  Penultimate core width (valid): median={cw.median():.0f}  p25={cw.quantile(.25):.0f}  p75={cw.quantile(.75):.0f}")
+            log(f"  Penultimate {_mode_label[ZONE_MODE]} width (valid): median={cw.median():.0f}  p25={cw.quantile(.25):.0f}  p75={cw.quantile(.75):.0f}")
 
     del live_evo   # free 92MB
 
@@ -329,7 +345,7 @@ if ZONE_MODE == "active_core":
 # Architecture §8: outcome from visit N visit_result ONLY
 # HOLD  = GROWTH / ABSORPTION / REFLECTION / RECLAIM
 # FAIL  = BREAKDOWN
-# AMBIGUOUS = DAMAGE  (or: visit N missed Active Core when zone_mode=active_core)
+# AMBIGUOUS = DAMAGE  (or: visit N missed penultimate zone when zone_mode != formation)
 # ════════════════════════════════════════════════════════════════════════════
 hdr("STEP 3 — OUTCOME CLASSIFICATION")
 
@@ -356,17 +372,17 @@ outcome_df.rename(columns={
 }, inplace=True)
 outcome_df["b12v2_outcome"] = outcome_df["visit_N_result"].apply(classify_visit_n_outcome)
 
-# Active Core mode: reclassify outcomes where visit N missed the penultimate core
-if ZONE_MODE == "active_core" and _visit_n_in_core:
+# active_core / density_band: reclassify outcomes where visit N missed the penultimate zone
+if ZONE_MODE in ("active_core", "density_band") and _visit_n_in_core:
     def _reclassify_for_core(row):
         if not _visit_n_in_core.get(str(row["case_id"]), True):
-            return "AMBIGUOUS"   # visit N missed the Active Core
+            return "AMBIGUOUS"   # visit N missed the penultimate zone
         return row["b12v2_outcome"]
     n_before_reclass = (outcome_df["b12v2_outcome"] != "AMBIGUOUS").sum()
     outcome_df["b12v2_outcome"] = outcome_df.apply(_reclassify_for_core, axis=1)
     n_reclassified = n_before_reclass - (outcome_df["b12v2_outcome"] != "AMBIGUOUS").sum()
-    log(f"  Active Core reclassification: {n_reclassified} visit-N outcomes set to AMBIGUOUS")
-    log(f"  (price at visit N did not reach the penultimate Active Core)")
+    log(f"  {_mode_label[ZONE_MODE]} reclassification: {n_reclassified} visit-N outcomes set to AMBIGUOUS")
+    log(f"  (price at visit N did not reach the penultimate {_mode_label[ZONE_MODE]})")
 
 n_hold_out = (outcome_df["b12v2_outcome"] == "HOLD").sum()
 n_fail_out = (outcome_df["b12v2_outcome"] == "FAIL").sum()
@@ -380,8 +396,8 @@ log(f"  Potential evaluable (HOLD+FAIL): {n_hold_out+n_fail_out}")
 log()
 log("  Outcome uses visit_N.visit_result ONLY.")
 log("  No breakdown_count, no health_last_visit threshold.")
-if ZONE_MODE == "active_core":
-    log("  Active Core mode: outcomes excluded where visit N missed penultimate core.")
+if ZONE_MODE in ("active_core", "density_band"):
+    log(f"  {_mode_label[ZONE_MODE]} mode: outcomes excluded where visit N missed penultimate zone.")
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 4 — RECOMPUTE B9, B10, B11, SYNTHESIS ON vt_prior

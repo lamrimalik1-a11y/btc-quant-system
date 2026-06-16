@@ -1,0 +1,2026 @@
+import argparse
+import calendar
+import csv
+import io
+import json
+import random
+import socket
+import sys
+import time
+import zipfile
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from types import SimpleNamespace
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
+import pandas as pd
+
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from core.adaptive_window import calculate_adaptive_window
+from core.observation_archive import (
+    DASHBOARD_V2_ARCHIVE_FIELDS,
+    FIELDNAMES as OBSERVATION_FIELDNAMES,
+)
+from core.renko import renko_state
+from core.row_builder import build_trade_row
+from core.state import (
+    delta_history,
+    price_history,
+    system_state,
+    update_history,
+    velocity_history,
+    volume_history,
+)
+from engines.renko_engine import RenkoEngine
+from engines.statistics_engine import StatisticsEngine
+from tools.generate_replay_observation import (
+    EPISODE_FIELDNAMES,
+    EVENT_FIELDNAMES,
+    V2_EPISODE_FIELDNAMES,
+    V2_EVENT_FIELDNAMES,
+    build_replay_observation,
+    build_replay_observation_v2,
+    write_dict_rows,
+)
+from tools.performance_profile import PerfProfiler
+
+
+BINANCE_AGGTRADES_URL = "https://api.binance.com/api/v3/aggTrades"
+OUTPUT_DIR = Path("outputs")
+ARCHIVE_DIR = Path("archives")
+
+HISTORICAL_MARKET_ROWS_FILE = OUTPUT_DIR / "historical_market_rows.csv"
+HISTORICAL_OBSERVATION_ROWS_FILE = OUTPUT_DIR / "historical_observation_rows.csv"
+HISTORICAL_REPLAY_EVENTS_FILE = (
+    OUTPUT_DIR / "historical_replay_observation_events.csv"
+)
+HISTORICAL_REPLAY_EPISODES_FILE = (
+    OUTPUT_DIR / "historical_replay_dashboard_episodes.csv"
+)
+HISTORICAL_REPLAY_V2_EVENTS_FILE = (
+    OUTPUT_DIR / "historical_replay_observation_v2_events.csv"
+)
+HISTORICAL_REPLAY_V2_EPISODES_FILE = (
+    OUTPUT_DIR / "historical_replay_dashboard_v2_episodes.csv"
+)
+HISTORICAL_RAW_AGGTRADES_FILE = OUTPUT_DIR / "historical_raw_aggtrades.csv"
+HISTORICAL_DOWNLOAD_CHECKPOINT_FILE = (
+    OUTPUT_DIR / "historical_download_checkpoint.json"
+)
+HISTORICAL_DOWNLOAD_PARTIAL_FILE = (
+    OUTPUT_DIR / "historical_download_partial_aggtrades.jsonl"
+)
+ARCHIVE_MANIFEST_FILE_NAME = "manifest.json"
+ARCHIVE_INDEX_FILE_NAME = "archive_index.json"
+
+REQUEST_LIMIT = 1000
+REQUEST_SLEEP_SECONDS = 0.5
+
+# ==================================================
+# RAW TRADE CACHE — Tier 1
+# One CSV per UTC day: archives/{SYMBOL}/raw-trades/{YYYY-MM-DD}.csv
+# This is the INPUT cache (raw aggTrades), separate from the existing
+# OUTPUT archive (processed CSVs in archives/{SYMBOL}/{window}/{date}/).
+# ==================================================
+RAW_TRADE_CACHE_SUBDIR = "raw-trades"
+MIN_TRADES_PER_DAY     = 1_000   # sanity floor; BTCUSDT has 100k-1M trades/day
+
+# ==================================================
+# BINANCE PUBLIC DATA — Tier 2
+# Daily ZIP archives: data.binance.vision/data/spot/daily/aggTrades/{SYM}/...
+# Available for dates older than today UTC minus BINANCE_ZIP_LAG_DAYS.
+# ==================================================
+BINANCE_PUBLIC_DATA_URL = "https://data.binance.vision"
+BINANCE_ZIP_LAG_DAYS    = 2   # archives lag ~2 UTC days behind real-time
+REQUEST_TIMEOUT_SECONDS = 150          # raised from 120 — WinError 10060 needs more margin
+MAX_RETRIES = 15                       # raised from 10 — extra tolerance for flaky networks
+RETRY_BACKOFF_SECONDS = [10, 20, 40, 80, 120, 180, 240, 300]  # longer ramp; capped at 300s
+RETRY_JITTER_FACTOR   = 0.30          # add up to ±30% random jitter to each backoff delay
+WARMUP_TARGET_ROWS = 500
+WARMUP_LOOKBACK_MS = 24 * 60 * 60 * 1000
+
+
+# ==================================================
+# DOWNLOAD DIAGNOSTICS — helpers
+# Visibility only.  No logic changes.
+# ==================================================
+
+def _fmt_dur(seconds: float) -> str:
+    """Format a duration in seconds as HH:MM:SS."""
+    seconds = max(0, int(seconds))
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+def _fmt_ts(ms: int) -> str:
+    """Convert a Unix-millisecond timestamp to a compact UTC string."""
+    try:
+        from datetime import datetime, timezone
+        dt = datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    except Exception:
+        return str(ms)
+
+
+def _fmt_speed(trades: int, elapsed_s: float) -> str:
+    """Return a human-readable trades/second string."""
+    if elapsed_s <= 0:
+        return "—"
+    speed = trades / elapsed_s
+    if speed >= 1000:
+        return f"{speed / 1000:.1f}k t/s"
+    return f"{speed:.0f} t/s"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate Binance historical observation replay files for PHASE 1B. "
+            "This is observation replay only, not trading backtesting."
+        )
+    )
+    parser.add_argument("--symbol", default="BTCUSDT")
+    parser.add_argument("--start", required=True, help="YYYY-MM-DD HH:MM:SS")
+    parser.add_argument("--end", required=True, help="YYYY-MM-DD HH:MM:SS")
+    parser.add_argument("--row-size", type=int, default=500)
+    parser.add_argument("--save-raw", action="store_true")
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--overwrite-archive", action="store_true")
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=MAX_RETRIES,
+        help=f"Max retry attempts per request batch (default: {MAX_RETRIES})",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=REQUEST_TIMEOUT_SECONDS,
+        help=f"HTTP timeout in seconds per request (default: {REQUEST_TIMEOUT_SECONDS})",
+    )
+    parser.add_argument(
+        "--request-sleep",
+        type=float,
+        default=REQUEST_SLEEP_SECONDS,
+        help=f"Seconds to sleep between request batches (default: {REQUEST_SLEEP_SECONDS})",
+    )
+    parser.add_argument(
+        "--slow-mode",
+        action="store_true",
+        help=(
+            "Enable slow-download mode for unstable networks. "
+            "Sets request_sleep=2.0s, timeout=240s, max_retries=40. "
+            "Individual --timeout / --max-retries / --request-sleep still override slow-mode values."
+        ),
+    )
+    parser.add_argument(
+        "--no-local-cache",
+        action="store_true",
+        help=(
+            "Skip the local raw trade cache (Tier 1). "
+            "Always download even if cache files exist. "
+            "Cache files are not written when this flag is set."
+        ),
+    )
+    parser.add_argument(
+        "--no-zip",
+        action="store_true",
+        help=(
+            "Skip the Binance public ZIP archive (Tier 2). "
+            "Falls back directly to the API for any day not in local cache. "
+            "Useful when data.binance.vision is unavailable or for API testing."
+        ),
+    )
+    parser.add_argument(
+        "--stream",
+        action="store_true",
+        help=(
+            "Use the bounded-memory STREAMING rebuild path instead of the "
+            "default in-memory path. Reads cached day-files one at a time so "
+            "a continuous multi-month window fits in limited RAM with zero "
+            "window seams. Requires all needed days to be present in the "
+            "Tier-1 raw cache (no download). When absent, behaviour is "
+            "byte-for-byte identical to before this flag existed."
+        ),
+    )
+    return parser.parse_args()
+
+
+def main():
+    profiler = PerfProfiler("historical_replay_generation")
+    args = parse_args()
+
+    # Apply CLI overrides to module-level constants.
+    # Precedence: slow-mode sets a conservative baseline, then individual flags
+    # override specific values if the user explicitly provided them (detected by
+    # comparing to the original module-level defaults, not the slow-mode values).
+    global MAX_RETRIES, REQUEST_TIMEOUT_SECONDS, REQUEST_SLEEP_SECONDS
+
+    _orig_retries = MAX_RETRIES              # 15
+    _orig_timeout = REQUEST_TIMEOUT_SECONDS  # 150
+    _orig_sleep   = REQUEST_SLEEP_SECONDS    # 0.5
+
+    if args.slow_mode:
+        REQUEST_SLEEP_SECONDS   = 2.0
+        REQUEST_TIMEOUT_SECONDS = 240
+        MAX_RETRIES             = 40
+        print(
+            f"SLOW MODE ACTIVE | "
+            f"request_sleep={REQUEST_SLEEP_SECONDS}s | "
+            f"timeout={REQUEST_TIMEOUT_SECONDS}s | "
+            f"max_retries={MAX_RETRIES}"
+        )
+
+    # Individual flags override the baseline (slow-mode or default) when the
+    # user explicitly supplied a value different from the original module default.
+    if args.max_retries != _orig_retries:
+        MAX_RETRIES = args.max_retries
+        print(f"max_retries overridden: {MAX_RETRIES}")
+    if args.timeout != _orig_timeout:
+        REQUEST_TIMEOUT_SECONDS = args.timeout
+        print(f"timeout overridden: {REQUEST_TIMEOUT_SECONDS}s")
+    if args.request_sleep != _orig_sleep:
+        REQUEST_SLEEP_SECONDS = args.request_sleep
+        print(f"request_sleep overridden: {REQUEST_SLEEP_SECONDS}s")
+
+    try:
+        if args.row_size <= 0:
+            raise SystemExit("--row-size must be greater than 0")
+
+        start_ms = parse_datetime_to_ms(args.start)
+        end_ms = parse_datetime_to_ms(args.end)
+
+        if start_ms >= end_ms:
+            raise SystemExit("--start must be before --end")
+
+        if args.stream:
+            # STAGE 1 SCAFFOLD: the streaming reader (stream_cached_day_trades)
+            # is in place, but the streaming CONSUMER lands in STAGE 2. Refuse
+            # to run --stream until then so no half-built path can emit output.
+            # The default (no --stream) in-memory path below is unchanged.
+            raise SystemExit(
+                "--stream: streaming consumer not yet implemented (STAGE 2). "
+                "The streaming reader is scaffolded; run WITHOUT --stream to "
+                "use the existing in-memory path."
+            )
+
+        warmup_start_ms = max(
+            0,
+            start_ms - WARMUP_LOOKBACK_MS,
+        )
+
+        if args.overwrite:
+            clear_download_checkpoint()
+
+        use_local_cache = not args.no_local_cache
+        use_zip         = not args.no_zip
+
+        # Check which UTC days the run needs (warmup + target).
+        # Any day that already has a raw cache file counts as resumable, so
+        # ensure_outputs_can_be_written doesn't block when outputs already exist.
+        _run_days   = _iter_utc_days(warmup_start_ms, end_ms)
+        any_cached  = use_local_cache and any(
+            _raw_trade_cache_path(args.symbol, d).exists() for d in _run_days
+        )
+
+        # Also honour a legacy full-range checkpoint written by older versions.
+        legacy_checkpoint = load_matching_checkpoint(
+            symbol=args.symbol,
+            start_date=args.start,
+            end_date=args.end,
+        )
+
+        ensure_outputs_can_be_written(
+            overwrite=args.overwrite,
+            save_raw=args.save_raw,
+            resume_active=any_cached or legacy_checkpoint is not None,
+        )
+
+        print(f"Symbol:      {args.symbol}")
+        print(f"Start:       {args.start}")
+        print(f"End:         {args.end}")
+        print(f"Row size:    {args.row_size}")
+        print(f"Local cache: {'ON' if use_local_cache else 'OFF (--no-local-cache)'}")
+        print(f"ZIP archive: {'ON' if use_zip else 'OFF (--no-zip)'}")
+        cached_count = sum(
+            1 for d in _run_days if _raw_trade_cache_path(args.symbol, d).exists()
+        ) if use_local_cache else 0
+        if cached_count:
+            print(f"Cache hits:  {cached_count}/{len(_run_days)} day(s) already in local cache")
+        if legacy_checkpoint:
+            print(
+                "Legacy checkpoint found: "
+                f"last ts={legacy_checkpoint.get('last_success_timestamp')} | "
+                f"downloaded={legacy_checkpoint.get('downloaded_count')}"
+            )
+
+        with profiler.step("download_total"):
+            agg_trades = download_agg_trades(
+                symbol=args.symbol,
+                start_ms=warmup_start_ms,
+                end_ms=end_ms,
+                start_date=args.start,
+                end_date=args.end,
+                checkpoint=legacy_checkpoint,
+                profiler=profiler,
+                use_local_cache=use_local_cache,
+                use_zip=use_zip,
+            )
+
+        if agg_trades is None:
+            profiler.add_metric("download_paused", True)
+            return
+
+        verify_downloaded_trades(agg_trades)
+
+        warmup_agg_trades, target_agg_trades = split_warmup_and_target_trades(
+            agg_trades=agg_trades,
+            target_start_ms=start_ms,
+            target_end_ms=end_ms,
+        )
+
+        with profiler.step("aggregation_replay_row_build"):
+            warmup_rows = build_historical_rows(
+                agg_trades=warmup_agg_trades,
+                row_size=args.row_size,
+            )
+            warmup_rows = warmup_rows[
+                -WARMUP_TARGET_ROWS:
+            ]
+            historical_rows = build_historical_rows(
+                agg_trades=target_agg_trades,
+                row_size=args.row_size,
+            )
+
+        if len(warmup_rows) < WARMUP_TARGET_ROWS:
+            print(
+                "WARNING: Fewer than 500 warmup rows available. "
+                f"Available warmup rows: {len(warmup_rows)}"
+            )
+
+        print(f"WARMUP_ROWS_USED = {len(warmup_rows)}")
+
+        with profiler.step("observation_row_build"):
+            historical_observation_rows = build_historical_observation_rows(
+                historical_rows=historical_rows,
+                warmup_rows=warmup_rows,
+            )
+
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+        with profiler.step("csv_write_market_rows"):
+            write_dict_rows(
+                HISTORICAL_MARKET_ROWS_FILE,
+                get_union_fieldnames(historical_rows),
+                historical_rows,
+            )
+        with profiler.step("csv_write_observation_rows"):
+            write_dict_rows(
+                HISTORICAL_OBSERVATION_ROWS_FILE,
+                OBSERVATION_FIELDNAMES,
+                historical_observation_rows,
+            )
+
+        with profiler.step("pandas_dataframe_build"):
+            observation_dataframe = pd.DataFrame(historical_observation_rows)
+
+        with profiler.step("replay_v1_build"):
+            replay_events, replay_episodes = build_replay_observation(
+                observation_dataframe
+            )
+        with profiler.step("replay_v2_build"):
+            replay_v2_events, replay_v2_episodes = build_replay_observation_v2(
+                observation_dataframe
+            )
+
+        with profiler.step("csv_write_replay_v1_events"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_EVENTS_FILE,
+                EVENT_FIELDNAMES,
+                replay_events,
+            )
+        with profiler.step("csv_write_replay_v1_episodes"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_EPISODES_FILE,
+                EPISODE_FIELDNAMES,
+                replay_episodes,
+            )
+        with profiler.step("csv_write_replay_v2_events"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_V2_EVENTS_FILE,
+                V2_EVENT_FIELDNAMES,
+                replay_v2_events,
+            )
+        with profiler.step("csv_write_replay_v2_episodes"):
+            write_dict_rows(
+                HISTORICAL_REPLAY_V2_EPISODES_FILE,
+                V2_EPISODE_FIELDNAMES,
+                replay_v2_episodes,
+            )
+
+        if args.save_raw:
+            with profiler.step("csv_write_raw_aggtrades"):
+                write_raw_agg_trades(target_agg_trades)
+
+        with profiler.step("archive_historical_outputs"):
+            archive_summary = archive_historical_outputs(
+                symbol=args.symbol,
+                start_date=args.start,
+                end_date=args.end,
+                save_raw=args.save_raw,
+                overwrite_archive=args.overwrite_archive,
+            )
+
+        clear_download_checkpoint()
+
+        profiler.add_metric("trades_processed", len(target_agg_trades))
+        profiler.add_metric("warmup_trades_processed", len(warmup_agg_trades))
+        profiler.add_metric("warmup_rows_used", len(warmup_rows))
+        profiler.add_metric("rows_processed", len(historical_rows))
+        profiler.add_metric("observation_rows_processed", len(historical_observation_rows))
+        profiler.add_metric("v1_events", len(replay_events))
+        profiler.add_metric("v1_episodes", len(replay_episodes))
+        profiler.add_metric("v2_events", len(replay_v2_events))
+        profiler.add_metric("v2_episodes", len(replay_v2_episodes))
+        profiler.add_metric("archive_days", archive_summary["archive_days"])
+        profiler.add_metric("archive_files_written", archive_summary["files_written"])
+
+        print(f"Trades downloaded: {len(agg_trades)}")
+        print(f"Target trades processed: {len(target_agg_trades)}")
+        print(f"Rows built: {len(historical_rows)}")
+        print(f"TARGET_ROWS_WRITTEN = {len(historical_observation_rows)}")
+        print(
+            "Historical observation rows written: "
+            f"{len(historical_observation_rows)}"
+        )
+        print(f"Historical events found: {len(replay_events)}")
+        print(f"Historical episodes found: {len(replay_episodes)}")
+        print(f"Historical V2 events found: {len(replay_v2_events)}")
+        print(f"Historical V2 episodes found: {len(replay_v2_episodes)}")
+        print(f"Historical market rows: {HISTORICAL_MARKET_ROWS_FILE}")
+        print(f"Historical observation rows: {HISTORICAL_OBSERVATION_ROWS_FILE}")
+        print(f"Historical replay events: {HISTORICAL_REPLAY_EVENTS_FILE}")
+        print(f"Historical replay episodes: {HISTORICAL_REPLAY_EPISODES_FILE}")
+        print(f"Historical replay V2 events: {HISTORICAL_REPLAY_V2_EVENTS_FILE}")
+        print(
+            "Historical replay V2 episodes: "
+            f"{HISTORICAL_REPLAY_V2_EPISODES_FILE}"
+        )
+
+        if args.save_raw:
+            print(f"Historical raw aggTrades: {HISTORICAL_RAW_AGGTRADES_FILE}")
+        print(
+            "Archived historical market dates: "
+            f"{archive_summary['archive_days']} | "
+            f"files written: {archive_summary['files_written']}"
+        )
+        print(f"Archive index: {archive_summary['archive_index']}")
+    finally:
+        profiler.finish(
+            csv_files=[
+                HISTORICAL_MARKET_ROWS_FILE,
+                HISTORICAL_OBSERVATION_ROWS_FILE,
+                HISTORICAL_REPLAY_EVENTS_FILE,
+                HISTORICAL_REPLAY_EPISODES_FILE,
+                HISTORICAL_REPLAY_V2_EVENTS_FILE,
+                HISTORICAL_REPLAY_V2_EPISODES_FILE,
+                HISTORICAL_RAW_AGGTRADES_FILE,
+            ]
+        )
+
+
+# ==================================================
+# RAW TRADE CACHE — helper functions  (Tier 1)
+# ==================================================
+
+def _raw_trade_cache_path(symbol: str, date_str: str) -> Path:
+    """Absolute path for the raw trade cache file for one UTC day."""
+    return ARCHIVE_DIR / symbol.upper() / RAW_TRADE_CACHE_SUBDIR / f"{date_str}.csv"
+
+
+def _day_ms_range(date_str: str) -> tuple:
+    """Return (start_ms_incl, end_ms_incl) for the full UTC calendar day."""
+    d      = date.fromisoformat(date_str)
+    start  = int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp() * 1000)
+    return start, start + 86_400_000 - 1
+
+
+def _iter_utc_days(start_ms: int, end_ms: int) -> list:
+    """Return sorted list of YYYY-MM-DD strings for every UTC day overlapping [start_ms, end_ms]."""
+    day_ms = 86_400_000
+    first  = (start_ms // day_ms) * day_ms       # floor to day boundary
+    result = []
+    cursor = first
+    while cursor <= end_ms:
+        result.append(
+            datetime.fromtimestamp(cursor / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+        )
+        cursor += day_ms
+    return result
+
+
+def _trade_to_csv_row(t: dict) -> list:
+    """Convert an aggTrade dict to a raw-cache CSV row (8 columns)."""
+    return [
+        t.get("a", ""),
+        t.get("p", ""),
+        t.get("q", ""),
+        t.get("f", ""),
+        t.get("l", ""),
+        t.get("T", ""),
+        "True"  if t.get("m") else "False",
+        "True"  if t.get("M") else "False",
+    ]
+
+
+def _csv_row_to_trade(row: list):
+    """Convert a raw-cache CSV row back to an aggTrade dict. Returns None on bad row."""
+    if len(row) < 8:
+        return None
+    try:
+        return {
+            "a": row[0],
+            "p": row[1],
+            "q": row[2],
+            "f": row[3],
+            "l": row[4],
+            "T": int(row[5]),
+            "m": row[6].strip().lower() in ("true", "1"),
+            "M": row[7].strip().lower() in ("true", "1"),
+        }
+    except (ValueError, IndexError):
+        return None
+
+
+def _verify_raw_trades(trades: list, date_str: str) -> bool:
+    """Return True if the trade list is plausible for the given UTC day.
+
+    Checks performed:
+    - len >= MIN_TRADES_PER_DAY
+    - first and last timestamps fall within the calendar day
+    """
+    if len(trades) < MIN_TRADES_PER_DAY:
+        return False
+    day_start, day_end = _day_ms_range(date_str)
+    try:
+        first_ts = int(trades[0]["T"])
+        last_ts  = int(trades[-1]["T"])
+    except (KeyError, ValueError, IndexError):
+        return False
+    if not (day_start <= first_ts <= day_end):
+        return False
+    if not (day_start <= last_ts <= day_end):
+        return False
+    return True
+
+
+def try_load_raw_trade_cache(symbol: str, date_str: str):
+    """Load one UTC day of aggTrades from the local raw cache.
+
+    Returns list of aggTrade dicts on success, or None on cache miss /
+    failed verification.  A corrupted file is preserved on disk — delete it
+    manually to force a re-download.
+    """
+    path = _raw_trade_cache_path(symbol, date_str)
+    if not path.exists():
+        return None
+
+    try:
+        trades = []
+        with path.open("r", encoding="utf-8", newline="") as fh:
+            reader = csv.reader(fh)
+            next(reader, None)           # skip header line
+            for row in reader:
+                t = _csv_row_to_trade(row)
+                if t is not None:
+                    trades.append(t)
+    except Exception as exc:
+        print(f"  CACHE | {date_str} | read error: {exc} — skipped")
+        return None
+
+    if not _verify_raw_trades(trades, date_str):
+        print(
+            f"  CACHE | {date_str} | verification failed "
+            f"({len(trades):,} trades) — skipped, file preserved for inspection"
+        )
+        return None
+
+    print(f"  CACHE HIT | {date_str} | {len(trades):,} trades | {path}")
+    return trades
+
+
+def stream_cached_day_trades(symbol: str, start_ms: int, end_ms: int):
+    """STREAMING reader (used only by the --stream path).
+
+    Yield aggTrade dicts for the inclusive range [start_ms, end_ms], reading
+    ONE cached UTC day-file at a time so peak memory is O(one day), not
+    O(window).  Each day is loaded and verified via try_load_raw_trade_cache
+    (the SAME parser + _verify_raw_trades gate the in-memory cache branch
+    uses), then filtered to the day's effective sub-range and yielded trade by
+    trade.  The previous day's list is released before the next is loaded.
+
+    Because parsing, verification, day ordering, and the per-trade time filter
+    are identical to download_agg_trades' Tier-1 cache branch, the yielded
+    sequence equals the concatenated list that branch would have built — which
+    is what guarantees byte-identical output vs the in-memory path.
+
+    Streaming rebuild requires every needed day to be present in the Tier-1
+    raw cache; a missing/unverifiable day raises (no download from here).
+    This function only READS the cache; it builds no rows and changes no
+    formula/statistics state.
+    """
+    for date_str in _iter_utc_days(start_ms, end_ms):
+        day_start_ms, day_end_ms = _day_ms_range(date_str)
+        eff_start = max(day_start_ms, start_ms)
+        eff_end   = min(day_end_ms, end_ms)
+
+        day_trades = try_load_raw_trade_cache(symbol, date_str)
+        if day_trades is None:
+            raise SystemExit(
+                f"--stream requires cached day {date_str} but it was not found "
+                f"or failed verification in the Tier-1 raw cache "
+                f"({_raw_trade_cache_path(symbol, date_str)}). "
+                f"Pre-cache it (a normal in-memory run downloads + caches days) "
+                f"before using --stream."
+            )
+
+        for t in day_trades:
+            ts = int(t["T"])
+            if eff_start <= ts <= eff_end:
+                yield t
+        # day_trades released here before the next day loads -> bounded memory
+
+
+def save_raw_trade_cache(symbol: str, date_str: str, trades: list) -> bool:
+    """Atomically save one UTC day of aggTrades to the local raw cache.
+
+    Writes to a .tmp file first, verifies it can be read back and passes
+    _verify_raw_trades, then renames to the final path.  On any failure
+    the .tmp file is removed and the function returns False.
+    """
+    if not trades:
+        return False
+
+    path     = _raw_trade_cache_path(symbol, date_str)
+    tmp_path = path.with_suffix(".tmp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Write
+        with tmp_path.open("w", encoding="utf-8", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(
+                ["aggTradeId", "price", "qty", "firstTradeId", "lastTradeId",
+                 "timestamp", "isBuyerMaker", "isBestMatch"]
+            )
+            for t in trades:
+                writer.writerow(_trade_to_csv_row(t))
+
+        # Verify round-trip before committing
+        verify_trades = []
+        with tmp_path.open("r", encoding="utf-8", newline="") as fh:
+            reader = csv.reader(fh)
+            next(reader, None)
+            for row in reader:
+                t = _csv_row_to_trade(row)
+                if t is not None:
+                    verify_trades.append(t)
+
+        if not _verify_raw_trades(verify_trades, date_str):
+            tmp_path.unlink(missing_ok=True)
+            print(f"  CACHE WRITE | {date_str} | round-trip verification failed — not saved")
+            return False
+
+        tmp_path.rename(path)
+        print(f"  CACHE SAVED | {date_str} | {len(trades):,} trades -> {path}")
+        return True
+
+    except Exception as exc:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        print(f"  CACHE WRITE | {date_str} | error: {exc} -- not saved")
+        return False
+
+
+# ==================================================
+# BINANCE PUBLIC DATA — Tier 2 functions
+# ==================================================
+
+def is_binance_zip_available(date_str: str) -> bool:
+    """Return True if a daily aggTrades ZIP is expected to exist on data.binance.vision.
+
+    Binance publishes daily ZIP archives with approximately a 2-day lag relative
+    to UTC midnight.  Any date older than today UTC minus BINANCE_ZIP_LAG_DAYS is
+    treated as available.
+    """
+    today_utc  = datetime.now(timezone.utc).date()
+    target_day = date.fromisoformat(date_str)
+    return target_day <= today_utc - timedelta(days=BINANCE_ZIP_LAG_DAYS)
+
+
+def download_day_from_binance_zip(symbol: str, date_str: str):
+    """Download one UTC day of aggTrades from the Binance public data archive.
+
+    URL pattern:
+        https://data.binance.vision/data/spot/daily/aggTrades/
+        {SYMBOL}/{SYMBOL}-aggTrades-{YYYY-MM-DD}.zip
+
+    The ZIP is extracted entirely in memory — no temporary files are written.
+    The inner CSV uses the same 8-column format as the raw trade cache, so
+    _csv_row_to_trade is reused without modification.
+
+    Returns list of aggTrade dicts on success.
+    Returns None on any failure (404, network error, bad ZIP, parse error).
+    All failures are logged and silently trigger the Tier 3 API fallback.
+    """
+    url = (
+        f"{BINANCE_PUBLIC_DATA_URL}/data/spot/daily/aggTrades"
+        f"/{symbol.upper()}/{symbol.upper()}-aggTrades-{date_str}.zip"
+    )
+    print(f"  ZIP | {date_str} | {url}")
+
+    # ── HTTP GET ─────────────────────────────────────────────────────────────
+    try:
+        req = Request(
+            url,
+            headers={"User-Agent": "btc-quant-observation-replay/1.0"},
+        )
+        t0 = time.perf_counter()
+        with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as resp:
+            payload = resp.read()
+        elapsed = time.perf_counter() - t0
+        size_mb = len(payload) / 1_048_576
+        print(
+            f"  ZIP | {date_str} | "
+            f"downloaded {size_mb:.1f} MB in {elapsed:.1f}s"
+        )
+    except HTTPError as exc:
+        label = "Not Found" if exc.code == 404 else f"HTTP {exc.code}"
+        print(f"  ZIP | {date_str} | {label} -- falling back to API")
+        return None
+    except (TimeoutError, socket.timeout, URLError) as exc:
+        print(f"  ZIP | {date_str} | network error: {exc} -- falling back to API")
+        return None
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | unexpected error: {exc} -- falling back to API")
+        return None
+
+    # ── Extract ZIP in memory ─────────────────────────────────────────────────
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(payload))
+    except zipfile.BadZipFile as exc:
+        print(f"  ZIP | {date_str} | bad ZIP: {exc} -- falling back to API")
+        return None
+
+    csv_names = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+    if not csv_names:
+        print(f"  ZIP | {date_str} | no CSV inside ZIP -- falling back to API")
+        return None
+
+    try:
+        raw_bytes = zf.read(csv_names[0])
+        text      = raw_bytes.decode("utf-8")
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | CSV read error: {exc} -- falling back to API")
+        return None
+
+    # ── Parse CSV rows ────────────────────────────────────────────────────────
+    # Column order: aggTradeId, price, qty, firstTradeId, lastTradeId,
+    #               timestamp, isBuyerMaker, isBestMatch
+    #
+    # IMPORTANT: Binance public data CSVs store the timestamp in MICROSECONDS.
+    # The aggTrades API uses MILLISECONDS.  Divide T by 1000 so the rest of
+    # the pipeline (which expects milliseconds) works without modification.
+    trades = []
+    try:
+        reader = csv.reader(text.splitlines())
+        next(reader, None)   # skip header line
+        for row in reader:
+            t = _csv_row_to_trade(row)
+            if t is not None:
+                t["T"] = t["T"] // 1000   # microseconds -> milliseconds
+                trades.append(t)
+    except Exception as exc:
+        print(f"  ZIP | {date_str} | parse error: {exc} -- falling back to API")
+        return None
+
+    if not trades:
+        print(f"  ZIP | {date_str} | 0 trades parsed -- falling back to API")
+        return None
+
+    print(f"  ZIP HIT | {date_str} | {len(trades):,} trades")
+    return trades
+
+
+def download_agg_trades(
+    symbol, start_ms, end_ms, start_date, end_date,
+    checkpoint,           # legacy full-range checkpoint; honoured for backward compat
+    profiler=None,
+    use_local_cache=True,
+    use_zip=True,
+):
+    """Download aggTrades for a time range, iterating day by day.
+
+    Priority order per UTC day:
+      Tier 1: local raw trade cache      (archives/{SYMBOL}/raw-trades/{date}.csv)
+      Tier 2: Binance public daily ZIP   (data.binance.vision, for dates >= 2 days old)
+      Tier 3: Binance HTTP aggTrades API (existing retry/backoff/checkpoint logic)
+
+    After any Tier 2 or Tier 3 download, the result is written to the Tier 1
+    cache so future runs never re-download the same day.
+
+    The `checkpoint` parameter is a legacy full-range checkpoint from older
+    code.  It is used only if it applies to the first day's API download;
+    per-day checkpoints take precedence.
+    """
+    session_start = time.perf_counter()
+    days          = _iter_utc_days(start_ms, end_ms)
+    total_days    = len(days)
+    cache_hits    = 0
+    zip_days      = 0
+    api_days      = 0
+
+    print(
+        f"DOWNLOAD START | {start_date} -> {end_date} | "
+        f"{total_days} UTC day(s) | "
+        f"max_retries={MAX_RETRIES} | timeout={REQUEST_TIMEOUT_SECONDS}s | "
+        f"local_cache={'ON' if use_local_cache else 'OFF'} | "
+        f"zip={'ON' if use_zip else 'OFF'}"
+    )
+
+    all_trades: list = []
+
+    for day_idx, date_str in enumerate(days, start=1):
+        day_start_ms, day_end_ms = _day_ms_range(date_str)
+        effective_start = max(day_start_ms, start_ms)
+        effective_end   = min(day_end_ms, end_ms)
+
+        # ── TIER 1: local raw trade cache ─────────────────────────────────────
+        if use_local_cache:
+            cached = try_load_raw_trade_cache(symbol, date_str)
+            if cached is not None:
+                day_trades = [
+                    t for t in cached
+                    if effective_start <= int(t["T"]) <= effective_end
+                ]
+                all_trades.extend(day_trades)
+                cache_hits += 1
+                continue
+
+        # ── TIER 2: Binance public daily ZIP ─────────────────────────────────
+        if use_zip and is_binance_zip_available(date_str):
+            zip_trades = download_day_from_binance_zip(symbol, date_str)
+            if zip_trades is not None:
+                # Save the full day to local cache before filtering to slice
+                if use_local_cache:
+                    save_raw_trade_cache(symbol, date_str, zip_trades)
+                day_trades = [
+                    t for t in zip_trades
+                    if effective_start <= int(t["T"]) <= effective_end
+                ]
+                all_trades.extend(day_trades)
+                zip_days += 1
+                continue
+            # ZIP failed — fall through to Tier 3
+
+        # ── TIER 3: HTTP API ──────────────────────────────────────────────────
+        # Check for a per-day checkpoint (from a previous interrupted API run
+        # for this specific day).  For the very first day, also accept the legacy
+        # full-range checkpoint passed in from main().
+        prior_checkpoint = load_matching_checkpoint(
+            symbol=symbol,
+            start_date=date_str,
+            end_date=date_str,
+        )
+        if prior_checkpoint is None and day_idx == 1 and checkpoint is not None:
+            prior_checkpoint = checkpoint
+
+        day_trades = _download_day_api(
+            symbol=symbol,
+            date_str=date_str,
+            start_ms=effective_start,
+            end_ms=effective_end,
+            prior_checkpoint=prior_checkpoint,
+            day_num=day_idx,
+            total_days=total_days,
+            profiler=profiler,
+        )
+
+        if day_trades is None:
+            # API retries exhausted — checkpoint already saved inside _download_day_api.
+            return None
+
+        # Day complete: save to cache then clear the per-day checkpoint.
+        if use_local_cache:
+            save_raw_trade_cache(symbol, date_str, day_trades)
+        clear_download_checkpoint()
+
+        all_trades.extend(day_trades)
+        api_days += 1
+
+    elapsed_total = time.perf_counter() - session_start
+    print(
+        f"\nDOWNLOAD COMPLETE | {len(all_trades):,} trades | "
+        f"elapsed={_fmt_dur(elapsed_total)} | "
+        f"avg_speed={_fmt_speed(len(all_trades), elapsed_total)} | "
+        f"days_from_cache={cache_hits} | days_via_zip={zip_days} | days_via_api={api_days}"
+    )
+    return all_trades
+
+
+def _download_day_api(
+    symbol: str,
+    date_str: str,
+    start_ms: int,
+    end_ms: int,
+    prior_checkpoint,
+    day_num: int,
+    total_days: int,
+    profiler=None,
+):
+    """API batch loop for one UTC day.
+
+    Mirrors the original monolithic download loop, now scoped to a single day.
+    The checkpoint key is (symbol, date_str, date_str) so each day is
+    independently resumable.
+
+    Returns list of aggTrade dicts on success, None if all retries exhaust.
+    """
+    if prior_checkpoint:
+        trades = load_partial_agg_trades()
+        last_ts = prior_checkpoint.get("last_success_timestamp")
+        if last_ts is not None:
+            current_start_ms = int(last_ts) + 1
+            if trades:
+                seen_ids: set = set()
+                deduped:  list = []
+                for t in trades:
+                    tid = get_agg_trade_id(t)
+                    if tid not in seen_ids:
+                        seen_ids.add(tid)
+                        deduped.append(t)
+                dup_count = len(trades) - len(deduped)
+                if dup_count:
+                    print(f"  RESUME | day={date_str} | removed {dup_count} dup(s)")
+                trades = deduped
+            print(
+                f"  RESUME | day={date_str} ({day_num}/{total_days}) | "
+                f"from {_fmt_ts(current_start_ms)} | {len(trades):,} trades in buffer"
+            )
+        else:
+            current_start_ms = start_ms
+            print(f"  RESUME | day={date_str} | no timestamp — starting fresh")
+    else:
+        # Clear any stale partial data left over from a different day's session.
+        if HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists():
+            HISTORICAL_DOWNLOAD_PARTIAL_FILE.unlink()
+        trades            = []
+        current_start_ms  = start_ms
+        print(
+            f"  API | day={date_str} ({day_num}/{total_days}) | "
+            f"range={_fmt_ts(start_ms)} -> {_fmt_ts(end_ms)}"
+        )
+
+    day_session_start  = time.perf_counter()
+    request_num        = 0
+    session_retries    = 0
+    total_range_ms     = max(end_ms - start_ms, 1)
+    _speed_window: list = []
+    _SPEED_WINDOW_SIZE  = 10
+    _CHECKPOINT_LOG_INTERVAL = 25
+
+    while current_start_ms <= end_ms:
+        request_num += 1
+        batch_wall_start = time.perf_counter()
+
+        batch, retries_used = fetch_agg_trades_batch_with_retries(
+            symbol=symbol,
+            start_ms=current_start_ms,
+            end_ms=end_ms,
+            profiler=profiler,
+            request_num=request_num,
+        )
+        session_retries += retries_used
+
+        batch_wall_elapsed = time.perf_counter() - batch_wall_start
+        if profiler:
+            profiler.record("download_batch", batch_wall_elapsed)
+
+        if batch is None:
+            save_download_checkpoint(
+                symbol=symbol,
+                start_date=date_str,         # per-day key
+                end_date=date_str,
+                last_success_timestamp=current_start_ms - 1,
+                last_success_agg_trade_id=(
+                    get_agg_trade_id(trades[-1]) if trades else None
+                ),
+                downloaded_count=len(trades),
+            )
+            elapsed = time.perf_counter() - day_session_start
+            print(
+                f"\nDOWNLOAD PAUSED | day={date_str} | "
+                f"elapsed={_fmt_dur(elapsed)} | trades_so_far={len(trades):,} | "
+                f"retries={session_retries} | Re-run the same command to resume."
+            )
+            return None
+
+        if not batch:
+            break
+
+        trades.extend(batch)
+        append_partial_agg_trades(batch)
+
+        last_timestamp = int(batch[-1]["T"])
+        last_trade_id  = get_agg_trade_id(batch[-1])
+        save_download_checkpoint(
+            symbol=symbol,
+            start_date=date_str,
+            end_date=date_str,
+            last_success_timestamp=last_timestamp,
+            last_success_agg_trade_id=last_trade_id,
+            downloaded_count=len(trades),
+        )
+
+        _speed_window.append((len(batch), batch_wall_elapsed))
+        if len(_speed_window) > _SPEED_WINDOW_SIZE:
+            _speed_window.pop(0)
+        window_trades  = sum(t for t, _ in _speed_window)
+        window_seconds = sum(s for _, s in _speed_window)
+        speed_str      = _fmt_speed(window_trades, window_seconds)
+
+        elapsed_total = time.perf_counter() - day_session_start
+        done_ms       = last_timestamp - start_ms
+        pct           = min(done_ms / total_range_ms * 100, 100.0)
+        if pct > 0 and elapsed_total > 0:
+            ms_per_second = done_ms / elapsed_total
+            eta_str = _fmt_dur((total_range_ms - done_ms) / ms_per_second
+                                if ms_per_second > 0 else 0)
+        else:
+            eta_str = "calculating..."
+
+        retry_tag = f" | retries={session_retries}" if session_retries else ""
+        print(
+            f"  BATCH {request_num} | day={date_str} | trades={len(trades):,} | "
+            f"speed={speed_str} | elapsed={_fmt_dur(elapsed_total)} | "
+            f"eta={eta_str} | {pct:.1f}% | "
+            f"ts={_fmt_ts(last_timestamp)} | last_id={last_trade_id}"
+            f"{retry_tag}"
+        )
+
+        if request_num % _CHECKPOINT_LOG_INTERVAL == 0:
+            print(
+                f"  --- CHECKPOINT LOG ---\n"
+                f"    day               : {date_str}\n"
+                f"    trades_downloaded : {len(trades):,}\n"
+                f"    current_timestamp : {_fmt_ts(last_timestamp)}\n"
+                f"    last_aggtrade_id  : {last_trade_id}\n"
+                f"    session_retries   : {session_retries}\n"
+                f"    elapsed           : {_fmt_dur(elapsed_total)}\n"
+                f"    eta               : {eta_str}\n"
+                f"    checkpoint_file   : {HISTORICAL_DOWNLOAD_CHECKPOINT_FILE}\n"
+                f"    partial_file      : {HISTORICAL_DOWNLOAD_PARTIAL_FILE}"
+            )
+
+        if last_timestamp >= end_ms:
+            break
+
+        next_start_ms = last_timestamp + 1
+        if next_start_ms <= current_start_ms:
+            break
+        current_start_ms = next_start_ms
+
+        time.sleep(REQUEST_SLEEP_SECONDS)
+
+    elapsed_total = time.perf_counter() - day_session_start
+    print(
+        f"  API DONE | day={date_str} | {len(trades):,} trades | "
+        f"elapsed={_fmt_dur(elapsed_total)} | retries={session_retries}"
+    )
+    return trades
+
+
+def fetch_agg_trades_batch_with_retries(
+    symbol, start_ms, end_ms, profiler=None, request_num=None
+):
+    """Fetch one batch of aggTrades.
+
+    Returns a tuple (batch_or_none, retries_used):
+      batch_or_none  — list of trades on success, None when all retries exhaust
+      retries_used   — number of retry attempts made (0 = first-attempt success)
+    """
+    params = {
+        "symbol": symbol.upper(),
+        "startTime": int(start_ms),
+        "endTime": int(end_ms),
+        "limit": REQUEST_LIMIT,
+    }
+    url = f"{BINANCE_AGGTRADES_URL}?{urlencode(params)}"
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "btc-quant-observation-replay/1.0",
+        },
+    )
+
+    req_tag = f"REQ {request_num}" if request_num is not None else "REQ"
+    retries_used = 0
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            http_start = time.perf_counter()
+            with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+                payload = response.read()
+            elapsed = time.perf_counter() - http_start
+
+            if profiler:
+                profiler.record("http_wait", elapsed)
+
+            parse_start = time.perf_counter()
+            decoded = payload.decode("utf-8")
+            parsed  = json.loads(decoded)
+
+            if profiler:
+                profiler.record("parse_batch", time.perf_counter() - parse_start)
+
+            trade_count = len(parsed) if isinstance(parsed, list) else 0
+            retry_tag   = f" | after {retries_used} retry(ies)" if retries_used else ""
+            print(
+                f"{req_tag} | HTTP 200 | {elapsed:.3f}s | "
+                f"{trade_count} trades | ts={_fmt_ts(start_ms)}"
+                f"{retry_tag}"
+            )
+            return parsed, retries_used
+
+        except HTTPError as error:
+            if error.code in [429, 418, 500, 502, 503, 504]:
+                retries_used += 1
+                sleep_before_retry(attempt, error, request_num=request_num)
+                continue
+            # Non-retryable HTTP error — surface immediately
+            print(
+                f"{req_tag} | HTTP {error.code} — {error.reason} | "
+                f"ts={_fmt_ts(start_ms)} | NOT retrying (fatal HTTP error)"
+            )
+            raise
+        except (TimeoutError, socket.timeout, URLError) as error:
+            retries_used += 1
+            sleep_before_retry(attempt, error, request_num=request_num)
+
+    # All retries exhausted
+    print(
+        f"{req_tag} | ALL {MAX_RETRIES} RETRIES EXHAUSTED | "
+        f"ts={_fmt_ts(start_ms)} | download will pause"
+    )
+    return None, retries_used
+
+
+def split_warmup_and_target_trades(agg_trades, target_start_ms, target_end_ms):
+    warmup_trades = []
+    target_trades = []
+
+    for trade in agg_trades:
+        trade_timestamp = int(trade["T"])
+
+        if trade_timestamp < target_start_ms:
+            warmup_trades.append(trade)
+        elif trade_timestamp <= target_end_ms:
+            target_trades.append(trade)
+
+    return warmup_trades, target_trades
+
+
+def build_historical_rows(agg_trades, row_size):
+    rows = []
+
+    for row_index, start_index in enumerate(range(0, len(agg_trades), row_size)):
+        batch = agg_trades[start_index:start_index + row_size]
+
+        if not batch:
+            continue
+
+        tick_buffer = [
+            agg_trade_to_tick(trade)
+            for trade in batch
+        ]
+
+        row = build_trade_row(tick_buffer)
+        row["row_id"] = row_index + 1
+        row["market_timestamp"] = row.get("end_ts")
+        row["duration_seconds"] = row.get("duration_sec")
+        rows.append(row)
+
+    return rows
+
+
+def build_historical_observation_rows(historical_rows, warmup_rows=None):
+    reset_observation_state()
+
+    statistics_engine = StatisticsEngine()
+    renko_engine = RenkoEngine()
+    observation_rows = []
+
+    for row in warmup_rows or []:
+        process_historical_row(
+            row=row,
+            statistics_engine=statistics_engine,
+            renko_engine=renko_engine,
+        )
+
+    for row in historical_rows:
+        row, statistics = process_historical_row(
+            row=row,
+            statistics_engine=statistics_engine,
+            renko_engine=renko_engine,
+        )
+
+        observation_rows.append(
+            build_observation_row(
+                row=row,
+                statistics=statistics,
+                row_id=row["row_id"],
+            )
+        )
+
+    return observation_rows
+
+
+def process_historical_row(row, statistics_engine, renko_engine):
+    row = dict(row)
+    update_history(row)
+    row["adaptive_window"] = calculate_adaptive_window(
+        row["velocity"],
+        velocity_history,
+    )
+
+    context = SimpleNamespace(row=row)
+    renko_engine.process(context)
+    statistics = statistics_engine.process(context)
+
+    return context.row, statistics
+
+
+def build_observation_row(row, statistics, row_id):
+    observation_row = {
+        "row_id": row_id,
+        "market_timestamp": get_market_timestamp(row),
+        "close": get_value(row, "close"),
+        "volume": get_value(row, "volume"),
+        "delta": get_value(row, "delta"),
+        "velocity": get_value(row, "velocity"),
+        "rvi": get_value(row, "rvi"),
+        "price_zone": get_value(row, "price_zone"),
+        "volume_zone": get_value(row, "volume_zone"),
+        "delta_zone": get_value(row, "delta_zone"),
+        "velocity_zone": get_value(row, "velocity_zone"),
+        "price_zscore": get_value(statistics, "price_zscore"),
+        "volume_zscore": get_value(statistics, "volume_zscore"),
+        "velocity_zscore": get_value(statistics, "velocity_zscore"),
+        "spread_zscore": get_value(statistics, "spread_zscore"),
+        "price_percentile_zone": get_value(
+            statistics,
+            "price_percentile_zone",
+        ),
+        "distribution_shift_state": get_value(
+            statistics,
+            "distribution_shift_state",
+        ),
+        "distribution_shift_strength": get_value(
+            statistics,
+            "distribution_shift_strength",
+        ),
+        "price_mean_shift": get_value(statistics, "price_mean_shift"),
+        "price_std_shift": get_value(statistics, "price_std_shift"),
+        "gaussian_extreme": get_value(statistics, "gaussian_extreme"),
+        "gaussian_zone": get_value(statistics, "gaussian_zone"),
+        "gaussian_tail": get_value(statistics, "gaussian_tail"),
+        "gaussian_confidence": get_value(statistics, "gaussian_confidence"),
+        "price_tail_risk": get_value(statistics, "price_tail_risk"),
+        "price_tail_persistence": get_value(
+            statistics,
+            "price_tail_persistence",
+        ),
+        "price_tail_exhaustion": get_value(
+            statistics,
+            "price_tail_exhaustion",
+        ),
+        "price_tail_strength": get_value(statistics, "price_tail_strength"),
+        "price_tail_side": get_value(statistics, "price_tail_side"),
+        "volatility_regime": get_value(statistics, "volatility_regime"),
+        "volatility_transition": get_value(
+            statistics,
+            "volatility_transition",
+        ),
+        "volatility_acceleration": get_value(
+            statistics,
+            "volatility_acceleration",
+        ),
+        "volume_state": get_value(statistics, "volume_state"),
+        "volume_expansion": get_value(statistics, "volume_expansion"),
+        "abnormal_volume": get_value(statistics, "abnormal_volume"),
+        "velocity_state": get_value(statistics, "velocity_state"),
+        "velocity_acceleration_state": get_value(
+            statistics,
+            "velocity_acceleration_state",
+        ),
+        "velocity_deceleration": get_value(
+            statistics,
+            "velocity_deceleration",
+        ),
+        "velocity_exhaustion_state": get_value(
+            statistics,
+            "velocity_exhaustion_state",
+        ),
+        "exhaustion_strength": get_value(statistics, "exhaustion_strength"),
+        "delta_pressure_state": get_value(
+            statistics,
+            "delta_pressure_state",
+        ),
+        "delta_exhaustion": get_value(statistics, "delta_exhaustion"),
+        "imbalance_state": get_value(statistics, "imbalance_state"),
+        "aggressive_flow": get_value(statistics, "aggressive_flow"),
+        "delta_acceleration_state": get_value(
+            statistics,
+            "delta_acceleration_state",
+        ),
+        "spread_state": get_value(statistics, "spread_state"),
+        "spread_expansion": get_value(statistics, "spread_expansion"),
+        "execution_quality": get_value(statistics, "execution_quality"),
+        "distribution_shift": get_value(statistics, "distribution_shift"),
+        "climactic_volume": get_value(statistics, "climactic_volume"),
+        "velocity_shock": get_value(statistics, "velocity_shock"),
+        "velocity_exhaustion": get_value(statistics, "velocity_exhaustion"),
+        "abnormal_spread": get_value(statistics, "abnormal_spread"),
+        "delta_zscore": get_value(statistics, "delta_zscore"),
+        "price_extreme_event": get_value(statistics, "price_extreme_event"),
+        "volume_extreme_event": get_value(statistics, "volume_extreme_event"),
+        "delta_extreme_event": get_value(statistics, "delta_extreme_event"),
+        "velocity_extreme_event": get_value(
+            statistics,
+            "velocity_extreme_event",
+        ),
+        "spread_extreme_event": get_value(statistics, "spread_extreme_event"),
+        "extreme_event_state": get_value(statistics, "extreme_event_state"),
+        "extreme_event_context": get_value(
+            statistics,
+            "extreme_event_context",
+        ),
+        "extreme_event_origin": get_value(
+            statistics,
+            "extreme_event_origin",
+        ),
+        "statistical_dashboard_state": get_value(
+            statistics,
+            "statistical_dashboard_state",
+        ),
+        "statistical_dashboard_score": get_value(
+            statistics,
+            "statistical_dashboard_score",
+        ),
+        "statistical_dashboard_conditions": format_conditions(
+            get_value(
+                statistics,
+                "statistical_dashboard_conditions",
+                [],
+            )
+        ),
+    }
+
+    for field in DASHBOARD_V2_ARCHIVE_FIELDS:
+        value = get_value(row, field)
+
+        if value is None:
+            value = get_value(statistics, field, "")
+
+        observation_row[field] = format_conditions(value)
+
+    return observation_row
+
+
+def reset_observation_state():
+    price_history.clear()
+    volume_history.clear()
+    delta_history.clear()
+    velocity_history.clear()
+    system_state["row_counter"] = 0
+
+    renko_state["last_brick_close"] = None
+    renko_state["direction"] = "NEUTRAL"
+    renko_state["brick_count"] = 0
+
+    import core.statistics as statistics_module
+
+    for name in [
+        "price_distribution",
+        "volume_distribution",
+        "delta_distribution",
+        "velocity_distribution",
+        "spread_distribution",
+        "tail_history",
+        "volatility_regime_history",
+        "volatility_ratio_history",
+        "cumulative_delta_history",
+        "delta_pressure_history",
+        "delta_acceleration_history",
+    ]:
+        getattr(statistics_module, name).clear()
+
+
+def agg_trade_to_tick(trade):
+    price = float(trade["p"])
+    quantity = float(trade["q"])
+    timestamp = int(trade["T"])
+    buyer_is_maker = bool(trade["m"])
+
+    return {
+        "price": price,
+        "quantity": quantity,
+        "timestamp": timestamp,
+        "side": "SELL" if buyer_is_maker else "BUY",
+    }
+
+
+def parse_datetime_to_ms(value):
+    text = value.strip()
+
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as error:
+        raise SystemExit(
+            "Datetime must use YYYY-MM-DD HH:MM:SS"
+        ) from error
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    else:
+        parsed = parsed.astimezone(timezone.utc)
+
+    return int(parsed.timestamp() * 1000)
+
+
+def load_matching_checkpoint(symbol, start_date, end_date):
+    if not HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.exists():
+        return None
+
+    try:
+        checkpoint = json.loads(
+            HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.read_text(encoding="utf-8")
+        )
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    if (
+        str(checkpoint.get("symbol", "")).upper() == symbol.upper()
+        and checkpoint.get("start_date") == start_date
+        and checkpoint.get("end_date") == end_date
+    ):
+        if (
+            int(checkpoint.get("downloaded_count") or 0) > 0
+            and not HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists()
+        ):
+            print(
+                "Checkpoint found but partial download file is missing. "
+                "Starting from the beginning."
+            )
+            return None
+        return checkpoint
+
+    return None
+
+
+def save_download_checkpoint(
+    symbol,
+    start_date,
+    end_date,
+    last_success_timestamp,
+    last_success_agg_trade_id,
+    downloaded_count,
+):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint = {
+        "symbol": symbol.upper(),
+        "start_date": start_date,
+        "end_date": end_date,
+        "last_success_timestamp": last_success_timestamp,
+        "last_success_agg_trade_id": last_success_agg_trade_id,
+        "downloaded_count": downloaded_count,
+    }
+    HISTORICAL_DOWNLOAD_CHECKPOINT_FILE.write_text(
+        json.dumps(checkpoint, indent=2),
+        encoding="utf-8",
+    )
+
+
+def clear_download_checkpoint():
+    for path in [
+        HISTORICAL_DOWNLOAD_CHECKPOINT_FILE,
+        HISTORICAL_DOWNLOAD_PARTIAL_FILE,
+    ]:
+        if path.exists():
+            path.unlink()
+
+
+def append_partial_agg_trades(batch):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    with HISTORICAL_DOWNLOAD_PARTIAL_FILE.open("a", encoding="utf-8") as handle:
+        for trade in batch:
+            handle.write(json.dumps(trade, separators=(",", ":")) + "\n")
+
+
+def load_partial_agg_trades():
+    if not HISTORICAL_DOWNLOAD_PARTIAL_FILE.exists():
+        return []
+
+    trades = []
+    with HISTORICAL_DOWNLOAD_PARTIAL_FILE.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                trades.append(json.loads(line))
+    return trades
+
+
+def get_agg_trade_id(trade):
+    return trade.get("a") or trade.get("aggTradeId") or trade.get("id")
+
+
+def ensure_outputs_can_be_written(overwrite, save_raw, resume_active=False):
+    output_files = [
+        HISTORICAL_MARKET_ROWS_FILE,
+        HISTORICAL_OBSERVATION_ROWS_FILE,
+        HISTORICAL_REPLAY_EVENTS_FILE,
+        HISTORICAL_REPLAY_EPISODES_FILE,
+        HISTORICAL_REPLAY_V2_EVENTS_FILE,
+        HISTORICAL_REPLAY_V2_EPISODES_FILE,
+    ]
+
+    if save_raw:
+        output_files.append(HISTORICAL_RAW_AGGTRADES_FILE)
+
+    existing_files = [
+        path
+        for path in output_files
+        if path.exists()
+    ]
+
+    if existing_files and not overwrite and not resume_active:
+        existing = "\n".join(str(path) for path in existing_files)
+        raise SystemExit(
+            "Historical output files already exist. "
+            "Use --overwrite to replace them:\n"
+            f"{existing}"
+        )
+
+
+def write_raw_agg_trades(agg_trades):
+    fieldnames = get_union_fieldnames(agg_trades)
+    write_dict_rows(
+        HISTORICAL_RAW_AGGTRADES_FILE,
+        fieldnames,
+        agg_trades,
+    )
+
+
+def archive_historical_outputs(
+    symbol,
+    start_date,
+    end_date,
+    save_raw=False,
+    overwrite_archive=False,
+):
+    symbol = symbol.upper()
+    archive_root = ARCHIVE_DIR / symbol
+    archive_root.mkdir(parents=True, exist_ok=True)
+
+    source_files = get_archive_source_files(save_raw=save_raw)
+    archive_targets_by_date = {}
+    manifest_data_by_date = {}
+    files_written = 0
+
+    for source_file, timestamp_candidates in source_files:
+        if not source_file.exists():
+            continue
+
+        dataframe = pd.read_csv(source_file)
+        if dataframe.empty:
+            continue
+
+        timestamp_column = find_existing_column(dataframe, timestamp_candidates)
+        if timestamp_column is None:
+            print(
+                "Archive skipped file without timestamp column: "
+                f"{source_file}"
+            )
+            continue
+
+        dataframe = dataframe.copy()
+        dataframe["_archive_market_date"] = convert_to_market_dates(
+            dataframe[timestamp_column]
+        )
+        dataframe = dataframe.dropna(subset=["_archive_market_date"])
+
+        for market_date, daily_dataframe in dataframe.groupby("_archive_market_date"):
+            market_date = str(market_date)
+            archive_path = archive_targets_by_date.get(market_date)
+
+            if archive_path is None:
+                archive_path = resolve_archive_day_path(
+                    archive_root=archive_root,
+                    market_date=market_date,
+                    overwrite_archive=overwrite_archive,
+                )
+                archive_path.mkdir(parents=True, exist_ok=True)
+                archive_targets_by_date[market_date] = archive_path
+                manifest_data_by_date[market_date] = create_archive_manifest(
+                    symbol=symbol,
+                    market_date=market_date,
+                    start_date=start_date,
+                    end_date=end_date,
+                    archive_path=archive_path,
+                )
+
+            output_dataframe = daily_dataframe.drop(
+                columns=["_archive_market_date"],
+                errors="ignore",
+            )
+            archive_file = archive_path / source_file.name
+            output_dataframe.to_csv(archive_file, index=False)
+            files_written += 1
+
+            update_archive_manifest_file_stats(
+                manifest=manifest_data_by_date[market_date],
+                source_file=source_file,
+                archive_file=archive_file,
+                row_count=len(output_dataframe),
+            )
+
+    for market_date, manifest in manifest_data_by_date.items():
+        manifest_path = Path(manifest["archive_path"]) / ARCHIVE_MANIFEST_FILE_NAME
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    archive_index_path = rebuild_archive_index(archive_root)
+
+    return {
+        "archive_days": len(manifest_data_by_date),
+        "files_written": files_written,
+        "archive_index": str(archive_index_path),
+    }
+
+
+def get_archive_source_files(save_raw=False):
+    source_files = [
+        (
+            HISTORICAL_MARKET_ROWS_FILE,
+            ["market_timestamp", "end_ts", "timestamp", "start_ts"],
+        ),
+        (
+            HISTORICAL_OBSERVATION_ROWS_FILE,
+            ["market_timestamp", "end_ts", "timestamp", "start_ts"],
+        ),
+        (
+            HISTORICAL_REPLAY_EVENTS_FILE,
+            ["market_timestamp", "event_timestamp_utc", "timestamp"],
+        ),
+        (
+            HISTORICAL_REPLAY_EPISODES_FILE,
+            [
+                "episode_start_timestamp_utc",
+                "episode_start_time_utc",
+                "start_timestamp",
+                "timestamp",
+            ],
+        ),
+        (
+            HISTORICAL_REPLAY_V2_EVENTS_FILE,
+            ["market_timestamp", "event_timestamp_utc", "timestamp"],
+        ),
+        (
+            HISTORICAL_REPLAY_V2_EPISODES_FILE,
+            [
+                "episode_start_timestamp_utc",
+                "episode_start_time_utc",
+                "start_timestamp",
+                "timestamp",
+            ],
+        ),
+    ]
+
+    if save_raw:
+        source_files.append(
+            (
+                HISTORICAL_RAW_AGGTRADES_FILE,
+                ["T", "timestamp", "market_timestamp"],
+            )
+        )
+
+    return source_files
+
+
+def find_existing_column(dataframe, candidates):
+    for candidate in candidates:
+        if candidate in dataframe.columns:
+            return candidate
+    return None
+
+
+def convert_to_market_dates(series):
+    numeric_values = pd.to_numeric(series, errors="coerce")
+
+    if numeric_values.notna().any():
+        datetime_values = pd.to_datetime(
+            numeric_values,
+            unit="ms",
+            utc=True,
+            errors="coerce",
+        )
+    else:
+        datetime_values = pd.to_datetime(series, utc=True, errors="coerce")
+
+    return datetime_values.dt.strftime("%Y-%m-%d")
+
+
+def resolve_archive_day_path(archive_root, market_date, overwrite_archive=False):
+    market_day = date.fromisoformat(market_date)
+    window_start, window_end = ten_day_window_for_date(market_day)
+    window_name = f"{window_start.isoformat()}_to_{window_end.isoformat()}"
+    day_root = archive_root / window_name / market_date
+
+    if overwrite_archive or not day_root.exists() or is_empty_archive_day(day_root):
+        return day_root
+
+    return next_archive_run_path(day_root)
+
+
+def ten_day_window_for_date(market_day):
+    if market_day.day <= 9 and previous_month_has_day_31(market_day):
+        if market_day.month == 1:
+            return date(market_day.year - 1, 12, 31), date(market_day.year, 1, 9)
+        return (
+            date(market_day.year, market_day.month - 1, 31),
+            date(market_day.year, market_day.month - 1, 31) + timedelta(days=9),
+        )
+
+    if previous_month_has_day_31(market_day):
+        start_day = ((market_day.day - 10) // 10) * 10 + 10
+    else:
+        start_day = ((market_day.day - 1) // 10) * 10 + 1
+
+    start_day = max(1, min(start_day, calendar.monthrange(market_day.year, market_day.month)[1]))
+    window_start = date(market_day.year, market_day.month, start_day)
+    return window_start, window_start + timedelta(days=9)
+
+
+def previous_month_has_day_31(market_day):
+    if market_day.month == 1:
+        previous_year = market_day.year - 1
+        previous_month = 12
+    else:
+        previous_year = market_day.year
+        previous_month = market_day.month - 1
+
+    return calendar.monthrange(previous_year, previous_month)[1] == 31
+
+
+def is_empty_archive_day(day_root):
+    if not day_root.exists():
+        return True
+
+    return not any(day_root.iterdir())
+
+
+def next_archive_run_path(day_root):
+    run_index = 1
+
+    while True:
+        run_path = day_root / f"run_{run_index:03d}"
+
+        if not run_path.exists():
+            return run_path
+
+        run_index += 1
+
+
+def create_archive_manifest(symbol, market_date, start_date, end_date, archive_path):
+    source_command = " ".join(sys.argv)
+
+    return {
+        "symbol": symbol,
+        "market_date": market_date,
+        "batch_window": {
+            "start": start_date,
+            "end": end_date,
+        },
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "source_command": source_command,
+        "row_counts": {},
+        "event_counts": {},
+        "episode_counts": {},
+        "file_sizes": {},
+        "archive_path": str(archive_path),
+    }
+
+
+def update_archive_manifest_file_stats(manifest, source_file, archive_file, row_count):
+    file_name = source_file.name
+    manifest["row_counts"][file_name] = int(row_count)
+    manifest["file_sizes"][file_name] = int(archive_file.stat().st_size)
+
+    if "events" in file_name:
+        manifest["event_counts"][file_name] = int(row_count)
+
+    if "episodes" in file_name:
+        manifest["episode_counts"][file_name] = int(row_count)
+
+
+def rebuild_archive_index(archive_root):
+    archive_root.mkdir(parents=True, exist_ok=True)
+    index_path = archive_root / ARCHIVE_INDEX_FILE_NAME
+    entries = []
+
+    for manifest_path in archive_root.rglob(ARCHIVE_MANIFEST_FILE_NAME):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        relative_parts = manifest_path.relative_to(archive_root).parts
+
+        entries.append(
+            {
+                "market_date": manifest.get("market_date"),
+                "batch_window": manifest.get("batch_window", {}),
+                "archive_path": manifest.get("archive_path"),
+                "manifest_path": str(manifest_path),
+                "created_at": manifest.get("created_at"),
+                "parent_window": relative_parts[0] if relative_parts else "",
+            }
+        )
+
+    entries = sorted(
+        entries,
+        key=lambda item: (
+            item.get("market_date") or "",
+            item.get("archive_path") or "",
+        ),
+    )
+    index = {
+        "symbol": archive_root.name,
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "available_dates": entries,
+    }
+    index_path.write_text(
+        json.dumps(index, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return index_path
+
+
+def get_union_fieldnames(rows):
+    fieldnames = []
+
+    for row in rows:
+        for field in row:
+            if field not in fieldnames:
+                fieldnames.append(field)
+
+    return fieldnames
+
+
+def verify_downloaded_trades(trades):
+    """Print final verification stats for the downloaded aggTrades list.
+
+    Called once after the download loop completes successfully, before the
+    replay pipeline runs.  Does not modify any data.
+    """
+    print()
+    print("=" * 60)
+    print("DOWNLOAD VERIFICATION")
+    if not trades:
+        print("  WARNING: trades list is empty — nothing to verify")
+        print("=" * 60)
+        return
+
+    trade_ids = [get_agg_trade_id(t) for t in trades]
+    valid_ids  = [tid for tid in trade_ids if tid is not None]
+    dup_count  = len(valid_ids) - len(set(valid_ids))
+
+    first_ts = int(trades[0]["T"])
+    last_ts  = int(trades[-1]["T"])
+
+    print(f"  Total trades      : {len(trades):,}")
+    print(f"  First timestamp   : {_fmt_ts(first_ts)}")
+    print(f"  Last timestamp    : {_fmt_ts(last_ts)}")
+    print(f"  Duplicate trade IDs: {dup_count}")
+    if dup_count:
+        print(f"  WARNING: {dup_count} duplicate aggTrade IDs found — "
+              f"check {HISTORICAL_DOWNLOAD_PARTIAL_FILE}")
+    else:
+        print("  Duplicate check   : PASSED (0 duplicates)")
+    print(f"  Partial file      : {HISTORICAL_DOWNLOAD_PARTIAL_FILE}")
+    print(f"  Checkpoint file   : {HISTORICAL_DOWNLOAD_CHECKPOINT_FILE}")
+    print("=" * 60)
+    print()
+
+
+def sleep_before_retry(attempt, error, request_num=None):
+    base_seconds = RETRY_BACKOFF_SECONDS[
+        min(attempt - 1, len(RETRY_BACKOFF_SECONDS) - 1)
+    ]
+
+    # Classify error type.  Detect WinError 10060 (WSAETIMEDOUT) explicitly
+    # because it appears wrapped inside URLError on Windows and needs a longer
+    # backoff than generic network errors.
+    is_win_10060 = False
+    if isinstance(error, HTTPError):
+        http_code   = error.code
+        reason      = _http_code_label(http_code)
+        error_label = f"HTTP {http_code} — {reason}"
+    elif isinstance(error, (TimeoutError, socket.timeout)):
+        error_label = f"TIMEOUT (Python {REQUEST_TIMEOUT_SECONDS}s limit)"
+    elif isinstance(error, URLError):
+        reason_str = str(getattr(error, "reason", error))
+        if "10060" in reason_str or "WinError 10060" in reason_str:
+            is_win_10060 = True
+            error_label  = "WinError 10060 — TCP connection timeout (Windows WSAETIMEDOUT)"
+        else:
+            error_label = f"NETWORK ERROR — {error.reason}"
+    else:
+        error_label = f"{type(error).__name__}: {error}"
+
+    # For WinError 10060, multiply base by 1.5 — the OS-level TCP timeout
+    # needs more recovery time than application-level rate limits.
+    if is_win_10060:
+        base_seconds = min(base_seconds * 1.5, 300)
+
+    # Add random jitter to spread concurrent retries and avoid thundering herd.
+    jitter         = random.uniform(0.0, base_seconds * RETRY_JITTER_FACTOR)
+    sleep_seconds  = round(base_seconds + jitter, 1)
+
+    req_tag = f"REQ {request_num} | " if request_num is not None else ""
+    print(
+        f"  {req_tag}RETRY {attempt}/{MAX_RETRIES} | "
+        f"cause: {error_label} | "
+        f"backoff: {sleep_seconds}s (base={int(base_seconds)}s + jitter={jitter:.1f}s)"
+    )
+    time.sleep(sleep_seconds)
+
+
+def _http_code_label(code: int) -> str:
+    """Return a short human-readable label for common HTTP error codes."""
+    return {
+        429: "Too Many Requests — rate limit hit",
+        418: "IP Banned — Binance auto-ban",
+        500: "Internal Server Error",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+        504: "Gateway Timeout",
+    }.get(code, f"Server Error")
+
+
+def get_market_timestamp(row):
+    return (
+        get_value(row, "market_timestamp")
+        or get_value(row, "end_ts")
+        or get_value(row, "timestamp")
+        or get_value(row, "start_ts")
+    )
+
+
+def format_conditions(value):
+    if value is None:
+        return ""
+
+    if isinstance(value, list):
+        return "|".join(str(item) for item in value)
+
+    return str(value)
+
+
+def get_value(source, key, default=None):
+    if source is None:
+        return default
+
+    if isinstance(source, dict):
+        return source.get(key, default)
+
+    return getattr(source, key, default)
+
+
+if __name__ == "__main__":
+    main()

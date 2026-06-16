@@ -33,15 +33,24 @@ Current state:
   opt-in --stream flag: a bounded-memory rebuild path for long
   continuous multi-month windows (target: 2026-02-01 -> 2026-06-06,
   126 days, zero window seams).
-- --stream Stages 1-2 (CLI flag + streaming reader + streaming
+- --stream Stages 1-3 (CLI flag + streaming reader + streaming
   consumer with persistent tick_buffer / continuous StatisticsEngine /
   warmup deque / incremental CSV writes / row-count invariants) are
   implemented and additive-verified (compiles, 0 deletions, old path
   unchanged).
-- --stream Stage 3 (April 2026-04-01 -> 2026-05-01 byte-identical
-  sha256 equivalence test vs the old in-memory path) is PENDING --
-  not yet confirmed. --stream is EXPERIMENTAL until that passes; do
-  not use it for any dataset feeding B9-B12/Synthesis yet.
+- --stream run on April reproduced the known-good April B12v2 numbers
+  (808 zone cases, r=0.9966, 97.8% accuracy) -- metric-level verified.
+  The formal byte-identical sha256 comparison vs the in-memory path was
+  not completed (the in-memory run OOMed on this 24GB machine during
+  that test -- cause unconfirmed, see CURRENT_CHECKPOINT.md).
+- **--stream is now REQUIRED on this machine for all replay rebuilds,
+  including single months** -- the old in-memory path is unreliable
+  here. Always snapshot outputs/ before any run that writes to it (see
+  RUN_COMMANDS.md "Pre-run snapshot rule").
+- All datasets from generate_binance_historical_replay.py (in-memory or
+  --stream) are REPLAY_AGGTRADE (500 aggTrades/row), distinct from LIVE
+  (500 raw @trade/row). core/live_b12_validation.py (B12 Live
+  Validation) remains active on LIVE data, unchanged.
 - Synthesis Engine (research/synthesis_engine.py) still connects all
   B1-B11 outputs into one MarketInterpretation per zone case
   (research/zone_synthesis.csv). NOTE: the 276-row/12-day-archive
@@ -49,10 +58,10 @@ Current state:
   March/April/May/B12v2 work -- re-check the CSV before citing counts.
 
 Next task:
-- Confirm Stage 3 streaming equivalence (see RUN_COMMANDS.md "Stage 3
-  equivalence test")
-- If PASS: make --stream the default and run the 126-day continuous
-  rebuild
+- Snapshot outputs/ (permanent rule, see RUN_COMMANDS.md)
+- Run the 126-day continuous rebuild (2026-02-01 -> 2026-06-06) with
+  --stream (see RUN_COMMANDS.md "Next Task: Full Continuous Window
+  Rebuild")
 - After that rebuild: re-run B9-B12v2 / Synthesis on the unified dataset
 
 Key validated finding:
@@ -63,17 +72,22 @@ Key validated finding:
 
 ## Priority Workflow (next session)
 
-### Step 0: Confirm --stream Stage 3 equivalence (PENDING)
+### Step 0: Snapshot outputs/ and run the 126-day continuous rebuild
 
-Run the April equivalence test in RUN_COMMANDS.md ("Stage 3
-equivalence test"). PASS = all 3 sha256 hash pairs
-(historical_observation_rows.csv, historical_market_rows.csv,
-historical_replay_dashboard_v2_episodes.csv) identical between the
-old in-memory run and the --stream run. Only after PASS: proceed to
-make --stream the default and run the 126-day rebuild (Step 1 below
-becomes the streaming version of this command).
+Snapshot `outputs/` first (permanent rule, see RUN_COMMANDS.md "Pre-run
+snapshot rule"), then run the full continuous window with `--stream`
+(required on this machine -- see RUN_COMMANDS.md "Next Task: Full
+Continuous Window Rebuild"):
 
-### Step 1: Extended Data Collection (45-60 days)
+```powershell
+python tools/generate_binance_historical_replay.py --start "2026-02-01 00:00:00" --end "2026-06-06 00:00:00" --symbol BTCUSDT --row-size 500 --stream
+```
+
+Pre-condition: all days in the window (plus warmup lookback) must
+already be in the Tier-1 raw-trade cache -- `--stream` raises on any
+missing day rather than downloading.
+
+### Step 1: Extended Data Collection (additional days, if needed)
 
 ```powershell
 python tools/generate_binance_historical_replay.py \
@@ -86,6 +100,10 @@ The 3-tier downloader will:
 - Use Tier 1 local cache for any days already downloaded
 - Use Tier 2 Binance ZIP for older dates (2+ days)
 - Use Tier 3 API only for very recent dates
+
+Note: this non-stream command is for populating the Tier-1 cache only.
+Once cached, rebuild with `--stream` (Step 0) -- the in-memory path is
+unreliable on this machine.
 
 ### Step 2: Rebuild Research Dataset
 

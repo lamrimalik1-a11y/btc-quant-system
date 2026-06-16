@@ -1,6 +1,6 @@
 # Zone Mechanics Verestchaguine Dynamic Fleche Notes
 
-- Run UTC: 2026-06-05T21:47:45+00:00
+- Run UTC: 2026-06-16T07:33:07+00:00
 - Mode: Research only
 - No live signals
 - No execution
@@ -9,9 +9,9 @@
 - No Phase 2
 
 ## Dynamic Fleche State Counts
-- DYNAMIC_LOW: 536
-- DYNAMIC_HIGH: 669
-- DYNAMIC_MEDIUM: 14
+- DYNAMIC_LOW: 2100
+- DYNAMIC_HIGH: 2659
+- DYNAMIC_MEDIUM: 100
 
 ## Interpretation
 - Static fleche remains zone_fleche_ratio and is not replaced.

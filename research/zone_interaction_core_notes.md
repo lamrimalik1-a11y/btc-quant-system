@@ -1,22 +1,22 @@
 # Interaction Core Geometry
 
-Run UTC: 2026-06-05T21:47:45+00:00
+Run UTC: 2026-06-16T07:33:07+00:00
 
 Research-only split between formation range and interaction core.
 
-Rows: 1219
+Rows: 4859
 
 ## Core Width States
 
-- CORE_FALLBACK: 90
-- CORE_TIGHT: 636
-- CORE_NORMAL: 493
+- CORE_FALLBACK: 354
+- CORE_TIGHT: 2464
+- CORE_NORMAL: 2041
 
 ## True Lifecycle States
 
-- ACTIVE_INTERACTION: 571
-- RECOVERY: 461
-- RETEST: 184
-- DORMANT: 3
+- ACTIVE_INTERACTION: 2242
+- RECOVERY: 1864
+- RETEST: 671
+- DORMANT: 82
 
 Formation end is not treated as mechanical death.

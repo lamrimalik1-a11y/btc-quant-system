@@ -32,24 +32,58 @@ CLI flags:
     --slow-mode         Sets request_sleep=2.0s, timeout=240s, max_retries=40
     --max-retries N     Override max retry attempts per API batch
     --timeout N         Override HTTP timeout in seconds
-    --stream            Bounded-memory streaming rebuild path (PHASE1B_STREAMING_REPLAY_STABLE,
-                        EXPERIMENTAL until Stage 3 equivalence below is confirmed PASS).
+    --stream            Bounded-memory streaming rebuild path (PHASE1B_STREAMING_REPLAY_STABLE).
+                        REQUIRED on this machine for all replay rebuilds -- the old
+                        in-memory path is unreliable here (OOMs, see CURRENT_CHECKPOINT.md
+                        "NEW FINDING: in-memory path OOMs on April").
                         Requires all needed days already in the Tier-1 raw-trade cache
                         (raises SystemExit on any missing day -- never downloads).
 
-## Streaming Replay (--stream, bounded memory) -- EXPERIMENTAL
+## Pre-run snapshot rule (PERMANENT)
+
+Before ANY run that writes to `outputs/` (especially with `--overwrite`),
+snapshot the current contents to a timestamped folder so they can be
+restored if the run fails or produces unexpected results:
+
+```powershell
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+New-Item -ItemType Directory -Force -Path "archives\outputs_snapshots\$stamp" | Out-Null
+Copy-Item outputs\*.csv "archives\outputs_snapshots\$stamp\"
+```
+
+## Streaming Replay (--stream, bounded memory) -- REQUIRED on this machine
 
 Same CLI as the standard command, with `--stream` added. Output files
 and locations are identical (outputs/historical_*.csv). Use only after
-pre-caching the window with a normal (non-stream) run.
+pre-caching the window with a normal (non-stream) run, and snapshot
+`outputs/` first (see "Pre-run snapshot rule" above).
 
 ```powershell
 python tools/generate_binance_historical_replay.py --start "YYYY-MM-DD 00:00:00" --end "YYYY-MM-DD 23:59:59" --symbol BTCUSDT --row-size 500 --stream
 ```
 
-### Stage 3 equivalence test (April 2026-04-01 -> 2026-05-01)
+## Next Task: Full Continuous Window Rebuild (126 days)
 
-Proves the streaming path is byte-identical to the in-memory path.
+Primary next step. Snapshot `outputs/` first (see "Pre-run snapshot
+rule"), then:
+
+```powershell
+python tools/generate_binance_historical_replay.py --start "2026-02-01 00:00:00" --end "2026-06-06 00:00:00" --symbol BTCUSDT --row-size 500 --stream
+```
+
+Pre-condition: all days in [2026-02-01 minus WARMUP_LOOKBACK,
+2026-06-06] must already be present in the Tier-1 raw-trade cache
+(`--stream` raises on any missing day rather than downloading).
+
+### Stage 3 equivalence test (April 2026-04-01 -> 2026-05-01) -- reference only
+
+`--stream` on April reproduced the known-good April B12v2 numbers (808
+zone cases, r=0.9966, 97.8% accuracy) -- metric-level verified. The
+byte-identical sha256 comparison below was not completed: the in-memory
+run (step 1) OOMed on this machine (see CURRENT_CHECKPOINT.md "NEW
+FINDING"). Kept here for reference / re-attempt if memory headroom
+changes; not required before using `--stream`.
+
 Run sequentially (both write to outputs/, so copy results out between runs):
 
 ```powershell

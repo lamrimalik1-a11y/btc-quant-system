@@ -1,0 +1,1296 @@
+================================================================================
+EPISODE 23
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T11:03:50.631453+00:00
+  episode_end_timestamp_utc: 2026-06-10T11:03:53.411425+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.45
+  zone_type: BATTLE
+  manipulation_risk_score: 0.252
+  preparation_low_price: 61254.0
+  preparation_high_price: 61428.64
+  preparation_mid_price: 61341.32
+  tight_formation_low_price: 61303.121
+  tight_formation_high_price: 61383.4215
+  zone_return_count: 4
+  zone_penetration_count: 14
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.86
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T11:03:55+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61291.47
+  return_price_y: 61291.47
+  return_timestamp: 2026-06-10 11:03:55
+  return_row: 349
+  failed_after_return: nan
+  real_zone_upper_edge: 61428.64
+  real_zone_lower_edge: 61254.0
+  real_zone_mid_price: 61341.32
+  real_zone_width: 174.64
+  interaction_core_upper_edge: 61336.1
+  interaction_core_lower_edge: 61292.44
+  interaction_core_mid_price: 61314.27
+  interaction_core_width: 43.66
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61329.862857
+  interaction_density_lower_band: 61311.151429
+  interaction_density_weighted_center: 61313.587242
+  interaction_density_width: 18.711429
+  interaction_density_score: 131.956252
+  zone_penetration_depth: 37.47
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T11:03:55.700545+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+  failed_after_return: False
+  reversal_type: REVERSAL_AFTER_PREPARATION_RETURN
+  reversal_strength: HIGH
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: EXTREME
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 6
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 5
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 6 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61291.47
+  return_timestamp: 2026-06-10 11:03:55
+  return_row: 349
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+
+================================================================================
+EPISODE 34
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T11:16:35.481980+00:00
+  episode_end_timestamp_utc: 2026-06-10T11:16:45.384179+00:00
+  preparation_candidate: True
+  prep_family: EQUILIBRIUM_COMPRESSION
+  prep_family_confidence: 0.75
+  zone_type: MIXED
+  manipulation_risk_score: 0.105
+  preparation_low_price: 60874.7
+  preparation_high_price: 61193.53
+  preparation_mid_price: 61034.115
+  tight_formation_low_price: 60973.635
+  tight_formation_high_price: 61108.664
+  zone_return_count: 2
+  zone_penetration_count: 21
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.79
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T11:17:32+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61178.01
+  return_price_y: 61178.01
+  return_timestamp: 2026-06-10 11:17:33
+  return_row: 495
+  failed_after_return: nan
+  real_zone_upper_edge: 61193.53
+  real_zone_lower_edge: 60874.7
+  real_zone_mid_price: 61034.115
+  real_zone_width: 318.83
+  interaction_core_upper_edge: 61018.48875
+  interaction_core_lower_edge: 60938.78125
+  interaction_core_mid_price: 60978.635
+  interaction_core_width: 79.7075
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61007.101964
+  interaction_density_lower_band: 60995.715179
+  interaction_density_weighted_center: 60985.368462
+  interaction_density_width: 11.386786
+  interaction_density_score: 50.836279
+  zone_penetration_depth: 15.52
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T11:17:32.935623+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: EXTREME
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: HIGH
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 2
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 1
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: MEDIUM
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: MEDIUM
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: MODERATE
+  interpretation: STABLE zone with zone dominant — hold expected.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61178.01
+  return_timestamp: 2026-06-10 11:17:33
+  return_row: 495
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+
+================================================================================
+EPISODE 35
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T11:17:07.552812+00:00
+  episode_end_timestamp_utc: 2026-06-10T11:17:18.251303+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.55
+  zone_type: MIXED
+  manipulation_risk_score: 0.08166667
+  preparation_low_price: 60874.7
+  preparation_high_price: 61234.0
+  preparation_mid_price: 61054.35
+  tight_formation_low_price: 60975.9385
+  tight_formation_high_price: 61129.836
+  zone_return_count: 2
+  zone_penetration_count: 23
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.77
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T11:17:28+00:00
+  peak_layer_count: 5
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61194.0
+  return_price_y: 61194.0
+  return_timestamp: 2026-06-10 11:17:28
+  return_row: 494
+  failed_after_return: nan
+  real_zone_upper_edge: 61234.0
+  real_zone_lower_edge: 60874.7
+  real_zone_mid_price: 61054.35
+  real_zone_width: 359.3
+  interaction_core_upper_edge: 61016.0875
+  interaction_core_lower_edge: 60926.2625
+  interaction_core_mid_price: 60971.175
+  interaction_core_width: 89.825
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61016.0875
+  interaction_density_lower_band: 61003.255357
+  interaction_density_weighted_center: 60976.851243
+  interaction_density_width: 12.832143
+  interaction_density_score: 45.697784
+  zone_penetration_depth: 40.0
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T11:17:28.523489+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+  failed_after_return: False
+  reversal_type: REVERSAL_AFTER_PREPARATION_RETURN
+  reversal_strength: HIGH
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: EXTREME
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 5
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61194.0
+  return_timestamp: 2026-06-10 11:17:28
+  return_row: 494
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+
+================================================================================
+EPISODE 37
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T11:25:17.079229+00:00
+  episode_end_timestamp_utc: 2026-06-10T11:25:18.111773+00:00
+  preparation_candidate: True
+  prep_family: EQUILIBRIUM_COMPRESSION
+  prep_family_confidence: 0.85
+  zone_type: BATTLE
+  manipulation_risk_score: 0.355
+  preparation_low_price: 61000.0
+  preparation_high_price: 61254.77
+  preparation_mid_price: 61127.385
+  tight_formation_low_price: 61061.6885
+  tight_formation_high_price: 61196.906
+  zone_return_count: 5
+  zone_penetration_count: 22
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.78
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T11:26:51+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61007.9
+  return_price_y: 61007.9
+  return_timestamp: 2026-06-10 11:26:52
+  return_row: 588
+  failed_after_return: nan
+  real_zone_upper_edge: 61254.77
+  real_zone_lower_edge: 61000.0
+  real_zone_mid_price: 61127.385
+  real_zone_width: 254.77
+  interaction_core_upper_edge: 61160.33625
+  interaction_core_lower_edge: 61096.64375
+  interaction_core_mid_price: 61128.49
+  interaction_core_width: 63.6925
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61133.039464
+  interaction_density_lower_band: 61123.940536
+  interaction_density_weighted_center: 61127.419089
+  interaction_density_width: 9.098929
+  interaction_density_score: 114.110525
+  zone_penetration_depth: 7.9
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T11:26:51.943937+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: EXTREME
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: LOW
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 3
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 2
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 3 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61007.9
+  return_timestamp: 2026-06-10 11:26:52
+  return_row: 588
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+
+================================================================================
+EPISODE 44
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T12:00:11.611022+00:00
+  episode_end_timestamp_utc: 2026-06-10T12:00:13.219136+00:00
+  preparation_candidate: True
+  prep_family: EQUILIBRIUM_COMPRESSION
+  prep_family_confidence: 0.85
+  zone_type: EXHAUSTION
+  manipulation_risk_score: 0.24888889
+  preparation_low_price: 60973.06
+  preparation_high_price: 61104.63
+  preparation_mid_price: 61038.845
+  tight_formation_low_price: 61011.4
+  tight_formation_high_price: 61081.6335
+  zone_return_count: 9
+  zone_penetration_count: 26
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.74
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T12:00:23+00:00
+  peak_layer_count: 5
+  peak_max_severity: EXTREME
+  peak_primary_context: MULTI_ZSCORE_CONTEXT
+  return_to_preparation: True
+  return_price_x: 61005.25
+  return_price_y: 61005.25
+  return_timestamp: 2026-06-10 12:00:23
+  return_row: 794
+  failed_after_return: nan
+  real_zone_upper_edge: 61104.63
+  real_zone_lower_edge: 60973.06
+  real_zone_mid_price: 61038.845
+  real_zone_width: 131.57
+  interaction_core_upper_edge: 61030.85625
+  interaction_core_lower_edge: 60997.96375
+  interaction_core_mid_price: 61014.41
+  interaction_core_width: 32.8925
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61026.157321
+  interaction_density_lower_band: 61021.458393
+  interaction_density_weighted_center: 61018.159862
+  interaction_density_width: 4.698929
+  interaction_density_score: 109.119233
+  zone_penetration_depth: 32.19
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T12:00:23.079666+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+  failed_after_return: False
+  reversal_type: UNKNOWN_DIRECTION_REVERSAL
+  reversal_strength: EXTREME
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: NONE
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 3
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 2
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 3 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 5
+  peak_primary_context: MULTI_ZSCORE_CONTEXT
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61005.25
+  return_timestamp: 2026-06-10 12:00:23
+  return_row: 794
+  resolved_at_timestamp_utc: 2026-06-10T17:28:03.656452+00:00
+
+================================================================================
+EPISODE 69
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T17:28:45.898013+00:00
+  episode_end_timestamp_utc: 2026-06-10T17:29:02.001809+00:00
+  preparation_candidate: True
+  prep_family: EXTREME_COMPRESSION
+  prep_family_confidence: 0.83
+  zone_type: BATTLE
+  manipulation_risk_score: 0.07
+  preparation_low_price: 61586.42
+  preparation_high_price: 62037.08
+  preparation_mid_price: 61811.75
+  tight_formation_low_price: 61638.007
+  tight_formation_high_price: 61848.491
+  zone_return_count: 3
+  zone_penetration_count: 32
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.68
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T17:29:02+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 62004.0
+  return_price_y: 62004.0
+  return_timestamp: 2026-06-10 17:29:02
+  return_row: 1198
+  failed_after_return: nan
+  real_zone_upper_edge: 62037.08
+  real_zone_lower_edge: 61586.42
+  real_zone_mid_price: 61811.75
+  real_zone_width: 450.66
+  interaction_core_upper_edge: 61877.2525
+  interaction_core_lower_edge: 61764.5875
+  interaction_core_mid_price: 61820.92
+  interaction_core_width: 112.665
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61780.6825
+  interaction_density_lower_band: 61764.5875
+  interaction_density_weighted_center: 61810.004702
+  interaction_density_width: 16.095
+  interaction_density_score: 87.741475
+  zone_penetration_depth: 33.08
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T17:29:02.290441+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+  failed_after_return: False
+  reversal_type: NO_REVERSAL
+  reversal_strength: LOW
+  expansion_type: PURE_EXPANSION
+  expansion_strength: HIGH
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 62004.0
+  return_timestamp: 2026-06-10 17:29:02
+  return_row: 1198
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+
+================================================================================
+EPISODE 72
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T17:31:51.539364+00:00
+  episode_end_timestamp_utc: 2026-06-10T17:31:59.146126+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.45
+  zone_type: BATTLE
+  manipulation_risk_score: 0.0
+  preparation_low_price: 61586.42
+  preparation_high_price: 62037.08
+  preparation_mid_price: 61811.75
+  tight_formation_low_price: 61638.007
+  tight_formation_high_price: 61925.574
+  zone_return_count: 3
+  zone_penetration_count: 38
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.62
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T17:31:59+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61783.78
+  return_price_y: 61783.78
+  return_timestamp: 2026-06-10 17:31:59
+  return_row: 1240
+  failed_after_return: nan
+  real_zone_upper_edge: 62037.08
+  real_zone_lower_edge: 61586.42
+  real_zone_mid_price: 61811.75
+  real_zone_width: 450.66
+  interaction_core_upper_edge: 61758.053
+  interaction_core_lower_edge: 61586.42
+  interaction_core_mid_price: 61672.2365
+  interaction_core_width: 171.633
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61758.053
+  interaction_density_lower_band: 61659.977
+  interaction_density_weighted_center: 61682.881964
+  interaction_density_width: 98.076
+  interaction_density_score: 164.457797
+  zone_penetration_depth: 197.36
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T17:31:59.269980+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: MEDIUM
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: MEDIUM
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 6
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 5
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 6 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61783.78
+  return_timestamp: 2026-06-10 17:31:59
+  return_row: 1240
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+
+================================================================================
+EPISODE 78
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T17:40:49.494400+00:00
+  episode_end_timestamp_utc: 2026-06-10T17:40:50.376887+00:00
+  preparation_candidate: True
+  prep_family: EQUILIBRIUM_COMPRESSION
+  prep_family_confidence: 0.9
+  zone_type: BATTLE
+  manipulation_risk_score: 0.39
+  preparation_low_price: 61681.69
+  preparation_high_price: 61909.99
+  preparation_mid_price: 61795.84
+  tight_formation_low_price: 61743.646
+  tight_formation_high_price: 61858.5785
+  zone_return_count: 9
+  zone_penetration_count: 24
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.76
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T17:40:51+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61709.25
+  return_price_y: 61709.25
+  return_timestamp: 2026-06-10 17:40:51
+  return_row: 1321
+  failed_after_return: nan
+  real_zone_upper_edge: 61909.99
+  real_zone_lower_edge: 61681.69
+  real_zone_mid_price: 61795.84
+  real_zone_width: 228.3
+  interaction_core_upper_edge: 61881.5625
+  interaction_core_lower_edge: 61824.4875
+  interaction_core_mid_price: 61853.025
+  interaction_core_width: 57.075
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61857.101786
+  interaction_density_lower_band: 61848.948214
+  interaction_density_weighted_center: 61854.23186
+  interaction_density_width: 8.153571
+  interaction_density_score: 82.842762
+  zone_penetration_depth: 27.56
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T17:40:51.942504+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: HIGH
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: LOW
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 6
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 5
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 6 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61709.25
+  return_timestamp: 2026-06-10 17:40:51
+  return_row: 1321
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+
+================================================================================
+EPISODE 81
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T18:33:18.443941+00:00
+  episode_end_timestamp_utc: 2026-06-10T18:33:45.107182+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.45
+  zone_type: BATTLE
+  manipulation_risk_score: 0.2695
+  preparation_low_price: 61838.52
+  preparation_high_price: 62042.01
+  preparation_mid_price: 61940.265
+  tight_formation_low_price: 61888.939
+  tight_formation_high_price: 61994.897
+  zone_return_count: 10
+  zone_penetration_count: 23
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.77
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T18:33:59+00:00
+  peak_layer_count: 5
+  peak_max_severity: HIGH
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61936.0
+  return_price_y: 61936.0
+  return_timestamp: 2026-06-10 18:33:58
+  return_row: 1492
+  failed_after_return: nan
+  real_zone_upper_edge: 62042.01
+  real_zone_lower_edge: 61838.52
+  real_zone_mid_price: 61940.265
+  real_zone_width: 203.49
+  interaction_core_upper_edge: 62000.80625
+  interaction_core_lower_edge: 61949.93375
+  interaction_core_mid_price: 61975.37
+  interaction_core_width: 50.8725
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61993.53875
+  interaction_density_lower_band: 61971.73625
+  interaction_density_weighted_center: 61977.128707
+  interaction_density_width: 21.8025
+  interaction_density_score: 111.899191
+  zone_penetration_depth: 97.48
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T18:33:59.211251+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: HIGH
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: NONE
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 5
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61936.0
+  return_timestamp: 2026-06-10 18:33:58
+  return_row: 1492
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+
+================================================================================
+EPISODE 83
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-10T18:38:46.888857+00:00
+  episode_end_timestamp_utc: 2026-06-10T18:39:15.603621+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.45
+  zone_type: EXHAUSTION
+  manipulation_risk_score: 0.22083333
+  preparation_low_price: 61792.58
+  preparation_high_price: 62013.15
+  preparation_mid_price: 61902.865
+  tight_formation_low_price: 61846.527
+  tight_formation_high_price: 61974.3
+  zone_return_count: 3
+  zone_penetration_count: 30
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.7
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-10T18:39:22+00:00
+  peak_layer_count: 5
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61808.01
+  return_price_y: 61808.01
+  return_timestamp: 2026-06-10 18:39:22
+  return_row: 1531
+  failed_after_return: nan
+  real_zone_upper_edge: 62013.15
+  real_zone_lower_edge: 61792.58
+  real_zone_mid_price: 61902.865
+  real_zone_width: 220.57
+  interaction_core_upper_edge: 61950.61
+  interaction_core_lower_edge: 61847.41
+  interaction_core_mid_price: 61899.01
+  interaction_core_width: 103.2
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61921.124286
+  interaction_density_lower_band: 61862.152857
+  interaction_density_weighted_center: 61898.417317
+  interaction_density_width: 58.971429
+  interaction_density_score: 185.364001
+  zone_penetration_depth: 15.43
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-10T18:39:22.729865+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+  failed_after_return: True
+  reversal_type: FAILED_RETURN_REVERSAL
+  reversal_strength: MEDIUM
+  expansion_type: DIRECT_REVERSAL
+  expansion_strength: LOW
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 5
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61808.01
+  return_timestamp: 2026-06-10 18:39:22
+  return_row: 1531
+  resolved_at_timestamp_utc: 2026-06-10T22:58:57.687630+00:00
+
+================================================================================
+EPISODE 97
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-11T00:04:07.533757+00:00
+  episode_end_timestamp_utc: 2026-06-11T00:04:34.184630+00:00
+  preparation_candidate: True
+  prep_family: EXTREME_COMPRESSION
+  prep_family_confidence: 0.82
+  zone_type: BATTLE
+  manipulation_risk_score: 0.21
+  preparation_low_price: 61480.63
+  preparation_high_price: 61647.99
+  preparation_mid_price: 61564.31
+  tight_formation_low_price: 61508.103
+  tight_formation_high_price: 61605.2645
+  zone_return_count: 8
+  zone_penetration_count: 32
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.68
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-11T00:04:40+00:00
+  peak_layer_count: 6
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61594.0
+  return_price_y: 61594.0
+  return_timestamp: 2026-06-11 00:04:41
+  return_row: 1930
+  failed_after_return: nan
+  real_zone_upper_edge: 61647.99
+  real_zone_lower_edge: 61480.63
+  real_zone_mid_price: 61564.31
+  real_zone_width: 167.36
+  interaction_core_upper_edge: 61556.38
+  interaction_core_lower_edge: 61514.54
+  interaction_core_mid_price: 61535.46
+  interaction_core_width: 41.84
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61532.471429
+  interaction_density_lower_band: 61514.54
+  interaction_density_weighted_center: 61532.04618
+  interaction_density_width: 17.931429
+  interaction_density_score: 134.380267
+  zone_penetration_depth: 53.99
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-11T00:04:40.731163+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+  failed_after_return: False
+  reversal_type: REVERSAL_AFTER_PREPARATION_RETURN
+  reversal_strength: LOW
+  expansion_type: PURE_EXPANSION
+  expansion_strength: EXTREME
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 3
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 2
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 3 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 6
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61594.0
+  return_timestamp: 2026-06-11 00:04:41
+  return_row: 1930
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+
+================================================================================
+EPISODE 101
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-11T00:09:12.901883+00:00
+  episode_end_timestamp_utc: 2026-06-11T00:09:18.339753+00:00
+  preparation_candidate: True
+  prep_family: AMBIGUOUS
+  prep_family_confidence: 0.45
+  zone_type: BATTLE
+  manipulation_risk_score: 0.37833333
+  preparation_low_price: 61484.25
+  preparation_high_price: 61671.99
+  preparation_mid_price: 61578.12
+  tight_formation_low_price: 61516.825
+  tight_formation_high_price: 61628.29
+  zone_return_count: 10
+  zone_penetration_count: 30
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.7
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-11T00:09:35+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61578.01
+  return_price_y: 61578.01
+  return_timestamp: 2026-06-11 00:09:35
+  return_row: 1960
+  failed_after_return: nan
+  real_zone_upper_edge: 61671.99
+  real_zone_lower_edge: 61484.25
+  real_zone_mid_price: 61578.12
+  real_zone_width: 187.74
+  interaction_core_upper_edge: 61551.7675
+  interaction_core_lower_edge: 61504.8325
+  interaction_core_mid_price: 61528.3
+  interaction_core_width: 46.935
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61538.3575
+  interaction_density_lower_band: 61511.5375
+  interaction_density_weighted_center: 61526.640673
+  interaction_density_width: 26.82
+  interaction_density_score: 105.789915
+  zone_penetration_depth: 93.76
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-11T00:09:35.345684+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+  failed_after_return: False
+  reversal_type: NO_REVERSAL
+  reversal_strength: LOW
+  expansion_type: PURE_EXPANSION
+  expansion_strength: EXTREME
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 4
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 3
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 4 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61578.01
+  return_timestamp: 2026-06-11 00:09:35
+  return_row: 1960
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+
+================================================================================
+EPISODE 102
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-11T00:13:28.025399+00:00
+  episode_end_timestamp_utc: 2026-06-11T00:13:49.890471+00:00
+  preparation_candidate: True
+  prep_family: EXTREME_COMPRESSION
+  prep_family_confidence: 0.82
+  zone_type: BATTLE
+  manipulation_risk_score: 0.37833333
+  preparation_low_price: 61504.18
+  preparation_high_price: 61671.99
+  preparation_mid_price: 61588.085
+  tight_formation_low_price: 61545.1015
+  tight_formation_high_price: 61634.0945
+  zone_return_count: 8
+  zone_penetration_count: 27
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.73
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-11T00:14:06+00:00
+  peak_layer_count: 4
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61666.0
+  return_price_y: 61666.0
+  return_timestamp: 2026-06-11 00:14:06
+  return_row: 1980
+  failed_after_return: nan
+  real_zone_upper_edge: 61671.99
+  real_zone_lower_edge: 61504.18
+  real_zone_mid_price: 61588.085
+  real_zone_width: 167.81
+  interaction_core_upper_edge: 61563.98125
+  interaction_core_lower_edge: 61522.02875
+  interaction_core_mid_price: 61543.005
+  interaction_core_width: 41.9525
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61534.015179
+  interaction_density_lower_band: 61528.021964
+  interaction_density_weighted_center: 61540.140795
+  interaction_density_width: 5.993214
+  interaction_density_score: 45.215799
+  zone_penetration_depth: 5.99
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-11T00:14:06.287624+00:00
+--- STATE (FINALIZED) ---
+  emit_status: FINALIZED_OUTCOME
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+  failed_after_return: False
+  reversal_type: NO_REVERSAL
+  reversal_strength: LOW
+  expansion_type: PURE_EXPANSION
+  expansion_strength: EXTREME
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: EXTREME_LAYER_CONFLUENCE
+  peak_layer_count: 4
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: FINALIZED_OUTCOME
+  return_to_preparation: True
+  return_price: 61666.0
+  return_timestamp: 2026-06-11 00:14:06
+  return_row: 1980
+  resolved_at_timestamp_utc: 2026-06-11T04:16:06.627003+00:00
+
+================================================================================
+EPISODE 105
+================================================================================
+--- PREP ---
+  episode_start_timestamp_utc: 2026-06-11T00:18:54.856611+00:00
+  episode_end_timestamp_utc: 2026-06-11T00:22:12.825796+00:00
+  preparation_candidate: True
+  prep_family: EXTREME_COMPRESSION
+  prep_family_confidence: 0.82
+  zone_type: BATTLE
+  manipulation_risk_score: 0.0
+  preparation_low_price: 61571.5
+  preparation_high_price: 61970.77
+  preparation_mid_price: 61771.135
+  tight_formation_low_price: 61605.905
+  tight_formation_high_price: 61896.44
+  zone_return_count: 3
+  zone_penetration_count: 65
+  max_penetration_depth_ratio: 0.2
+  time_inside_zone_ratio: 0.35
+  preparation_duration_rows: 100
+--- RDM (case row) ---
+  analysis_run_utc: 2026-06-11T00:22:16+00:00
+  peak_layer_count: 6
+  peak_max_severity: EXTREME
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+  return_to_preparation: True
+  return_price_x: 61910.0
+  return_price_y: 61910.0
+  return_timestamp: 2026-06-11 00:22:16
+  return_row: 2054
+  failed_after_return: nan
+  real_zone_upper_edge: 61970.77
+  real_zone_lower_edge: 61571.5
+  real_zone_mid_price: 61771.135
+  real_zone_width: 399.27
+  interaction_core_upper_edge: 61682.039
+  interaction_core_lower_edge: 61571.5
+  interaction_core_mid_price: 61626.7695
+  interaction_core_width: 110.539
+  interaction_core_source: LIVE_INTERACTION_POINTS
+  interaction_core_valid_flag: True
+  interaction_density_upper_band: 61618.873857
+  interaction_density_lower_band: 61603.082571
+  interaction_density_weighted_center: 61623.998574
+  interaction_density_width: 15.791286
+  interaction_density_score: 159.093715
+  zone_penetration_depth: 60.77
+  zone_test_count: 0.0
+  zone_event_count: 1
+--- STATE (PENDING) ---
+  emit_status: PENDING_FINALIZATION
+  resolved_at_timestamp_utc: 2026-06-11T00:22:16.342287+00:00
+--- STATE (FINALIZED) ---
+  None
+--- B10 ---
+  emit_status: PENDING_FINALIZATION
+  visit_count: 5
+  growth_visit_count: 0
+  damage_visit_count: 0
+  breakdown_visit_count: 0
+  absorption_visit_count: 4
+  health_state: HEALTH_STABLE
+  health_total_change: 0.0
+  structural_trajectory: STABLE
+  trajectory_confidence: HIGH
+--- B11 ---
+  emit_status: PENDING_FINALIZATION
+  structural_prediction: HOLD
+  prediction_confidence: HIGH
+  prediction_reason: trajectory=STABLE; growth=0, damage=0, breakdown=0; health_state=HEALTH_STABLE
+--- SYNTH ---
+  emit_status: PENDING_FINALIZATION
+  coherence: STRONG
+  interpretation: STABLE zone after 5 visits — hold confirmed.
+--- DV2 ---
+  peak_state: UNSTABLE_STATISTICAL_CONTEXT
+  peak_layer_count: 6
+  peak_primary_context: DELTA_ZSCORE_EXTREME
+--- LRD ---
+  emit_status: PENDING_FINALIZATION
+  return_to_preparation: True
+  return_price: 61910.0
+  return_timestamp: 2026-06-11 00:22:16
+  return_row: 2054
+  resolved_at_timestamp_utc: 2026-06-11T00:22:16.342287+00:00
+

@@ -1,0 +1,29 @@
+{
+  "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\run_002",
+  "batch_window": {
+    "end": "2026-06-03 00:00:00",
+    "start": "2026-04-30 00:00:00"
+  },
+  "created_at": "2026-06-04 20:47:11",
+  "episode_counts": {
+    "historical_replay_dashboard_v2_episodes.csv": 87
+  },
+  "event_counts": {
+    "historical_replay_observation_v2_events.csv": 553
+  },
+  "file_sizes": {
+    "historical_market_rows.csv": 268109,
+    "historical_observation_rows.csv": 2026069,
+    "historical_replay_dashboard_v2_episodes.csv": 41559,
+    "historical_replay_observation_v2_events.csv": 241384
+  },
+  "market_date": "2026-05-01",
+  "row_counts": {
+    "historical_market_rows.csv": 1458,
+    "historical_observation_rows.csv": 1458,
+    "historical_replay_dashboard_v2_episodes.csv": 87,
+    "historical_replay_observation_v2_events.csv": 553
+  },
+  "source_command": "tools/generate_binance_historical_replay.py --start 2026-04-30 00:00:00 --end 2026-06-03 00:00:00 --symbol BTCUSDT --row-size 500 --overwrite",
+  "symbol": "BTCUSDT"
+}

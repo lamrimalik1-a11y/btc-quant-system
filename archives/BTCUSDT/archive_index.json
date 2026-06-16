@@ -1,0 +1,3174 @@
+{
+  "available_dates": [
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-01",
+      "batch_window": {
+        "end": "2026-02-06 00:00:00",
+        "start": "2026-02-01 00:00:00"
+      },
+      "created_at": "2026-06-06 23:37:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-01\\manifest.json",
+      "market_date": "2026-02-01",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-02",
+      "batch_window": {
+        "end": "2026-02-06 00:00:00",
+        "start": "2026-02-01 00:00:00"
+      },
+      "created_at": "2026-06-06 23:37:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-02\\manifest.json",
+      "market_date": "2026-02-02",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-03",
+      "batch_window": {
+        "end": "2026-02-06 00:00:00",
+        "start": "2026-02-01 00:00:00"
+      },
+      "created_at": "2026-06-06 23:37:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-03\\manifest.json",
+      "market_date": "2026-02-03",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-04",
+      "batch_window": {
+        "end": "2026-02-06 00:00:00",
+        "start": "2026-02-01 00:00:00"
+      },
+      "created_at": "2026-06-06 23:37:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-04\\manifest.json",
+      "market_date": "2026-02-04",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-05",
+      "batch_window": {
+        "end": "2026-02-06 00:00:00",
+        "start": "2026-02-01 00:00:00"
+      },
+      "created_at": "2026-06-06 23:37:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-05\\manifest.json",
+      "market_date": "2026-02-05",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-06",
+      "batch_window": {
+        "end": "2026-02-11 00:00:00",
+        "start": "2026-02-06 00:00:00"
+      },
+      "created_at": "2026-06-07 10:27:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-06\\manifest.json",
+      "market_date": "2026-02-06",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-07",
+      "batch_window": {
+        "end": "2026-02-11 00:00:00",
+        "start": "2026-02-06 00:00:00"
+      },
+      "created_at": "2026-06-07 10:27:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-07\\manifest.json",
+      "market_date": "2026-02-07",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-08",
+      "batch_window": {
+        "end": "2026-02-11 00:00:00",
+        "start": "2026-02-06 00:00:00"
+      },
+      "created_at": "2026-06-07 10:27:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-08\\manifest.json",
+      "market_date": "2026-02-08",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-09",
+      "batch_window": {
+        "end": "2026-02-11 00:00:00",
+        "start": "2026-02-06 00:00:00"
+      },
+      "created_at": "2026-06-07 10:27:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-01-31_to_2026-02-09\\2026-02-09\\manifest.json",
+      "market_date": "2026-02-09",
+      "parent_window": "2026-01-31_to_2026-02-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-10",
+      "batch_window": {
+        "end": "2026-02-11 00:00:00",
+        "start": "2026-02-06 00:00:00"
+      },
+      "created_at": "2026-06-07 10:27:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-10\\manifest.json",
+      "market_date": "2026-02-10",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-11",
+      "batch_window": {
+        "end": "2026-02-16 00:00:00",
+        "start": "2026-02-11 00:00:00"
+      },
+      "created_at": "2026-06-07 11:52:19",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-11\\manifest.json",
+      "market_date": "2026-02-11",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-12",
+      "batch_window": {
+        "end": "2026-02-16 00:00:00",
+        "start": "2026-02-11 00:00:00"
+      },
+      "created_at": "2026-06-07 11:52:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-12\\manifest.json",
+      "market_date": "2026-02-12",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-13",
+      "batch_window": {
+        "end": "2026-02-16 00:00:00",
+        "start": "2026-02-11 00:00:00"
+      },
+      "created_at": "2026-06-07 11:52:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-13\\manifest.json",
+      "market_date": "2026-02-13",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-14",
+      "batch_window": {
+        "end": "2026-02-16 00:00:00",
+        "start": "2026-02-11 00:00:00"
+      },
+      "created_at": "2026-06-07 11:52:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-14\\manifest.json",
+      "market_date": "2026-02-14",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-15",
+      "batch_window": {
+        "end": "2026-02-16 00:00:00",
+        "start": "2026-02-11 00:00:00"
+      },
+      "created_at": "2026-06-07 11:52:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-15\\manifest.json",
+      "market_date": "2026-02-15",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-16",
+      "batch_window": {
+        "end": "2026-02-21 00:00:00",
+        "start": "2026-02-16 00:00:00"
+      },
+      "created_at": "2026-06-07 12:42:44",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-16\\manifest.json",
+      "market_date": "2026-02-16",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-17",
+      "batch_window": {
+        "end": "2026-02-21 00:00:00",
+        "start": "2026-02-16 00:00:00"
+      },
+      "created_at": "2026-06-07 12:42:45",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-17\\manifest.json",
+      "market_date": "2026-02-17",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-18",
+      "batch_window": {
+        "end": "2026-02-21 00:00:00",
+        "start": "2026-02-16 00:00:00"
+      },
+      "created_at": "2026-06-07 12:42:46",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-18\\manifest.json",
+      "market_date": "2026-02-18",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-19",
+      "batch_window": {
+        "end": "2026-02-21 00:00:00",
+        "start": "2026-02-16 00:00:00"
+      },
+      "created_at": "2026-06-07 12:42:46",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-10_to_2026-02-19\\2026-02-19\\manifest.json",
+      "market_date": "2026-02-19",
+      "parent_window": "2026-02-10_to_2026-02-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-20",
+      "batch_window": {
+        "end": "2026-02-21 00:00:00",
+        "start": "2026-02-16 00:00:00"
+      },
+      "created_at": "2026-06-07 12:42:47",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-20\\manifest.json",
+      "market_date": "2026-02-20",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-21",
+      "batch_window": {
+        "end": "2026-02-26 00:00:00",
+        "start": "2026-02-21 00:00:00"
+      },
+      "created_at": "2026-06-07 13:13:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-21\\manifest.json",
+      "market_date": "2026-02-21",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-22",
+      "batch_window": {
+        "end": "2026-02-26 00:00:00",
+        "start": "2026-02-21 00:00:00"
+      },
+      "created_at": "2026-06-07 13:13:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-22\\manifest.json",
+      "market_date": "2026-02-22",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-23",
+      "batch_window": {
+        "end": "2026-02-26 00:00:00",
+        "start": "2026-02-21 00:00:00"
+      },
+      "created_at": "2026-06-07 13:13:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-23\\manifest.json",
+      "market_date": "2026-02-23",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-24",
+      "batch_window": {
+        "end": "2026-02-26 00:00:00",
+        "start": "2026-02-21 00:00:00"
+      },
+      "created_at": "2026-06-07 13:13:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-24\\manifest.json",
+      "market_date": "2026-02-24",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-25",
+      "batch_window": {
+        "end": "2026-02-26 00:00:00",
+        "start": "2026-02-21 00:00:00"
+      },
+      "created_at": "2026-06-07 13:13:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-25\\manifest.json",
+      "market_date": "2026-02-25",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-26",
+      "batch_window": {
+        "end": "2026-03-01 00:00:00",
+        "start": "2026-02-26 00:00:00"
+      },
+      "created_at": "2026-06-07 13:49:17",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-26\\manifest.json",
+      "market_date": "2026-02-26",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-27",
+      "batch_window": {
+        "end": "2026-03-01 00:00:00",
+        "start": "2026-02-26 00:00:00"
+      },
+      "created_at": "2026-06-07 13:49:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-27\\manifest.json",
+      "market_date": "2026-02-27",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-28",
+      "batch_window": {
+        "end": "2026-03-01 00:00:00",
+        "start": "2026-02-26 00:00:00"
+      },
+      "created_at": "2026-06-07 13:49:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-02-20_to_2026-03-01\\2026-02-28\\manifest.json",
+      "market_date": "2026-02-28",
+      "parent_window": "2026-02-20_to_2026-03-01"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-01",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:14:57",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-01\\manifest.json",
+      "market_date": "2026-03-01",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-02",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:14:58",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-02\\manifest.json",
+      "market_date": "2026-03-02",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-03",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:14:58",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-03\\manifest.json",
+      "market_date": "2026-03-03",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-04",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:14:59",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-04\\manifest.json",
+      "market_date": "2026-03-04",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-05",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-05\\manifest.json",
+      "market_date": "2026-03-05",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-06",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-06\\manifest.json",
+      "market_date": "2026-03-06",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-07",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-07\\manifest.json",
+      "market_date": "2026-03-07",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-08",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-08\\manifest.json",
+      "market_date": "2026-03-08",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-09",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-09\\manifest.json",
+      "market_date": "2026-03-09",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-10",
+      "batch_window": {
+        "end": "2026-03-11 00:00:00",
+        "start": "2026-03-01 00:00:00"
+      },
+      "created_at": "2026-06-05 15:15:02",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-01_to_2026-03-10\\2026-03-10\\manifest.json",
+      "market_date": "2026-03-10",
+      "parent_window": "2026-03-01_to_2026-03-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-11",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:31",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-11\\manifest.json",
+      "market_date": "2026-03-11",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-12",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-12\\manifest.json",
+      "market_date": "2026-03-12",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-13",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-13\\manifest.json",
+      "market_date": "2026-03-13",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-14",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-14\\manifest.json",
+      "market_date": "2026-03-14",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-15",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-15\\manifest.json",
+      "market_date": "2026-03-15",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-16",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-16\\manifest.json",
+      "market_date": "2026-03-16",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-17",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-17\\manifest.json",
+      "market_date": "2026-03-17",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-18",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-18\\manifest.json",
+      "market_date": "2026-03-18",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-19",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:34",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-19\\manifest.json",
+      "market_date": "2026-03-19",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-20",
+      "batch_window": {
+        "end": "2026-03-21 00:00:00",
+        "start": "2026-03-11 00:00:00"
+      },
+      "created_at": "2026-06-05 15:29:34",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-11_to_2026-03-20\\2026-03-20\\manifest.json",
+      "market_date": "2026-03-20",
+      "parent_window": "2026-03-11_to_2026-03-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-21",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:47:59",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-21\\manifest.json",
+      "market_date": "2026-03-21",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-22",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:47:59",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-22\\manifest.json",
+      "market_date": "2026-03-22",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-23",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:47:59",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-23\\manifest.json",
+      "market_date": "2026-03-23",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-24",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-24\\manifest.json",
+      "market_date": "2026-03-24",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-25",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-25\\manifest.json",
+      "market_date": "2026-03-25",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-26",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-26\\manifest.json",
+      "market_date": "2026-03-26",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-27",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-27\\manifest.json",
+      "market_date": "2026-03-27",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-28",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-28\\manifest.json",
+      "market_date": "2026-03-28",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-29",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-29\\manifest.json",
+      "market_date": "2026-03-29",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-30",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-21_to_2026-03-30\\2026-03-30\\manifest.json",
+      "market_date": "2026-03-30",
+      "parent_window": "2026-03-21_to_2026-03-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-03-31",
+      "batch_window": {
+        "end": "2026-04-01 00:00:00",
+        "start": "2026-03-21 00:00:00"
+      },
+      "created_at": "2026-06-05 15:48:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-03-31\\manifest.json",
+      "market_date": "2026-03-31",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01\\manifest.json",
+      "market_date": "2026-04-01",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01\\run_001\\manifest.json",
+      "market_date": "2026-04-01",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:05",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-01\\run_002\\manifest.json",
+      "market_date": "2026-04-01",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02\\manifest.json",
+      "market_date": "2026-04-02",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02\\run_001\\manifest.json",
+      "market_date": "2026-04-02",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:06",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-02\\run_002\\manifest.json",
+      "market_date": "2026-04-02",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03\\manifest.json",
+      "market_date": "2026-04-03",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03\\run_001\\manifest.json",
+      "market_date": "2026-04-03",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:06",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-03\\run_002\\manifest.json",
+      "market_date": "2026-04-03",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04\\manifest.json",
+      "market_date": "2026-04-04",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:21",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04\\run_001\\manifest.json",
+      "market_date": "2026-04-04",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:06",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-04\\run_002\\manifest.json",
+      "market_date": "2026-04-04",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05\\manifest.json",
+      "market_date": "2026-04-05",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05\\run_001\\manifest.json",
+      "market_date": "2026-04-05",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:06",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-05\\run_002\\manifest.json",
+      "market_date": "2026-04-05",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06\\manifest.json",
+      "market_date": "2026-04-06",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06\\run_001\\manifest.json",
+      "market_date": "2026-04-06",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:07",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-06\\run_002\\manifest.json",
+      "market_date": "2026-04-06",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07\\manifest.json",
+      "market_date": "2026-04-07",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07\\run_001\\manifest.json",
+      "market_date": "2026-04-07",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:07",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-07\\run_002\\manifest.json",
+      "market_date": "2026-04-07",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08\\manifest.json",
+      "market_date": "2026-04-08",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08\\run_001\\manifest.json",
+      "market_date": "2026-04-08",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:07",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-08\\run_002\\manifest.json",
+      "market_date": "2026-04-08",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09\\manifest.json",
+      "market_date": "2026-04-09",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09\\run_001\\manifest.json",
+      "market_date": "2026-04-09",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:08",
+      "manifest_path": "archives\\BTCUSDT\\2026-03-31_to_2026-04-09\\2026-04-09\\run_002\\manifest.json",
+      "market_date": "2026-04-09",
+      "parent_window": "2026-03-31_to_2026-04-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10\\manifest.json",
+      "market_date": "2026-04-10",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10\\run_001\\manifest.json",
+      "market_date": "2026-04-10",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:08",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-10\\run_002\\manifest.json",
+      "market_date": "2026-04-10",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11\\manifest.json",
+      "market_date": "2026-04-11",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11\\run_001\\manifest.json",
+      "market_date": "2026-04-11",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:08",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-11\\run_002\\manifest.json",
+      "market_date": "2026-04-11",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12\\manifest.json",
+      "market_date": "2026-04-12",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12\\run_001\\manifest.json",
+      "market_date": "2026-04-12",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:08",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-12\\run_002\\manifest.json",
+      "market_date": "2026-04-12",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13\\manifest.json",
+      "market_date": "2026-04-13",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13\\run_001\\manifest.json",
+      "market_date": "2026-04-13",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:09",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-13\\run_002\\manifest.json",
+      "market_date": "2026-04-13",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14\\manifest.json",
+      "market_date": "2026-04-14",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:24",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14\\run_001\\manifest.json",
+      "market_date": "2026-04-14",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:09",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-14\\run_002\\manifest.json",
+      "market_date": "2026-04-14",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15\\manifest.json",
+      "market_date": "2026-04-15",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15\\run_001\\manifest.json",
+      "market_date": "2026-04-15",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:09",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-15\\run_002\\manifest.json",
+      "market_date": "2026-04-15",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16\\manifest.json",
+      "market_date": "2026-04-16",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16\\run_001\\manifest.json",
+      "market_date": "2026-04-16",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:09",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-16\\run_002\\manifest.json",
+      "market_date": "2026-04-16",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17\\manifest.json",
+      "market_date": "2026-04-17",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17\\run_001\\manifest.json",
+      "market_date": "2026-04-17",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-17\\run_002\\manifest.json",
+      "market_date": "2026-04-17",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18\\manifest.json",
+      "market_date": "2026-04-18",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18\\run_001\\manifest.json",
+      "market_date": "2026-04-18",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-18\\run_002\\manifest.json",
+      "market_date": "2026-04-18",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19\\manifest.json",
+      "market_date": "2026-04-19",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19\\run_001\\manifest.json",
+      "market_date": "2026-04-19",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-10_to_2026-04-19\\2026-04-19\\run_002\\manifest.json",
+      "market_date": "2026-04-19",
+      "parent_window": "2026-04-10_to_2026-04-19"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20\\manifest.json",
+      "market_date": "2026-04-20",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20\\run_001\\manifest.json",
+      "market_date": "2026-04-20",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-20\\run_002\\manifest.json",
+      "market_date": "2026-04-20",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21\\manifest.json",
+      "market_date": "2026-04-21",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21\\run_001\\manifest.json",
+      "market_date": "2026-04-21",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-21\\run_002\\manifest.json",
+      "market_date": "2026-04-21",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22\\manifest.json",
+      "market_date": "2026-04-22",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22\\run_001\\manifest.json",
+      "market_date": "2026-04-22",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-22\\run_002\\manifest.json",
+      "market_date": "2026-04-22",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23\\manifest.json",
+      "market_date": "2026-04-23",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23\\run_001\\manifest.json",
+      "market_date": "2026-04-23",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-23\\run_002\\manifest.json",
+      "market_date": "2026-04-23",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24\\manifest.json",
+      "market_date": "2026-04-24",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24\\run_001\\manifest.json",
+      "market_date": "2026-04-24",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-24\\run_002\\manifest.json",
+      "market_date": "2026-04-24",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25\\manifest.json",
+      "market_date": "2026-04-25",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25\\run_001\\manifest.json",
+      "market_date": "2026-04-25",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-25\\run_002\\manifest.json",
+      "market_date": "2026-04-25",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26\\manifest.json",
+      "market_date": "2026-04-26",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26\\run_001\\manifest.json",
+      "market_date": "2026-04-26",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-26\\run_002\\manifest.json",
+      "market_date": "2026-04-26",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27\\manifest.json",
+      "market_date": "2026-04-27",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27\\run_001\\manifest.json",
+      "market_date": "2026-04-27",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-27\\run_002\\manifest.json",
+      "market_date": "2026-04-27",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28\\manifest.json",
+      "market_date": "2026-04-28",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28\\run_001\\manifest.json",
+      "market_date": "2026-04-28",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-28\\run_002\\manifest.json",
+      "market_date": "2026-04-28",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29\\manifest.json",
+      "market_date": "2026-04-29",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29\\run_001",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29\\run_001\\manifest.json",
+      "market_date": "2026-04-29",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-20_to_2026-04-29\\2026-04-29\\run_002\\manifest.json",
+      "market_date": "2026-04-29",
+      "parent_window": "2026-04-20_to_2026-04-29"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30",
+      "batch_window": {
+        "end": "2026-05-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 13:39:43",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\manifest.json",
+      "market_date": "2026-04-30",
+      "parent_window": "2026-04-30_to_2026-05-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_001",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_001\\manifest.json",
+      "market_date": "2026-04-30",
+      "parent_window": "2026-04-30_to_2026-05-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_002",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-05 12:20:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_002\\manifest.json",
+      "market_date": "2026-04-30",
+      "parent_window": "2026-04-30_to_2026-05-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_003",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-13 20:55:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_003\\manifest.json",
+      "market_date": "2026-04-30",
+      "parent_window": "2026-04-30_to_2026-05-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_004",
+      "batch_window": {
+        "end": "2026-05-01 00:00:00",
+        "start": "2026-04-01 00:00:00"
+      },
+      "created_at": "2026-06-14 12:31:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-04-30_to_2026-05-09\\2026-04-30\\run_004\\manifest.json",
+      "market_date": "2026-04-30",
+      "parent_window": "2026-04-30_to_2026-05-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\manifest.json",
+      "market_date": "2026-05-01",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\run_001",
+      "batch_window": {
+        "end": "2026-05-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 13:39:43",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\run_001\\manifest.json",
+      "market_date": "2026-05-01",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-01\\run_002\\manifest.json",
+      "market_date": "2026-05-01",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02\\manifest.json",
+      "market_date": "2026-05-02",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02\\run_001",
+      "batch_window": {
+        "end": "2026-05-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 13:39:43",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02\\run_001\\manifest.json",
+      "market_date": "2026-05-02",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-02\\run_002\\manifest.json",
+      "market_date": "2026-05-02",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03\\manifest.json",
+      "market_date": "2026-05-03",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03\\run_001",
+      "batch_window": {
+        "end": "2026-05-06 00:00:00",
+        "start": "2026-05-03 00:00:00"
+      },
+      "created_at": "2026-06-04 13:43:05",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03\\run_001\\manifest.json",
+      "market_date": "2026-05-03",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-03\\run_002\\manifest.json",
+      "market_date": "2026-05-03",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04\\manifest.json",
+      "market_date": "2026-05-04",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04\\run_001",
+      "batch_window": {
+        "end": "2026-05-06 00:00:00",
+        "start": "2026-05-03 00:00:00"
+      },
+      "created_at": "2026-06-04 13:43:05",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04\\run_001\\manifest.json",
+      "market_date": "2026-05-04",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:11",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-04\\run_002\\manifest.json",
+      "market_date": "2026-05-04",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05\\manifest.json",
+      "market_date": "2026-05-05",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05\\run_001",
+      "batch_window": {
+        "end": "2026-05-06 00:00:00",
+        "start": "2026-05-03 00:00:00"
+      },
+      "created_at": "2026-06-04 13:43:05",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05\\run_001\\manifest.json",
+      "market_date": "2026-05-05",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-05\\run_002\\manifest.json",
+      "market_date": "2026-05-05",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\manifest.json",
+      "market_date": "2026-05-06",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_001",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:46:45",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_001\\manifest.json",
+      "market_date": "2026-05-06",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_002",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:49:50",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_002\\manifest.json",
+      "market_date": "2026-05-06",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-06\\run_003\\manifest.json",
+      "market_date": "2026-05-06",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:31",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\manifest.json",
+      "market_date": "2026-05-07",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_001",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:46:46",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_001\\manifest.json",
+      "market_date": "2026-05-07",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_002",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:49:50",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_002\\manifest.json",
+      "market_date": "2026-05-07",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-07\\run_003\\manifest.json",
+      "market_date": "2026-05-07",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:31",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\manifest.json",
+      "market_date": "2026-05-08",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_001",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:46:46",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_001\\manifest.json",
+      "market_date": "2026-05-08",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_002",
+      "batch_window": {
+        "end": "2026-05-09 00:00:00",
+        "start": "2026-05-06 00:00:00"
+      },
+      "created_at": "2026-06-04 13:49:50",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_002\\manifest.json",
+      "market_date": "2026-05-08",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:12",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-08\\run_003\\manifest.json",
+      "market_date": "2026-05-08",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\manifest.json",
+      "market_date": "2026-05-09",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_001",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:51:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_001\\manifest.json",
+      "market_date": "2026-05-09",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_002",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:54:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_002\\manifest.json",
+      "market_date": "2026-05-09",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:13",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-09\\run_003\\manifest.json",
+      "market_date": "2026-05-09",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\manifest.json",
+      "market_date": "2026-05-10",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_001",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:51:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_001\\manifest.json",
+      "market_date": "2026-05-10",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_002",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:54:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_002\\manifest.json",
+      "market_date": "2026-05-10",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:13",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-01_to_2026-05-10\\2026-05-10\\run_003\\manifest.json",
+      "market_date": "2026-05-10",
+      "parent_window": "2026-05-01_to_2026-05-10"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\manifest.json",
+      "market_date": "2026-05-11",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_001",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:51:23",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_001\\manifest.json",
+      "market_date": "2026-05-11",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_002",
+      "batch_window": {
+        "end": "2026-05-12 00:00:00",
+        "start": "2026-05-09 00:00:00"
+      },
+      "created_at": "2026-06-04 13:54:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_002\\manifest.json",
+      "market_date": "2026-05-11",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:13",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-11\\run_003\\manifest.json",
+      "market_date": "2026-05-11",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\manifest.json",
+      "market_date": "2026-05-12",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_001",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:56:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_001\\manifest.json",
+      "market_date": "2026-05-12",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_002",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:59:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_002\\manifest.json",
+      "market_date": "2026-05-12",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:13",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-12\\run_003\\manifest.json",
+      "market_date": "2026-05-12",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\manifest.json",
+      "market_date": "2026-05-13",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_001",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:56:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_001\\manifest.json",
+      "market_date": "2026-05-13",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_002",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:59:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_002\\manifest.json",
+      "market_date": "2026-05-13",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-13\\run_003\\manifest.json",
+      "market_date": "2026-05-13",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\manifest.json",
+      "market_date": "2026-05-14",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_001",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:56:19",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_001\\manifest.json",
+      "market_date": "2026-05-14",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_002",
+      "batch_window": {
+        "end": "2026-05-15 00:00:00",
+        "start": "2026-05-12 00:00:00"
+      },
+      "created_at": "2026-06-04 13:59:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_002\\manifest.json",
+      "market_date": "2026-05-14",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_003",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-14\\run_003\\manifest.json",
+      "market_date": "2026-05-14",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\manifest.json",
+      "market_date": "2026-05-15",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_001",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:01:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_001\\manifest.json",
+      "market_date": "2026-05-15",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_002",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:05:39",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_002\\manifest.json",
+      "market_date": "2026-05-15",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_003",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:08:00",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_003\\manifest.json",
+      "market_date": "2026-05-15",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-15\\run_004\\manifest.json",
+      "market_date": "2026-05-15",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:33",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\manifest.json",
+      "market_date": "2026-05-16",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_001",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:01:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_001\\manifest.json",
+      "market_date": "2026-05-16",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_002",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:05:40",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_002\\manifest.json",
+      "market_date": "2026-05-16",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_003",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:08:01",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_003\\manifest.json",
+      "market_date": "2026-05-16",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-16\\run_004\\manifest.json",
+      "market_date": "2026-05-16",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:34",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\manifest.json",
+      "market_date": "2026-05-17",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_001",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:01:22",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_001\\manifest.json",
+      "market_date": "2026-05-17",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_002",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:05:40",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_002\\manifest.json",
+      "market_date": "2026-05-17",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_003",
+      "batch_window": {
+        "end": "2026-05-18 00:00:00",
+        "start": "2026-05-15 00:00:00"
+      },
+      "created_at": "2026-06-04 14:08:02",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_003\\manifest.json",
+      "market_date": "2026-05-17",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-17\\run_004\\manifest.json",
+      "market_date": "2026-05-17",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:34",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_001",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:09:41",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_001\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:15:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_002\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_003",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:17:35",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_003\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_004",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:19:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_004\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_005",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:38",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_005\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_006",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-18\\run_006\\manifest.json",
+      "market_date": "2026-05-18",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19",
+      "batch_window": {
+        "end": "2026-05-20 00:00:00",
+        "start": "2026-05-01 00:00:00"
+      },
+      "created_at": "2026-06-03 23:14:34",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_001",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:09:42",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_001\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:15:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_002\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_003",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:17:36",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_003\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_004",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:19:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_004\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_005",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:39",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_005\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_006",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-19\\run_006\\manifest.json",
+      "market_date": "2026-05-19",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:25",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_001\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:09:42",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_002\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_003",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:15:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_003\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_004",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:17:36",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_004\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_005",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:19:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_005\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_006",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:39",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_006\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_007",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-11_to_2026-05-20\\2026-05-20\\run_007\\manifest.json",
+      "market_date": "2026-05-20",
+      "parent_window": "2026-05-11_to_2026-05-20"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\manifest.json",
+      "market_date": "2026-05-21",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_001\\manifest.json",
+      "market_date": "2026-05-21",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_002\\manifest.json",
+      "market_date": "2026-05-21",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_003",
+      "batch_window": {
+        "end": "2026-05-24 00:00:00",
+        "start": "2026-05-21 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:42",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_003\\manifest.json",
+      "market_date": "2026-05-21",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-21\\run_004\\manifest.json",
+      "market_date": "2026-05-21",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\manifest.json",
+      "market_date": "2026-05-22",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:26",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_001\\manifest.json",
+      "market_date": "2026-05-22",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_002\\manifest.json",
+      "market_date": "2026-05-22",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_003",
+      "batch_window": {
+        "end": "2026-05-24 00:00:00",
+        "start": "2026-05-21 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:43",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_003\\manifest.json",
+      "market_date": "2026-05-22",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-22\\run_004\\manifest.json",
+      "market_date": "2026-05-22",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\manifest.json",
+      "market_date": "2026-05-23",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:27",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_001\\manifest.json",
+      "market_date": "2026-05-23",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_002",
+      "batch_window": {
+        "end": "2026-05-21 00:00:00",
+        "start": "2026-05-18 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_002\\manifest.json",
+      "market_date": "2026-05-23",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_003",
+      "batch_window": {
+        "end": "2026-05-24 00:00:00",
+        "start": "2026-05-21 00:00:00"
+      },
+      "created_at": "2026-06-04 14:22:44",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_003\\manifest.json",
+      "market_date": "2026-05-23",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_004",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-23\\run_004\\manifest.json",
+      "market_date": "2026-05-23",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24\\manifest.json",
+      "market_date": "2026-05-24",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24\\run_001\\manifest.json",
+      "market_date": "2026-05-24",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-24\\run_002\\manifest.json",
+      "market_date": "2026-05-24",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25\\manifest.json",
+      "market_date": "2026-05-25",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:28",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25\\run_001\\manifest.json",
+      "market_date": "2026-05-25",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-25\\run_002\\manifest.json",
+      "market_date": "2026-05-25",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26\\manifest.json",
+      "market_date": "2026-05-26",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26\\run_001\\manifest.json",
+      "market_date": "2026-05-26",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-26\\run_002\\manifest.json",
+      "market_date": "2026-05-26",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27\\manifest.json",
+      "market_date": "2026-05-27",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:29",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27\\run_001\\manifest.json",
+      "market_date": "2026-05-27",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:17",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-27\\run_002\\manifest.json",
+      "market_date": "2026-05-27",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:15",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28\\manifest.json",
+      "market_date": "2026-05-28",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28\\run_001\\manifest.json",
+      "market_date": "2026-05-28",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:17",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-28\\run_002\\manifest.json",
+      "market_date": "2026-05-28",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29\\manifest.json",
+      "market_date": "2026-05-29",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:31",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29\\run_001\\manifest.json",
+      "market_date": "2026-05-29",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:17",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-29\\run_002\\manifest.json",
+      "market_date": "2026-05-29",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30\\manifest.json",
+      "market_date": "2026-05-30",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30\\run_001\\manifest.json",
+      "market_date": "2026-05-30",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-21_to_2026-05-30\\2026-05-30\\run_002\\manifest.json",
+      "market_date": "2026-05-30",
+      "parent_window": "2026-05-21_to_2026-05-30"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31\\manifest.json",
+      "market_date": "2026-05-31",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31\\run_001\\manifest.json",
+      "market_date": "2026-05-31",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-05-31\\run_002\\manifest.json",
+      "market_date": "2026-05-31",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01",
+      "batch_window": {
+        "end": "2026-06-02 00:00:00",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 10:25:16",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01\\manifest.json",
+      "market_date": "2026-06-01",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01\\run_001",
+      "batch_window": {
+        "end": "2026-06-01 23:59:59",
+        "start": "2026-05-20 00:00:00"
+      },
+      "created_at": "2026-06-03 16:00:32",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01\\run_001\\manifest.json",
+      "market_date": "2026-06-01",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-01\\run_002\\manifest.json",
+      "market_date": "2026-06-01",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02",
+      "batch_window": {
+        "end": "2026-06-03",
+        "start": "2026-06-02"
+      },
+      "created_at": "2026-06-02 19:49:14",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02\\manifest.json",
+      "market_date": "2026-06-02",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02\\run_001",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-06-02 00:00:00"
+      },
+      "created_at": "2026-06-04 13:05:10",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02\\run_001\\manifest.json",
+      "market_date": "2026-06-02",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02\\run_002",
+      "batch_window": {
+        "end": "2026-06-03 00:00:00",
+        "start": "2026-04-30 00:00:00"
+      },
+      "created_at": "2026-06-04 20:47:18",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-02\\run_002\\manifest.json",
+      "market_date": "2026-06-02",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-03",
+      "batch_window": {
+        "end": "2026-06-05 00:00:00",
+        "start": "2026-06-03 00:00:00"
+      },
+      "created_at": "2026-06-05 17:32:58",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-03\\manifest.json",
+      "market_date": "2026-06-03",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-04",
+      "batch_window": {
+        "end": "2026-06-05 00:00:00",
+        "start": "2026-06-03 00:00:00"
+      },
+      "created_at": "2026-06-05 17:32:59",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-04\\manifest.json",
+      "market_date": "2026-06-04",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-05",
+      "batch_window": {
+        "end": "2026-06-06 00:00:00",
+        "start": "2026-06-05 00:00:00"
+      },
+      "created_at": "2026-06-05 18:38:30",
+      "manifest_path": "archives\\BTCUSDT\\2026-05-31_to_2026-06-09\\2026-06-05\\manifest.json",
+      "market_date": "2026-06-05",
+      "parent_window": "2026-05-31_to_2026-06-09"
+    },
+    {
+      "archive_path": "archives\\BTCUSDT\\2026-06-10_to_2026-06-19\\2026-06-11",
+      "batch_window": {
+        "end": "2026-06-12 00:00:00",
+        "start": "2026-06-11 00:00:00"
+      },
+      "created_at": "2026-06-11 23:10:03",
+      "manifest_path": "archives\\BTCUSDT\\2026-06-10_to_2026-06-19\\2026-06-11\\manifest.json",
+      "market_date": "2026-06-11",
+      "parent_window": "2026-06-10_to_2026-06-19"
+    }
+  ],
+  "symbol": "BTCUSDT",
+  "updated_at": "2026-06-14 12:31:41"
+}

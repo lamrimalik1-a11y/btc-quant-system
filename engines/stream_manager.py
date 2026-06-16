@@ -70,8 +70,13 @@ SYMBOL = get_config("SYMBOL")
 ROW_SIZE = get_config("ROW_SIZE")
 RECONNECT_DELAY = get_config("RECONNECT_DELAY")
 
+# Flip to False to revert to raw @trade stream (for debugging only).
+USE_AGG_TRADE = True
+
 TRADE_URL = (
-    f"wss://stream.binance.com:9443/ws/{SYMBOL}@trade"
+    f"wss://stream.binance.com:9443/ws/{SYMBOL}@aggTrade"
+    if USE_AGG_TRADE
+    else f"wss://stream.binance.com:9443/ws/{SYMBOL}@trade"
 )
 
 DEPTH_URL = (
@@ -160,7 +165,7 @@ async def process_trade_stream():
                 "q",
                 "m",
                 "T",
-                "t",
+                "a" if USE_AGG_TRADE else "t",
             ]
 
             if not all(
@@ -188,7 +193,7 @@ async def process_trade_stream():
             )
 
             trade = {
-                "trade_id": data["t"],
+                "trade_id": data["a"] if USE_AGG_TRADE else data["t"],
                 "price": price,
                 "quantity": quantity,
                 "timestamp": timestamp,

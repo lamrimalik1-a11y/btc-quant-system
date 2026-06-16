@@ -2,17 +2,22 @@
 
 ## Current Stable Status
 
-The project is at:
+Current checkpoint: PHASE1B_UNIFIED_ARCHIVE_STABLE
 
-PHASE1B_STREAMING_REPLAY_STABLE
+Archive: Feb 01 → Jun 05 2026, continuous (zero seams), 4,859 zones.
+B12v2: 98.8% accuracy, HOLD F1=0.989, FAIL F1=0.986, evaluable=2,441.
+Physics: r=0.9991 (sigma x penetration, n=2,977) — strongest yet.
+Streaming replay (--stream) required on this machine (24 GB RAM).
 
-This checkpoint adds an additive, opt-in `--stream` flag to
-`tools/generate_binance_historical_replay.py`: a bounded-memory
-rebuild path for long, continuous, multi-month windows. It does not
-change any RDM formula, scoring, lifecycle, or Synthesis logic.
+Weak point identified: STABLE trajectory (44.4% hold rate, all 10 false
+HOLDs). All other trajectories: STRENGTHENING/TERMINAL = 100% accuracy.
+
+Next: regime generalization (second independent period) + B12.5 + B13.
 
 Prior checkpoints (not all individually detailed here — see git log /
 CURRENT_CHECKPOINT.md "Prior Checkpoints"):
+- PHASE1B_STREAMING_REPLAY_STABLE
+- PHASE1B_B12_LIVE_VALIDATION
 - PHASE1B_LIVE_ZONE_ENGINE_STABLE
 - PHASE1B_RIGIDITY_FALLBACK_FIX_STABLE
 - PHASE1B March/April/May generalization + Formation Model + Active Core B12v2

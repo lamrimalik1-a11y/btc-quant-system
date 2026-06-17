@@ -2,6 +2,26 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_B125_DYNAMIC_TIMELINE_STABLE
+
+B12.5 complete (3 stages):
+  - 14,512 post-return visits, 2,980 zones
+  - SDR-led dynamic state: 86.6% accuracy
+  - STRONG_HOLD=100% HOLD, ATTACKER_DOMINANT=99.6% FAIL
+  - SDR >= 1 → 99.6% FAIL (near-deterministic)
+  - Mathematical layers: derivative + integral + SDR per visit
+  - Thresholds: percentile-calibrated from pre-return data
+
+Live stream: switched to @aggTrade (matches REPLAY unit).
+Archive: Feb-Jun 2026, 4,859 zones, B12v2 98.8% accuracy, r=0.9991.
+Streaming replay (--stream) required on this machine (24 GB RAM).
+
+Next: collect live data → validate dynamic_state → B13.
+
+---
+
+## Prior Stable Status (PHASE1B_UNIFIED_ARCHIVE_STABLE)
+
 Current checkpoint: PHASE1B_UNIFIED_ARCHIVE_STABLE
 
 Archive: Feb 01 → Jun 05 2026, continuous (zero seams), 4,859 zones.

@@ -2,6 +2,64 @@
 
 ## Active Checkpoint
 
+Checkpoint: PHASE1B_B125_DYNAMIC_TIMELINE_STABLE
+
+What this checkpoint adds:
+- B12.5 Full Post-Return Visit Timeline Engine (3 stages)
+- zone_visit_timeline_dynamic.csv: 14,512 rows, 2,980 returning zones
+- Dynamic state classification: SDR-led rules, 86.6% accuracy
+- Physics confirmed: SDR >= 1 → 99.6% FAIL (deterministic)
+- Gold tier: STRONG_HOLD → 100% HOLD (743 cases)
+- ATTACKER_DOMINANT → 99.6% FAIL (528 cases)
+
+B12.5 Three stages:
+  Stage 1: Extended live_row_window by 500 post-return rows (hard cap)
+           zone_live_rdm_evolution: 1.8M → 3.3M rows
+  Stage 2: Built zone_visit_timeline_dynamic.csv
+           14,512 post-return visits across 2,980 zones
+  Stage 3: Added derivative + integral + SDR + dynamic_state
+           Calibrated percentile-based thresholds from pre-return data
+
+Dynamic state accuracy (vs B12v2 outcomes, n=2,430):
+  STRONG_HOLD       → 100.0% HOLD  (n=743)
+  ATTACKER_DOMINANT → 99.6%  FAIL  (n=528)
+  STABLE            → 91.6%  HOLD  (n=383)
+  PEAK_WARNING      → 100.0% FAIL  (n=40)
+  RECOVERING        → 100.0% FAIL  (n=26)
+  CRITICAL          → 100.0% FAIL  (n=8)
+  DEGRADING         → 88.1%  FAIL  (n=42)
+  PROBABLE_HOLD     → 56.5%  FAIL  (n=657) ← needs refinement
+  Overall accuracy: 86.6% (was 74.4% before calibration)
+
+Mathematical layers per visit:
+  first_derivative  = health(k) - health(k-1)
+  second_derivative = first_derivative(k) - first_derivative(k-1)
+  slope_short       = regression slope over last 2 visits
+  slope_medium      = regression slope over last 3-5 visits
+  zone_integral     = I(k-1) * 0.98 + health(k)
+  attacker_integral = I(k-1) * 0.98 + attacker_force(k)
+  SDR               = attacker_integral / zone_integral
+
+Calibrated thresholds (percentile-based, from pre-return data):
+  slope_pos=3.894, slope_neg=-1.248,
+  integral_high=410.68, integral_low=76.85, sdr_high=1.079
+
+Next steps:
+  - Rename PROBABLE_HOLD to neutral label (needs more live data first)
+  - Collect live aggTrade data (stream switched to @aggTrade)
+  - Validate dynamic_state on live data vs replay
+  - Build B13 Dynamic State Engine (Markov-ready)
+
+Prior checkpoints (preserved):
+  - PHASE1B_UNIFIED_ARCHIVE_STABLE
+  - PHASE1B_STREAMING_REPLAY_STABLE
+  - PHASE1B_B12_LIVE_VALIDATION
+  - PHASE1B_SYNTHESIS_ENGINE_STABLE
+
+---
+
+## Previous Active Checkpoint
+
 Checkpoint:
 
 PHASE1B_UNIFIED_ARCHIVE_STABLE

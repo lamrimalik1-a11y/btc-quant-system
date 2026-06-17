@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+import numpy as np
 import pandas as pd
 
 
@@ -4094,6 +4095,259 @@ def run_zone_visit_timeline_dynamic() -> None:
         if not active.empty:
             print(f"Post-return visit rows: {len(active)}")
             print(f"visit_result distribution:\n{active['visit_result'].value_counts()}")
+
+
+# ==================================================
+# RDM V1.6-B12.5 (Stage 3) — Derivative + Integral + SDR + Dynamic State
+# ADDITIVE: adds computed columns to zone_visit_timeline_dynamic.csv only.
+# Thresholds are percentile-calibrated from pre-return data
+# (zone_visit_timeline.csv) — never hard-coded. Research only.
+# ==================================================
+
+DYNAMIC_DECAY: float = 0.98          # integral forgetting factor
+STABLE_SLOPE_EPS: float = 0.05       # |slope_medium| below this => STABLE (spec rule)
+SLOPE_MEDIUM_WINDOW: int = 5         # slope_medium uses the last up-to-5 visits
+SLOPE_MEDIUM_MIN: int = 3            # ... requiring at least 3 points
+
+DYNAMIC_LAYER_COLUMNS = [
+    "first_derivative",
+    "second_derivative",
+    "slope_short",
+    "slope_medium",
+    "zone_integral",
+    "attacker_integral",
+    "SDR",
+    "zone_integral_slope",
+    "attacker_integral_slope",
+]
+
+
+def _polyfit_slope(y: np.ndarray, x: np.ndarray) -> float:
+    """Least-squares slope of y over x. NaN if fewer than 2 finite points."""
+    mask = np.isfinite(y) & np.isfinite(x)
+    if int(mask.sum()) < 2:
+        return float("nan")
+    return float(np.polyfit(x[mask], y[mask], 1)[0])
+
+
+def _dynamic_layers_for_series(h: np.ndarray, a: np.ndarray, x: np.ndarray):
+    """Compute all per-visit dynamic layers for one zone's ordered visit series.
+
+    h = health_at_visit, a = attacker_force_at_visit, x = visit_index (sorted).
+    Returns aligned arrays:
+      first, second, slope_short, slope_medium,
+      zone_integral, attacker_integral, SDR,
+      zone_integral_slope, attacker_integral_slope
+    """
+    n = len(h)
+    first  = np.full(n, np.nan)
+    second = np.full(n, np.nan)
+    sshort = np.full(n, np.nan)
+    smed   = np.full(n, np.nan)
+    zint   = np.full(n, np.nan)
+    aint   = np.full(n, np.nan)
+    sdr    = np.full(n, np.nan)
+    zslope = np.full(n, np.nan)
+    aslope = np.full(n, np.nan)
+
+    # First derivative (velocity): h(k) - h(k-1); NaN for first visit.
+    for k in range(1, n):
+        if np.isfinite(h[k]) and np.isfinite(h[k - 1]):
+            first[k] = h[k] - h[k - 1]
+
+    # Second derivative (acceleration): v(k) - v(k-1); NaN for first two visits.
+    for k in range(2, n):
+        if np.isfinite(first[k]) and np.isfinite(first[k - 1]):
+            second[k] = first[k] - first[k - 1]
+
+    # Integrals with forgetting factor; seed = first visit value.
+    acc_z = 0.0
+    acc_a = 0.0
+    for k in range(n):
+        hv = h[k] if np.isfinite(h[k]) else 0.0
+        av = a[k] if np.isfinite(a[k]) else 0.0
+        acc_z = acc_z * DYNAMIC_DECAY + hv
+        acc_a = acc_a * DYNAMIC_DECAY + av
+        zint[k] = acc_z
+        aint[k] = acc_a
+        sdr[k] = (acc_a / acc_z) if acc_z != 0 else np.nan
+
+    # Slopes (linear regression over visit windows).
+    for k in range(n):
+        if k >= 1:
+            sshort[k] = _polyfit_slope(h[k - 1:k + 1], x[k - 1:k + 1])
+        lo = max(0, k - (SLOPE_MEDIUM_WINDOW - 1))
+        if (k - lo + 1) >= SLOPE_MEDIUM_MIN:
+            smed[k]   = _polyfit_slope(h[lo:k + 1], x[lo:k + 1])
+            zslope[k] = _polyfit_slope(zint[lo:k + 1], x[lo:k + 1])
+            aslope[k] = _polyfit_slope(aint[lo:k + 1], x[lo:k + 1])
+
+    return first, second, sshort, smed, zint, aint, sdr, zslope, aslope
+
+
+def _compute_dynamic_layers(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the nine dynamic-layer columns to a visit timeline, per zone.
+
+    Groups by case_id, orders by visit_index, computes the layers, and aligns
+    the results back to the original index. Rows with non-finite health are
+    carried through (their layer values follow from the recurrence/derivative
+    definitions). Does not classify state — that is a separate step.
+    """
+    out = df.copy()
+    for col in DYNAMIC_LAYER_COLUMNS:
+        out[col] = np.nan
+    if out.empty or "case_id" not in out.columns or "visit_index" not in out.columns:
+        return out
+
+    for _, grp in out.groupby("case_id"):
+        g = grp.sort_values("visit_index")
+        idx = g.index.to_numpy()
+        h = pd.to_numeric(g.get("health_at_visit"), errors="coerce").to_numpy(dtype=float)
+        a = pd.to_numeric(g.get("attacker_force_at_visit"), errors="coerce").to_numpy(dtype=float)
+        x = pd.to_numeric(g.get("visit_index"), errors="coerce").to_numpy(dtype=float)
+        layers = _dynamic_layers_for_series(h, a, x)
+        for col, values in zip(DYNAMIC_LAYER_COLUMNS, layers):
+            out.loc[idx, col] = values
+
+    return out
+
+
+def _calibrate_dynamic_thresholds(pre_df: pd.DataFrame) -> dict:
+    """Percentile thresholds from PRE-return data (zone_visit_timeline.csv).
+
+    All thresholds are data-derived percentiles — never hard-coded scales.
+        slope_pos            = P75 of positive slope_medium
+        slope_neg            = P25 of negative slope_medium
+        integral_high        = P75 of zone_integral
+        integral_low         = P25 of zone_integral
+        sdr_high             = P75 of SDR
+        zint_slope_p25       = P25 of zone_integral_slope   (EXHAUSTED_ATTACKER)
+        aint_slope_p25       = P25 of attacker_integral_slope (EXHAUSTED_ATTACKER)
+    """
+    calib = _compute_dynamic_layers(pre_df)
+
+    smed = pd.to_numeric(calib["slope_medium"], errors="coerce").dropna()
+    pos = smed[smed > 0]
+    neg = smed[smed < 0]
+    zint = pd.to_numeric(calib["zone_integral"], errors="coerce").dropna()
+    sdr = (
+        pd.to_numeric(calib["SDR"], errors="coerce")
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+    )
+    zslope = pd.to_numeric(calib["zone_integral_slope"], errors="coerce").dropna()
+    aslope = pd.to_numeric(calib["attacker_integral_slope"], errors="coerce").dropna()
+
+    return {
+        "slope_pos":      float(pos.quantile(0.75)) if not pos.empty else 0.0,
+        "slope_neg":      float(neg.quantile(0.25)) if not neg.empty else 0.0,
+        "integral_high":  float(zint.quantile(0.75)) if not zint.empty else 0.0,
+        "integral_low":   float(zint.quantile(0.25)) if not zint.empty else 0.0,
+        "sdr_high":       float(sdr.quantile(0.75)) if not sdr.empty else 0.0,
+        "zint_slope_p25": float(zslope.quantile(0.25)) if not zslope.empty else 0.0,
+        "aint_slope_p25": float(aslope.quantile(0.25)) if not aslope.empty else 0.0,
+    }
+
+
+def _classify_dynamic_state(row: pd.Series, t: dict) -> str:
+    """Single dynamic state per post-return visit, applying rules in order."""
+    fd   = to_float(row.get("first_derivative"))
+    sd   = to_float(row.get("second_derivative"))
+    smed = to_float(row.get("slope_medium"))
+    zint = to_float(row.get("zone_integral"))
+    zsl  = to_float(row.get("zone_integral_slope"))
+    asl  = to_float(row.get("attacker_integral_slope"))
+
+    # 1. EXHAUSTED_ATTACKER: attacker pressure collapsing while zone holds.
+    if (
+        asl is not None and zsl is not None
+        and asl < t["aint_slope_p25"]
+        and zsl > t["zint_slope_p25"]
+    ):
+        return "EXHAUSTED_ATTACKER"
+    # 2. STRENGTHENING: high accumulated strength + positive medium slope.
+    if zint is not None and smed is not None and zint > t["integral_high"] and smed > t["slope_pos"]:
+        return "STRENGTHENING"
+    # 3. CRITICAL: low accumulated strength + steep negative slope.
+    if zint is not None and smed is not None and zint < t["integral_low"] and smed < t["slope_neg"]:
+        return "CRITICAL"
+    # 4. RECOVERING: trough — falling but decelerating.
+    if sd is not None and fd is not None and sd > 0 and fd < 0:
+        return "RECOVERING"
+    # 5. PEAK_WARNING: peak approaching — rising but momentum collapsing.
+    if sd is not None and fd is not None and sd < 0 and fd > 0:
+        return "PEAK_WARNING"
+    # 6. STABLE: near-flat medium slope.
+    if smed is not None and abs(smed) < STABLE_SLOPE_EPS:
+        return "STABLE"
+    # 7. DEGRADING: medium slope steeper than the negative threshold.
+    if smed is not None and smed < t["slope_neg"]:
+        return "DEGRADING"
+    # 8. STRENGTHENING: medium slope above the positive threshold.
+    if smed is not None and smed > t["slope_pos"]:
+        return "STRENGTHENING"
+    # 9. fallback.
+    return "UNCERTAIN"
+
+
+def add_dynamic_layers_to_timeline() -> None:
+    """Standalone Stage-3 builder.
+
+    Reads zone_visit_timeline_dynamic.csv (Stage 2) and zone_visit_timeline.csv
+    (pre-return, for percentile calibration), computes the derivative / integral
+    / SDR layers and the dynamic_state per post-return visit, then OVERWRITES
+    zone_visit_timeline_dynamic.csv with the new columns added. No other file is
+    written.
+
+    Null rows (post_return_visit_count == 0) get NaN layers and
+    dynamic_state = "NO_DATA".
+
+    Run with:
+        python -c "from research.zone_mechanics_calculator import add_dynamic_layers_to_timeline as r; r()"
+    """
+    df = read_csv(ZONE_VISIT_TIMELINE_DYNAMIC_FILE)
+    pre_df = read_csv(ZONE_VISIT_TIMELINE_FILE)
+
+    thresholds = _calibrate_dynamic_thresholds(pre_df)
+
+    print("Calibrated thresholds (from pre-return zone_visit_timeline.csv):")
+    for key, val in thresholds.items():
+        print(f"  {key:16s} = {val:.6f}")
+
+    if "post_return_visit_count" in df.columns:
+        active_mask = pd.to_numeric(
+            df["post_return_visit_count"], errors="coerce"
+        ).fillna(0) > 0
+    else:
+        active_mask = pd.Series(True, index=df.index)
+
+    active = df[active_mask].copy()
+    null_rows = df[~active_mask].copy()
+
+    if not active.empty:
+        active = _compute_dynamic_layers(active)
+        active["dynamic_state"] = active.apply(
+            lambda r: _classify_dynamic_state(r, thresholds), axis=1
+        )
+
+    if not null_rows.empty:
+        for col in DYNAMIC_LAYER_COLUMNS:
+            null_rows[col] = np.nan
+        null_rows["dynamic_state"] = "NO_DATA"
+
+    combined = pd.concat([active, null_rows]) if not null_rows.empty else active
+    combined = combined.sort_index()
+
+    tmp_path = ZONE_VISIT_TIMELINE_DYNAMIC_FILE.with_suffix(".tmp.csv")
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    combined.to_csv(tmp_path, index=False)
+    tmp_path.replace(ZONE_VISIT_TIMELINE_DYNAMIC_FILE)
+
+    print(f"\nUpdated: {relative_path(ZONE_VISIT_TIMELINE_DYNAMIC_FILE)}")
+    print(f"Total rows: {len(combined)}")
+    if "dynamic_state" in combined.columns:
+        print("dynamic_state distribution:")
+        print(combined["dynamic_state"].value_counts(dropna=False))
 
 
 # ==================================================

@@ -4250,42 +4250,46 @@ def _calibrate_dynamic_thresholds(pre_df: pd.DataFrame) -> dict:
 
 
 def _classify_dynamic_state(row: pd.Series, t: dict) -> str:
-    """Single dynamic state per post-return visit, applying rules in order."""
+    """Single dynamic state per post-return visit, applying rules in order.
+
+    SDR-led rule set (B12.5 validation, 2026-06-17). Reordered to lead with the
+    Structural Dominance Ratio — the strongest single predictor in the joined
+    B12v2 analysis (SDR>=1 -> 99.6% FAIL; SDR<1 -> ~73% HOLD). EXHAUSTED_ATTACKER
+    (redundant with SDR<1) and the never-firing dual-P75 STRENGTHENING rule were
+    removed. Research only — no scores, signals, entries, or execution.
+    """
     fd   = to_float(row.get("first_derivative"))
     sd   = to_float(row.get("second_derivative"))
     smed = to_float(row.get("slope_medium"))
     zint = to_float(row.get("zone_integral"))
-    zsl  = to_float(row.get("zone_integral_slope"))
-    asl  = to_float(row.get("attacker_integral_slope"))
+    sdr  = to_float(row.get("SDR"))
 
-    # 1. EXHAUSTED_ATTACKER: attacker pressure collapsing while zone holds.
-    if (
-        asl is not None and zsl is not None
-        and asl < t["aint_slope_p25"]
-        and zsl > t["zint_slope_p25"]
-    ):
-        return "EXHAUSTED_ATTACKER"
-    # 2. STRENGTHENING: high accumulated strength + positive medium slope.
-    if zint is not None and smed is not None and zint > t["integral_high"] and smed > t["slope_pos"]:
-        return "STRENGTHENING"
-    # 3. CRITICAL: low accumulated strength + steep negative slope.
-    if zint is not None and smed is not None and zint < t["integral_low"] and smed < t["slope_neg"]:
-        return "CRITICAL"
-    # 4. RECOVERING: trough — falling but decelerating.
-    if sd is not None and fd is not None and sd > 0 and fd < 0:
-        return "RECOVERING"
-    # 5. PEAK_WARNING: peak approaching — rising but momentum collapsing.
+    # 1. ATTACKER_DOMINANT: attacker controls the zone (highest priority). FAIL.
+    if sdr is not None and sdr >= t["sdr_high"]:
+        return "ATTACKER_DOMINANT"
+    # 2. STRONG_HOLD (gold tier): structurally strong AND dominating. HOLD.
+    if zint is not None and sdr is not None and zint >= t["integral_high"] and sdr < 1.0:
+        return "STRONG_HOLD"
+    # 3. PEAK_WARNING: still rising but decelerating — FAIL incoming.
     if sd is not None and fd is not None and sd < 0 and fd > 0:
         return "PEAK_WARNING"
-    # 6. STABLE: near-flat medium slope.
-    if smed is not None and abs(smed) < STABLE_SLOPE_EPS:
-        return "STABLE"
-    # 7. DEGRADING: medium slope steeper than the negative threshold.
+    # 4. CRITICAL: zone weak and deteriorating. FAIL.
+    if zint is not None and smed is not None and zint < t["integral_low"] and smed < t["slope_neg"]:
+        return "CRITICAL"
+    # 5. RECOVERING: trough — still falling but decelerating. Watch for reversal.
+    if sd is not None and fd is not None and sd > 0 and fd < 0:
+        return "RECOVERING"
+    # 6. DEGRADING: medium-term deterioration. FAIL.
     if smed is not None and smed < t["slope_neg"]:
         return "DEGRADING"
-    # 8. STRENGTHENING: medium slope above the positive threshold.
-    if smed is not None and smed > t["slope_pos"]:
-        return "STRENGTHENING"
+    # 7. STABLE: near-flat medium slope (equilibrium).
+    if smed is not None and abs(smed) < STABLE_SLOPE_EPS:
+        return "STABLE"
+    # 8. SDR tiebreaker for remaining cases.
+    if sdr is not None and sdr < 1.0:
+        return "PROBABLE_HOLD"
+    if sdr is not None and sdr >= 1.0:
+        return "ATTACKER_DOMINANT"
     # 9. fallback.
     return "UNCERTAIN"
 
@@ -4348,6 +4352,45 @@ def add_dynamic_layers_to_timeline() -> None:
     if "dynamic_state" in combined.columns:
         print("dynamic_state distribution:")
         print(combined["dynamic_state"].value_counts(dropna=False))
+
+    # Accuracy table vs B12v2 outcomes (READ-ONLY join; prints only — no write).
+    b12_path = RESEARCH_DIR / "b12v2_case_results.csv"
+    if (
+        b12_path.exists()
+        and "dynamic_state" in combined.columns
+        and "case_id" in combined.columns
+        and "visit_index" in combined.columns
+    ):
+        b12 = pd.read_csv(b12_path)
+        if {"case_id", "b12v2_outcome"}.issubset(b12.columns):
+            final_state = (
+                combined.sort_values("visit_index")
+                .groupby("case_id")
+                .tail(1)[["case_id", "dynamic_state"]]
+            )
+            joined = final_state.merge(
+                b12[["case_id", "b12v2_outcome"]], on="case_id", how="inner"
+            )
+            joined = joined[joined["b12v2_outcome"].isin(["HOLD", "FAIL"])]
+            if not joined.empty:
+                hold_base = 100.0 * (joined["b12v2_outcome"] == "HOLD").mean()
+                print(
+                    f"\nAccuracy vs B12v2 (final dynamic_state per case, "
+                    f"n={len(joined)}, HOLD baseline={hold_base:.1f}%):"
+                )
+                acc_rows = []
+                for state, grp in joined.groupby("dynamic_state"):
+                    n = len(grp)
+                    hp = 100.0 * (grp["b12v2_outcome"] == "HOLD").mean()
+                    acc_rows.append({
+                        "dynamic_state": state,
+                        "n": n,
+                        "HOLD%": round(hp, 1),
+                        "FAIL%": round(100.0 - hp, 1),
+                        "dominant": "HOLD" if hp > 50 else "FAIL",
+                    })
+                acc_tab = pd.DataFrame(acc_rows).sort_values("n", ascending=False)
+                print(acc_tab.to_string(index=False))
 
 
 # ==================================================

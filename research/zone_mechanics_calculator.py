@@ -101,6 +101,7 @@ ZONE_REINFORCEMENT_FILE    = RESEARCH_DIR / "zone_reinforcement_profile.csv"
 ATTACKER_CONVERSION_FILE   = RESEARCH_DIR / "attacker_conversion_profile.csv"
 FORCE_ALLOCATION_FILE      = RESEARCH_DIR / "force_allocation_profile.csv"
 ZONE_VISIT_TIMELINE_FILE      = RESEARCH_DIR / "zone_visit_timeline.csv"
+ZONE_VISIT_TIMELINE_DYNAMIC_FILE = RESEARCH_DIR / "zone_visit_timeline_dynamic.csv"
 ZONE_HEALTH_EVOLUTION_FILE       = RESEARCH_DIR / "zone_health_evolution.csv"
 ZONE_STRUCTURAL_TRAJECTORY_FILE   = RESEARCH_DIR / "zone_structural_trajectory.csv"
 ZONE_STRUCTURAL_PREDICTION_FILE   = RESEARCH_DIR / "zone_structural_prediction.csv"
@@ -3794,6 +3795,305 @@ def build_zone_visit_timeline(
             prev_hlt = hlt_v
 
     return pd.DataFrame(rows)
+
+
+# ==================================================
+# RDM V1.6-B12.5 (Stage 2) — Post-Return Zone Visit Timeline (DYNAMIC)
+# ADDITIVE companion to build_zone_visit_timeline. Writes a NEW file
+# (zone_visit_timeline_dynamic.csv). Does NOT modify build_zone_visit_timeline
+# or zone_visit_timeline.csv. Research only — no scores, signals, lifecycle.
+# ==================================================
+
+def build_zone_visit_timeline_dynamic(
+    results_df: pd.DataFrame,
+    evolution_df: pd.DataFrame,
+    pre_return_timeline_df: pd.DataFrame,
+    run_utc: str,
+) -> pd.DataFrame:
+    """
+    RDM V1.6-B12.5 — Post-return zone visit timeline.
+
+    Segments ONLY the post-return window — rows AFTER the return_to_zone_flag
+    event, made available by the Stage-1 bounded window extension
+    (return_row + 500, hard-capped) — into per-visit structural records.
+
+    Reuses the EXACT pre-return aggregation/classification logic:
+      - _compute_touch_spans  for visit segmentation (touch/inside/non-dormant
+        activity with the B3.5-B 3-row lull gap)
+      - last-row structural metrics + span peaks (penetration = fleche_live *
+        real_zone_width, omega = sigma_peak * max_penetration, attacker_force =
+        peak load_live)
+      - _classify_visit        for BREAKDOWN/GROWTH/DAMAGE/RECLAIM/REFLECTION/
+        ABSORPTION
+
+    Differences vs build_zone_visit_timeline (all additive, no formula change):
+      - Operates on the post-return slice only (row_index > return event row).
+      - visit_index continues monotonically from the last pre-return visit_index
+        for the case (N+1, N+2, ...), read from pre_return_timeline_df.
+      - *_change_from_previous for the FIRST post-return visit is seeded from
+        the last pre-return visit state (continuity across the return boundary);
+        falls back to birth state when no pre-return visit exists.
+      - post_return_flag is always True.
+      - Returning zones whose attacker never re-engages (no post-return span)
+        get ONE row with post_return_visit_count=0 and null metrics, so the
+        zone is present in the file, not absent.
+
+    Only returning zones (those with a return_to_zone_flag=True row in the
+    evolution data) appear in this file; non-returning zones have no
+    post-return window and are intentionally excluded.
+
+    Research only. No scores, signals, entries, exits, or lifecycle changes.
+    """
+    if results_df.empty or evolution_df.empty:
+        return pd.DataFrame()
+    if "case_id" not in evolution_df.columns or "row_index" not in evolution_df.columns:
+        return pd.DataFrame()
+
+    # ── Index evolution rows per case ─────────────────────────────────────────
+    evo_by_case: dict = {}
+    for case_id, grp in evolution_df.groupby("case_id"):
+        evo_by_case[case_id] = grp.sort_values("row_index").reset_index(drop=True)
+
+    res_idx = results_df.set_index("case_id").to_dict("index") if (
+        "case_id" in results_df.columns
+    ) else {}
+
+    # ── Last pre-return visit per case (visit_index continuity + derivative seed)
+    last_visit_state: dict = {}
+    if (
+        pre_return_timeline_df is not None
+        and not pre_return_timeline_df.empty
+        and "case_id" in pre_return_timeline_df.columns
+        and "visit_index" in pre_return_timeline_df.columns
+    ):
+        pre = pre_return_timeline_df.copy()
+        pre["visit_index"] = pd.to_numeric(pre["visit_index"], errors="coerce")
+        pre = pre.dropna(subset=["visit_index"])
+        if not pre.empty:
+            idx_max = pre.groupby("case_id")["visit_index"].idxmax()
+            for cid, ix in idx_max.items():
+                prow = pre.loc[ix]
+                last_visit_state[cid] = {
+                    "visit_index": int(prow.get("visit_index") or 0),
+                    "rigidity":    to_float(prow.get("rigidity_at_visit")),
+                    "capacity":    to_float(prow.get("capacity_at_visit")),
+                    "fatigue":     to_float(prow.get("fatigue_at_visit")),
+                    "health":      to_float(prow.get("health_at_visit")),
+                }
+
+    rows: list = []
+
+    for case_id, r in res_idx.items():
+        evo_case = evo_by_case.get(case_id)
+        if evo_case is None or evo_case.empty:
+            continue
+        if "return_to_zone_flag" not in evo_case.columns:
+            continue
+
+        # Locate the return event row; only returning zones have a post-return
+        # window. Use the earliest flagged row as the return boundary.
+        return_mask = (
+            pd.to_numeric(evo_case["return_to_zone_flag"], errors="coerce")
+            .fillna(0).astype(bool)
+        )
+        if not bool(return_mask.any()):
+            continue
+        return_row_index = int(
+            evo_case.loc[return_mask, "row_index"].astype(float).min()
+        )
+
+        post_rows = evo_case[
+            pd.to_numeric(evo_case["row_index"], errors="coerce") > return_row_index
+        ]
+
+        # Birth state (same source/order as build_zone_visit_timeline)
+        rig_birth = to_float(r.get("rigidity_birth")) or 35.0
+        cap_birth = to_float(r.get("capacity_birth")) or 30.0
+        fat_birth = to_float(r.get("fatigue_birth"))  or 0.0
+        rec_birth = to_float(r.get("recovery_birth")) or 0.0
+        hlt_birth = to_float(r.get("health_birth"))   or 70.0
+        sig_birth = to_float(r.get("sigma_birth"))    or 0.0
+
+        # visit_index continuation + previous-visit seed (continuity across return)
+        seed = last_visit_state.get(case_id, {})
+        base_visit_index = int(seed.get("visit_index") or 0)
+        prev_rig = seed.get("rigidity") if seed.get("rigidity") is not None else rig_birth
+        prev_cap = seed.get("capacity") if seed.get("capacity") is not None else cap_birth
+        prev_fat = seed.get("fatigue")  if seed.get("fatigue")  is not None else fat_birth
+        prev_hlt = seed.get("health")   if seed.get("health")   is not None else hlt_birth
+
+        spans = _compute_touch_spans(post_rows) if not post_rows.empty else []
+
+        identity = {
+            "analysis_run_utc":      run_utc,
+            "case_id":               case_id,
+            "episode_id":            r.get("episode_id"),
+            "zone_id":               r.get("zone_id"),
+            "zone_mechanical_state": r.get("zone_mechanical_state"),
+        }
+
+        # Returning zone with no post-return activity: emit ONE null row so the
+        # zone is present (attacker ran out of force / never re-engaged).
+        if not spans:
+            rows.append({
+                **identity,
+                "visit_index":               base_visit_index + 1,
+                "post_return_flag":          True,
+                "post_return_visit_count":   0,
+                "visit_start_row":           pd.NA,
+                "visit_end_row":             pd.NA,
+                "visit_duration_rows":       pd.NA,
+                "timestamp_start":           pd.NA,
+                "timestamp_end":             pd.NA,
+                "visit_result":              "NO_POST_RETURN_ACTIVITY",
+                "rigidity_at_visit":         pd.NA,
+                "fatigue_at_visit":          pd.NA,
+                "recovery_at_visit":         pd.NA,
+                "capacity_at_visit":         pd.NA,
+                "attacker_force_at_visit":   pd.NA,
+                "omega_at_visit":            pd.NA,
+                "penetration_at_visit":      pd.NA,
+                "max_penetration_at_visit":  pd.NA,
+                "health_at_visit":           pd.NA,
+                "sigma_at_visit":            pd.NA,
+                "health_change_from_previous":    pd.NA,
+                "rigidity_change_from_previous":  pd.NA,
+                "capacity_change_from_previous":  pd.NA,
+                "fatigue_change_from_previous":   pd.NA,
+                "evolution_state_at_visit":  "NO_DATA",
+                "span_source":               "post_return_touch_derived",
+                "research_only":             True,
+            })
+            continue
+
+        post_return_visit_count = len(spans)
+
+        for k, (span_start, span_end) in enumerate(spans, start=1):
+            visit_rows = post_rows[
+                (pd.to_numeric(post_rows["row_index"], errors="coerce") >= span_start) &
+                (pd.to_numeric(post_rows["row_index"], errors="coerce") <= span_end)
+            ]
+            if visit_rows.empty:
+                continue
+
+            last_row  = visit_rows.iloc[-1]
+            first_row = visit_rows.iloc[0]
+
+            # Structural state at end of visit (last row) — identical None-handling
+            _rig_raw = to_float(last_row.get("rigidity_live"))
+            rig_v    = rig_birth if _rig_raw is None else _rig_raw
+            cap_v = to_float(last_row.get("capacity_live"))    or cap_birth
+            fat_v = to_float(last_row.get("fatigue_live"))     or 0.0
+            rec_v = to_float(last_row.get("recovery_live"))    or 0.0
+            hlt_v = to_float(last_row.get("health_live"))      or hlt_birth
+            sig_v = to_float(last_row.get("sigma_live"))       or sig_birth
+            fle_v = to_float(last_row.get("fleche_live"))      or 0.0
+            zone_w = to_float(last_row.get("real_zone_width")) or 1.0
+
+            penetration_v = fle_v * zone_w
+
+            # Peaks during the visit
+            fle_max  = pd.to_numeric(visit_rows["fleche_live"], errors="coerce").max()
+            max_pen  = (float(fle_max) if pd.notna(fle_max) else 0.0) * zone_w
+            sig_max  = pd.to_numeric(visit_rows["sigma_live"], errors="coerce").max()
+            load_max = pd.to_numeric(visit_rows["load_live"], errors="coerce").max()
+            load_max = float(load_max) if pd.notna(load_max) else 0.0
+
+            sig_max_f = float(sig_max) if pd.notna(sig_max) else sig_v
+            omega_approx = sig_max_f * max_pen
+
+            inside_count = int(
+                pd.to_numeric(visit_rows["inside_zone_flag"], errors="coerce")
+                .fillna(0).astype(bool).sum()
+            )
+            reclaim_flag = bool(
+                pd.to_numeric(visit_rows["return_to_zone_flag"], errors="coerce")
+                .fillna(0).astype(bool).any()
+            )
+            evo_state_v = str(last_row.get("evolution_state") or "")
+
+            visit_result = _classify_visit(
+                rig_v=rig_v, cap_v=cap_v, fat_v=fat_v,
+                rig_birth=rig_birth, cap_birth=cap_birth, fat_birth=fat_birth,
+                prev_rig=prev_rig, prev_cap=prev_cap, prev_fat=prev_fat,
+                inside_count=inside_count,
+                max_pen=max_pen,
+                reclaim=reclaim_flag,
+            )
+
+            rows.append({
+                **identity,
+                "visit_index":               base_visit_index + k,
+                "post_return_flag":          True,
+                "post_return_visit_count":   post_return_visit_count,
+                "visit_start_row":           span_start,
+                "visit_end_row":             span_end,
+                "visit_duration_rows":       span_end - span_start + 1,
+                "timestamp_start":           str(first_row.get("timestamp", "")),
+                "timestamp_end":             str(last_row.get("timestamp", "")),
+                "visit_result":              visit_result,
+                "rigidity_at_visit":         round_float(rig_v),
+                "fatigue_at_visit":          round_float(fat_v),
+                "recovery_at_visit":         round_float(rec_v),
+                "capacity_at_visit":         round_float(cap_v),
+                "attacker_force_at_visit":   round_float(load_max),
+                "omega_at_visit":            round_float(omega_approx),
+                "penetration_at_visit":      round_float(penetration_v),
+                "max_penetration_at_visit":  round_float(max_pen),
+                "health_at_visit":           round_float(hlt_v),
+                "sigma_at_visit":            round_float(sig_v),
+                "health_change_from_previous":    round_float(hlt_v - prev_hlt),
+                "rigidity_change_from_previous":  round_float(rig_v - prev_rig),
+                "capacity_change_from_previous":  round_float(cap_v - prev_cap),
+                "fatigue_change_from_previous":   round_float(fat_v - prev_fat),
+                "evolution_state_at_visit":  evo_state_v,
+                "span_source":               "post_return_touch_derived",
+                "research_only":             True,
+            })
+
+            prev_rig = rig_v
+            prev_cap = cap_v
+            prev_fat = fat_v
+            prev_hlt = hlt_v
+
+    return pd.DataFrame(rows)
+
+
+def run_zone_visit_timeline_dynamic() -> None:
+    """Standalone builder for zone_visit_timeline_dynamic.csv.
+
+    Reads the already-written outputs (the Stage-1-extended
+    zone_live_rdm_evolution.csv, the per-case results, and the pre-return
+    visit timeline) and writes the NEW dynamic file. Avoids re-running the
+    full RDM pipeline. ADDITIVE: never touches zone_visit_timeline.csv.
+
+    Run with:
+        python -c "from research.zone_mechanics_calculator import run_zone_visit_timeline_dynamic as r; r()"
+    """
+    run_utc = utc_now()
+    evolution_df = read_csv(ZONE_LIVE_RDM_EVOLUTION_FILE)
+    results_df = read_csv(RESULTS_FILE)
+    pre_return_timeline_df = read_csv(ZONE_VISIT_TIMELINE_FILE)
+
+    dynamic_df = build_zone_visit_timeline_dynamic(
+        results_df, evolution_df, pre_return_timeline_df, run_utc
+    )
+
+    tmp_path = ZONE_VISIT_TIMELINE_DYNAMIC_FILE.with_suffix(".tmp.csv")
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    dynamic_df.to_csv(tmp_path, index=False)
+    tmp_path.replace(ZONE_VISIT_TIMELINE_DYNAMIC_FILE)
+
+    print(f"Dynamic post-return visit timeline: {relative_path(ZONE_VISIT_TIMELINE_DYNAMIC_FILE)}")
+    print(f"Rows: {len(dynamic_df)}")
+    if not dynamic_df.empty:
+        print(f"Unique returning zones: {dynamic_df['case_id'].nunique()}")
+        zero_rows = int((dynamic_df['post_return_visit_count'] == 0).sum())
+        print(f"Zones with zero post-return visits (null rows): {zero_rows}")
+        active = dynamic_df[dynamic_df['post_return_visit_count'] > 0]
+        if not active.empty:
+            print(f"Post-return visit rows: {len(active)}")
+            print(f"visit_result distribution:\n{active['visit_result'].value_counts()}")
 
 
 # ==================================================

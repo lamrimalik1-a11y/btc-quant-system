@@ -2,9 +2,47 @@
 
 ## Active Checkpoint
 
-Checkpoint: PHASE1B_B125_DYNAMIC_TIMELINE_STABLE
+Checkpoint: PHASE1B_B125_LIVE_DASHBOARD_STABLE
 
 What this checkpoint adds:
+- B12.5 wired into LIVE pipeline (run_zone_visit_timeline_dynamic_live,
+  add_dynamic_layers_to_timeline_live) — uses fixed REPLAY-calibrated
+  thresholds for LIVE/REPLAY comparability
+- New file: research/live_zone_visit_timeline_dynamic.csv
+- New standalone dashboard: dashboard_live_zones.py (port 8502)
+  - Shows only zones active in last N hours (configurable, default 24)
+  - One card per zone, focused on Density Bands as the decision zone
+    (Active Core shown as context only, Preparation Zone moved to
+    expander)
+  - Plain-language prediction reasoning per card (reuses
+    _classify_dynamic_state rules, does not duplicate logic)
+  - Expandable "More Information": full visit history with
+    outcome tracking (what_happened_next per visit)
+  - Algeria timezone throughout, auto-refresh every 60s + manual button
+- Existing dashboard_app.py (research/stream view) UNCHANGED, runs on
+  default port, still shows full historical archive
+
+LIVE data status (as of this checkpoint):
+- 3 days collected (Jun 17-19) on @aggTrade stream, with gaps
+  (stream not yet run continuously)
+- 50 unique returning zones, 8 post-return visits, mostly NO_DATA/
+  PROBABLE_HOLD (insufficient post-return history yet)
+- Next: run LIVE continuously for extended period to accumulate
+  enough post-return visits for meaningful LIVE vs REPLAY comparison
+
+Commands to run both dashboards simultaneously:
+  streamlit run dashboard_app.py
+  streamlit run dashboard_live_zones.py --server.port 8502
+
+Live stream command:
+  python -m engines.stream_manager
+  (prevent sleep first: powercfg /change standby-timeout-ac 0)
+
+---
+
+## Prior Checkpoint: PHASE1B_B125_DYNAMIC_TIMELINE_STABLE
+
+What this checkpoint added:
 - B12.5 Full Post-Return Visit Timeline Engine (3 stages)
 - zone_visit_timeline_dynamic.csv: 14,512 rows, 2,980 returning zones
 - Dynamic state classification: SDR-led rules, 86.6% accuracy
@@ -28,7 +66,7 @@ Dynamic state accuracy (vs B12v2 outcomes, n=2,430):
   RECOVERING        → 100.0% FAIL  (n=26)
   CRITICAL          → 100.0% FAIL  (n=8)
   DEGRADING         → 88.1%  FAIL  (n=42)
-  PROBABLE_HOLD     → 56.5%  FAIL  (n=657) ← needs refinement
+  PROBABLE_HOLD     → 56.5%  FAIL  (n=657) <- needs refinement
   Overall accuracy: 86.6% (was 74.4% before calibration)
 
 Mathematical layers per visit:
@@ -44,12 +82,6 @@ Calibrated thresholds (percentile-based, from pre-return data):
   slope_pos=3.894, slope_neg=-1.248,
   integral_high=410.68, integral_low=76.85, sdr_high=1.079
 
-Next steps:
-  - Rename PROBABLE_HOLD to neutral label (needs more live data first)
-  - Collect live aggTrade data (stream switched to @aggTrade)
-  - Validate dynamic_state on live data vs replay
-  - Build B13 Dynamic State Engine (Markov-ready)
-
 Prior checkpoints (preserved):
   - PHASE1B_UNIFIED_ARCHIVE_STABLE
   - PHASE1B_STREAMING_REPLAY_STABLE
@@ -57,73 +89,3 @@ Prior checkpoints (preserved):
   - PHASE1B_SYNTHESIS_ENGINE_STABLE
 
 ---
-
-## Previous Active Checkpoint
-
-Checkpoint:
-
-PHASE1B_UNIFIED_ARCHIVE_STABLE
-
-Status:
-
-- Research only
-- Observation only
-- No Phase 2
-- No execution
-- No entries
-- No live signals
-- No scoring changes
-- No Dashboard V2 scoring changes
-- No RDM formula changes
-- No lifecycle changes
-- No replay formula changes
-- PERMANENT RULE: always take a snapshot/backup of outputs/ BEFORE any
-  run that writes to it (especially with --overwrite). See
-  RUN_COMMANDS.md "Pre-run snapshot rule".
-
----
-
-## What this checkpoint adds
-
-- Unified continuous archive: Feb 01 → Jun 05 2026 (126 days, zero seams)
-- 4,859 zones (was 808 April-only / 1,219 March-only)
-- B12v2 validation: 98.8% accuracy, lift +41.4%, evaluable 2,441
-- HOLD F1: 0.989 / FAIL F1: 0.986
-- Physics: sigma x penetration r=0.9991 (n=2,977) — strongest yet
-- Zero leakage, zero Phase 1 code changes
-- Streaming replay (--stream) required on this machine (24 GB RAM)
-
-## Key findings
-
-- STRENGTHENING trajectory: 100% accuracy (n=1,372)
-- TERMINAL trajectory: 100% accuracy (n=748)
-- All 10 False HOLDs came from STABLE trajectory only
-- STABLE trajectory remains the weak point (44.4% hold rate)
-- Fully prospective test (no prior breakdown): 98.2%, lift +15.5%
-
-## Pipeline that produced this
-
-1. python tools\generate_binance_historical_replay.py
-     --start "2026-02-01 00:00:00" --end "2026-06-06 00:00:00"
-     --symbol BTCUSDT --row-size 500 --no-zip --overwrite --stream
-2. Build unified episodes from existing observation rows (one-liner)
-3. python -m tools.analyze_phase1b_episode_research
-4. python research/zone_mechanics_calculator.py
-5. python -m research.run_b12v2_validation
-
-## Next steps
-
-- Extend archive to a second independent period (regime generalization)
-- Investigate STABLE trajectory false HOLDs
-- Calibrate B11 thresholds using B12v2 precision/recall data
-- Build B12.5 (full post-return visit timeline)
-- Build B13 (dynamic state updater)
-
-## Prior checkpoints (preserved)
-
-- PHASE1B_STREAMING_REPLAY_STABLE
-- PHASE1B_B12_LIVE_VALIDATION
-- PHASE1B_SYNTHESIS_ENGINE_STABLE
-- PHASE1B_RDM_MARKET_MECHANICS_V1_5
-
-(Full checkpoint history is in `git log` and prior research reports.)

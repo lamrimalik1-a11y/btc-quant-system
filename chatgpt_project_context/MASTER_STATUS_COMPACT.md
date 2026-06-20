@@ -2,6 +2,34 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_B125_LIVE_DASHBOARD_STABLE
+
+B12.5 wired into LIVE pipeline:
+  - run_zone_visit_timeline_dynamic_live + add_dynamic_layers_to_timeline_live
+  - Fixed REPLAY-calibrated thresholds (LIVE/REPLAY comparability guaranteed)
+  - research/live_zone_visit_timeline_dynamic.csv: 50 zones, 8 post-return visits
+  - 3 days live data (Jun 17-19), stream not yet continuous
+
+New dashboard: dashboard_live_zones.py (port 8502)
+  - Density Bands as primary decision zone; Active Core = context only
+  - Prediction reasoning per card (reuses _classify_dynamic_state rules)
+  - Expandable "More Information": full visit history + outcome tracking
+  - Algeria timezone throughout, auto-refresh every 60s
+
+Both dashboards:
+  streamlit run dashboard_app.py
+  streamlit run dashboard_live_zones.py --server.port 8502
+
+Live stream: python -m engines.stream_manager
+  (prevent sleep first: powercfg /change standby-timeout-ac 0)
+
+Next: run LIVE stream continuously → accumulate post-return visits →
+validate LIVE vs REPLAY dynamic_state → B13.
+
+---
+
+## Prior Stable Status (PHASE1B_B125_DYNAMIC_TIMELINE_STABLE)
+
 Current checkpoint: PHASE1B_B125_DYNAMIC_TIMELINE_STABLE
 
 B12.5 complete (3 stages):
@@ -15,8 +43,6 @@ B12.5 complete (3 stages):
 Live stream: switched to @aggTrade (matches REPLAY unit).
 Archive: Feb-Jun 2026, 4,859 zones, B12v2 98.8% accuracy, r=0.9991.
 Streaming replay (--stream) required on this machine (24 GB RAM).
-
-Next: collect live data → validate dynamic_state → B13.
 
 ---
 
@@ -140,6 +166,8 @@ research/zone_synthesis.csv.
   fallback)
 - B12 / B12v2 prediction validation, Formation/Active Core zone
   geometry work (see CURRENT_CHECKPOINT.md prior checkpoints)
+- B12.5 Dynamic State Engine (REPLAY + LIVE pipeline)
+- Live Zone Dashboard (dashboard_live_zones.py, port 8502)
 
 ## Validated RDM Physics
 
@@ -150,10 +178,9 @@ Surface Damage hypothesis: REJECTED (temporal decay formula, not market physics)
 ## Next Steps
 
 Priority:
-1. Snapshot `outputs/` (permanent rule, see RUN_COMMANDS.md).
-2. Run the full continuous 126-day window rebuild
-   (2026-02-01 -> 2026-06-06) using `--stream` — see RUN_COMMANDS.md.
-3. Re-run B9-B12v2 / Synthesis on the unified rebuild once produced.
+1. Run LIVE stream continuously to accumulate post-return visits.
+2. Validate LIVE dynamic_state distribution vs REPLAY (need 30+ days).
+3. Snapshot `outputs/` before any run that writes to it (permanent rule).
 
 Do not:
 - Enter Phase 2
@@ -163,3 +190,4 @@ Do not:
 - Change lifecycle logic
 - Run any replay rebuild without `--stream` on this machine
 - Touch `outputs/` without taking a snapshot first
+- Implement B13 (deferred)

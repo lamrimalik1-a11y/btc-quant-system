@@ -1,6 +1,6 @@
 # Zone Mechanics Capacity Notes
 
-- Run UTC: 2026-06-16T07:33:07+00:00
+- Run UTC: 2026-06-16T22:03:16+00:00
 - Mode: Research only
 - No live signals
 - No execution

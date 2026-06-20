@@ -15,6 +15,11 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as st
 
+from research.zone_mechanics_calculator import (  # noqa: F401
+    _classify_dynamic_state,
+    STABLE_SLOPE_EPS,
+)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Paths  (read-only — no writes anywhere)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -137,6 +142,31 @@ _CSS = """
 .empty-msg {
   text-align: center; color: #6b7280; padding: 56px 0; font-size: 0.95rem;
 }
+
+/* ── WHY / reasoning block ── */
+.why-block {
+  font-size: 0.76rem; font-style: italic; color: #d1d5db;
+  border-left: 3px solid #374151; padding-left: 10px;
+  margin: 8px 0 10px 0; line-height: 1.55;
+}
+
+/* ── Geo primary row (Density Band — decision zone) ── */
+.geo-row-primary {
+  display: grid; grid-template-columns: 110px 1fr 1fr 1fr;
+  gap: 6px; margin-bottom: 5px; font-size: 0.77rem; align-items: baseline;
+  background: rgba(30, 58, 138, 0.30); border-radius: 4px;
+  padding: 4px 5px; border-left: 2px solid #3b82f6;
+}
+.geo-row-primary .comp { color: #93c5fd; font-weight: 700; }
+.geo-row-primary .num  { font-family: "Courier New", "Consolas", monospace; color: #e5e7eb; }
+
+/* ── Geo secondary row (Active Core — context) ── */
+.geo-row-secondary {
+  display: grid; grid-template-columns: 110px 1fr 1fr 1fr;
+  gap: 6px; margin-bottom: 4px; font-size: 0.72rem; align-items: baseline;
+}
+.geo-row-secondary .comp { color: #4b5563; font-weight: 600; }
+.geo-row-secondary .num  { font-family: "Courier New", "Consolas", monospace; color: #6b7280; }
 </style>
 """
 
@@ -257,6 +287,100 @@ def _sdr_gauge(sdr_val: object) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Dynamic state reasoning
+# ─────────────────────────────────────────────────────────────────────────────
+
+# REPLAY-calibrated thresholds (same values as add_dynamic_layers_to_timeline_live).
+# Hardcoded here to keep LIVE/REPLAY labels directly comparable.
+_THRESHOLDS: dict = {
+    "slope_pos":     3.894,
+    "slope_neg":    -1.248,
+    "integral_high": 410.68,
+    "integral_low":   76.85,
+    "sdr_high":        1.079,
+}
+
+
+def _build_reasoning(sdr_row: dict) -> str:
+    """One-sentence explanation for the dynamic_state on this card.
+
+    Mirrors the exact rule priority of _classify_dynamic_state() (imported above
+    from research/zone_mechanics_calculator.py) using the same REPLAY-calibrated
+    _THRESHOLDS and the imported STABLE_SLOPE_EPS constant.
+    """
+    if not sdr_row:
+        return "No dynamic data — zone not yet tracked in visit timeline."
+    ds = str(sdr_row.get("dynamic_state") or "NO_DATA")
+    if ds == "NO_DATA":
+        return (
+            "Zone returned to the Density Band but has not re-engaged the Active Core "
+            "— no post-return visits recorded yet."
+        )
+
+    def _g(k: str):
+        try:
+            v = float(sdr_row.get(k))  # type: ignore[arg-type]
+            return None if math.isnan(v) else v
+        except Exception:
+            return None
+
+    t    = _THRESHOLDS
+    sdr  = _g("SDR")
+    fd   = _g("first_derivative")
+    sd   = _g("second_derivative")
+    smed = _g("slope_medium")
+    zint = _g("zone_integral")
+
+    # Rules mirror _classify_dynamic_state() exactly (rule 1 → rule 9).
+    if sdr is not None and sdr >= t["sdr_high"]:
+        return (
+            f"SDR={sdr:.3f} ≥ {t['sdr_high']} — attacker force exceeds zone strength; "
+            "structural dominance shifted to attacker."
+        )
+    if zint is not None and sdr is not None and zint >= t["integral_high"] and sdr < 1.0:
+        return (
+            f"zone_integral={zint:.1f} (≥{t['integral_high']}) with SDR={sdr:.3f} (<1.0) "
+            "— cumulative health confirmed strong, zone holds the attacker."
+        )
+    if sd is not None and fd is not None and sd < 0 and fd > 0:
+        return (
+            f"Health rising (Δ={fd:+.3f}) but decelerating (Δ²={sd:+.3f}) "
+            "— peak forming, momentum reversal expected."
+        )
+    if zint is not None and smed is not None and zint < t["integral_low"] and smed < t["slope_neg"]:
+        return (
+            f"zone_integral={zint:.1f} (<{t['integral_low']}) and slope_medium={smed:+.3f} "
+            f"(<{t['slope_neg']}) — severe structural degradation."
+        )
+    if sd is not None and fd is not None and sd > 0 and fd < 0:
+        return (
+            f"Health falling (Δ={fd:+.3f}) but decelerating (Δ²={sd:+.3f}) "
+            "— attacker losing momentum; structural trough in progress."
+        )
+    if smed is not None and smed < t["slope_neg"]:
+        return (
+            f"slope_medium={smed:+.3f} (<{t['slope_neg']}) — persistent medium-term "
+            "deterioration in zone structural integrity."
+        )
+    if smed is not None and abs(smed) < STABLE_SLOPE_EPS:
+        return (
+            f"slope_medium={smed:+.3f}, |slope| < {STABLE_SLOPE_EPS} — zone in "
+            "equilibrium, no clear structural trend detected."
+        )
+    if sdr is not None and sdr < 1.0:
+        return (
+            f"SDR={sdr:.3f} (<1.0, zone dominant) with no strong structural signal "
+            "— marginal hold confidence only."
+        )
+    if sdr is not None and sdr >= 1.0:
+        return (
+            f"SDR={sdr:.3f} (≥1.0, attacker dominant) — tiebreaker applied, "
+            "no strong structural confirmation."
+        )
+    return "Insufficient data to determine structural direction."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Card HTML builder
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -299,11 +423,8 @@ def _card(zone: pd.Series, sdr: dict, now: pd.Timestamp) -> str:
     r_color = {"LOW": "#22c55e", "MEDIUM": "#f97316",
                "HIGH": "#ef4444"}.get(rdm_r, "#9ca3af")
 
-    # Geometry
-    prep_birth = birth_alg
-    prep_hi    = _p(zone.get("preparation_high_price"))
-    prep_lo    = _p(zone.get("preparation_low_price"))
-
+    # Geometry — Density Band (primary decision zone) / Active Core (context only).
+    # Preparation Zone is shown in the expander, not here.
     core_birth = _alg(zone.get("core_temporal_window_start"))
     core_hi    = _p(zone.get("interaction_core_upper_edge"))
     core_lo    = _p(zone.get("interaction_core_lower_edge"))
@@ -312,12 +433,16 @@ def _card(zone: pd.Series, sdr: dict, now: pd.Timestamp) -> str:
     dens_hi    = _p(zone.get("interaction_density_upper_band"))
     dens_lo    = _p(zone.get("interaction_density_lower_band"))
 
+    why = _build_reasoning(sdr)
+
     return f"""
 <div class="zcard" style="background:{bg};">
 
   <div class="ztitle">{cid}</div>
   <div class="zid">{zid}</div>
   <span class="badge" style="background:{bbg};color:{btx};">{ds}</span>
+
+  <div class="why-block">{why}</div>
 
   <div style="margin:10px 0 12px 0;font-size:0.80rem;line-height:1.7;">
     <span class="lbl">Zone birth</span>&nbsp;
@@ -355,26 +480,14 @@ def _card(zone: pd.Series, sdr: dict, now: pd.Timestamp) -> str:
   </div>
 
   <div class="geo">
-    <div class="geo-hdr">Zone Geometry · Algeria time (UTC+1)</div>
+    <div class="geo-hdr">Decision Zone Geometry · Algeria time (UTC+1)</div>
     <div class="geo-col-lbl">
       <span>Component</span>
       <span>Birth (Algeria)</span>
       <span>Upper bound</span>
       <span>Lower bound</span>
     </div>
-    <div class="geo-row">
-      <span class="comp">Preparation</span>
-      <span class="num">{prep_birth}</span>
-      <span class="num">{prep_hi}</span>
-      <span class="num">{prep_lo}</span>
-    </div>
-    <div class="geo-row">
-      <span class="comp">Active Core</span>
-      <span class="num">{core_birth}</span>
-      <span class="num">{core_hi}</span>
-      <span class="num">{core_lo}</span>
-    </div>
-    <div class="geo-row">
+    <div class="geo-row-primary">
       <span class="comp">Density Band</span>
       <span class="num">
         {dens_birth}
@@ -383,9 +496,96 @@ def _card(zone: pd.Series, sdr: dict, now: pd.Timestamp) -> str:
       <span class="num">{dens_hi}</span>
       <span class="num">{dens_lo}</span>
     </div>
+    <div class="geo-row-secondary">
+      <span class="comp">Active Core <span style="font-size:0.60rem;">(Context)</span></span>
+      <span class="num">{core_birth}</span>
+      <span class="num">{core_hi}</span>
+      <span class="num">{core_lo}</span>
+    </div>
   </div>
 
 </div>"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Expander: More Information
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _render_expander(
+    zone: pd.Series,
+    sdr_row: dict,
+    dyn_rows: pd.DataFrame,
+) -> None:
+    """Render the collapsible 'More Information' section beneath each zone card."""
+    with st.expander("More Information ▾"):
+
+        # (A) Preparation Zone bounds
+        st.markdown("**Formation (Preparation Zone)**")
+        st.markdown(
+            f"Birth: `{_alg(zone.get('formation_start_time'))}` &nbsp;·&nbsp; "
+            f"Upper: `{_p(zone.get('preparation_high_price'))}` &nbsp;·&nbsp; "
+            f"Lower: `{_p(zone.get('preparation_low_price'))}`"
+        )
+
+        st.markdown("---")
+
+        # (B) + (C) Full post-return visit history with outcome tracking
+        actual_visits = pd.DataFrame()
+        if not dyn_rows.empty:
+            if "post_return_visit_count" in dyn_rows.columns:
+                mask = pd.to_numeric(
+                    dyn_rows["post_return_visit_count"], errors="coerce"
+                ).fillna(0) > 0
+                actual_visits = dyn_rows[mask].copy()
+            else:
+                actual_visits = dyn_rows.copy()
+
+        if actual_visits.empty:
+            st.caption("No post-return visit history yet for this zone.")
+        else:
+            st.markdown("**Post-Return Visit History**")
+
+            display_cols = [
+                "visit_index", "timestamp_start", "timestamp_end",
+                "visit_result", "dynamic_state", "SDR",
+                "zone_integral", "first_derivative", "second_derivative", "slope_medium",
+            ]
+            avail = [c for c in display_cols if c in actual_visits.columns]
+            vdf = actual_visits[avail].copy()
+
+            if "visit_index" in vdf.columns:
+                vdf = vdf.sort_values("visit_index").reset_index(drop=True)
+
+            if "timestamp_start" in vdf.columns:
+                vdf["timestamp_start"] = vdf["timestamp_start"].apply(_alg)
+            if "timestamp_end" in vdf.columns:
+                vdf["timestamp_end"] = vdf["timestamp_end"].apply(_alg)
+
+            # (C) what_happened_next — next visit's visit_result
+            if "visit_result" in vdf.columns:
+                next_results = vdf["visit_result"].shift(-1).tolist()
+                if next_results:
+                    next_results[-1] = "PENDING — most recent visit"
+                vdf["what_happened_next"] = next_results
+
+            st.dataframe(vdf, use_container_width=True, hide_index=True)
+
+            # (D) Summary line
+            n_visits = len(actual_visits)
+            if "visit_result" in actual_visits.columns and n_visits > 1:
+                if "visit_index" in actual_visits.columns:
+                    resolved_ser = actual_visits.sort_values("visit_index").iloc[:-1]["visit_result"]
+                else:
+                    resolved_ser = actual_visits.iloc[:-1]["visit_result"]
+                continued  = int(resolved_ser.isin(["GROWTH", "RECLAIM", "STABLE"]).sum())
+                broke_down = int(resolved_ser.isin(["BREAKDOWN"]).sum())
+                st.caption(
+                    f"This zone has returned **{n_visits}** time(s).  "
+                    f"Of **{n_visits - 1}** resolved visit(s): "
+                    f"**{continued}** continued · **{broke_down}** broke down."
+                )
+            else:
+                st.caption(f"This zone has returned **{n_visits}** time(s).")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -510,8 +710,14 @@ def _render() -> None:
             z   = filtered.iloc[idx]
             cid = str(z.get("case_id", ""))
             sdr = sdr_map.get(cid, {})
+            z_dyn = (
+                dynamic[dynamic["case_id"] == cid].copy()
+                if not dynamic.empty and "case_id" in dynamic.columns
+                else pd.DataFrame()
+            )
             with col:
                 st.markdown(_card(z, sdr, now), unsafe_allow_html=True)
+                _render_expander(z, sdr, z_dyn)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

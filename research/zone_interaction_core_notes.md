@@ -1,6 +1,6 @@
 # Interaction Core Geometry
 
-Run UTC: 2026-06-16T07:33:07+00:00
+Run UTC: 2026-06-16T22:03:16+00:00
 
 Research-only split between formation range and interaction core.
 
@@ -14,9 +14,9 @@ Rows: 4859
 
 ## True Lifecycle States
 
-- ACTIVE_INTERACTION: 2242
-- RECOVERY: 1864
-- RETEST: 671
-- DORMANT: 82
+- ACTIVE_INTERACTION: 1797
+- RETEST: 239
+- DORMANT: 2285
+- RECOVERY: 538
 
 Formation end is not treated as mechanical death.

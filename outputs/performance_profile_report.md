@@ -1,6 +1,6 @@
 # Performance Profile Report
 
-Updated UTC: 2026-06-16 07:33:07
+Updated UTC: 2026-06-16 22:03:16
 
 ## phase1b_episode_research
 
@@ -42,23 +42,23 @@ Updated UTC: 2026-06-16 07:33:07
 
 ## rdm_zone_mechanics_calculator
 
-- Total runtime: 2957.247753s
-- Slowest function / step: rdm_live_evolution_after_cache (1046.502867s)
+- Total runtime: 4995.477633s
+- Slowest function / step: rdm_live_evolution_after_cache (1874.895102s)
 - Bottleneck likely: RAM_LIMIT
-- Peak Python heap: 1681.091 MB
+- Peak Python heap: 2858.765 MB
 
 ### Top Bottlenecks
 
-- rdm_live_evolution_after_cache: 1046.502867s
-- rdm_v16b_attacker_basics: 530.133847s
-- csv_write_rdm_outputs: 514.789198s
-- rdm_v16b8_zone_visit_timeline: 155.576833s
-- rdm_interaction_core_after_cache: 131.761679s
-- rdm_density_after_cache: 130.940607s
-- rdm_base_mechanics: 91.029328s
-- rdm_true_lifecycle: 69.924131s
-- interaction_mask_build_time: 60.785809s
-- rdm_v16b9_zone_health_evolution: 60.036262s
+- rdm_live_evolution_after_cache: 1874.895102s
+- rdm_v16b_attacker_basics: 1064.450847s
+- csv_write_rdm_outputs: 924.481199s
+- rdm_v16b8_zone_visit_timeline: 324.257249s
+- rdm_density_after_cache: 178.48343s
+- rdm_interaction_core_after_cache: 133.337823s
+- rdm_base_mechanics: 92.921065s
+- rdm_true_lifecycle: 77.628629s
+- interaction_mask_build_time: 69.434259s
+- rdm_summary_notes_build: 63.424595s
 
 ### Metrics
 
@@ -66,7 +66,7 @@ Updated UTC: 2026-06-16 07:33:07
 - interaction_mask_reuse_count: 4859
 - rows_processed: 4859
 - historical_rows_loaded: 295822
-- live_evolution_rows: 1809010
+- live_evolution_rows: 3298628
 - attacker_evolution_rows: 4859
 - zone_strength_profile_rows: 4859
 - zone_vs_attacker_rows: 4859
@@ -74,7 +74,7 @@ Updated UTC: 2026-06-16 07:33:07
 - zone_reinforcement_rows: 4859
 - attacker_conversion_rows: 4859
 - force_allocation_rows: 4859
-- zone_visit_timeline_rows: 14083
+- zone_visit_timeline_rows: 31964
 - zone_health_evolution_rows: 4859
 - zone_structural_trajectory_rows: 4859
 - zone_structural_prediction_rows: 4859
@@ -86,7 +86,7 @@ Updated UTC: 2026-06-16 07:33:07
 
 ### CSV File Sizes
 
-- research\zone_mechanics_cycle3_results.csv: 16.05 MB
+- research\zone_mechanics_cycle3_results.csv: 15.94 MB
 - research\zone_mechanics_cycle3_summary.csv: 0.002 MB
 - research\zone_mechanics_timeline.csv: 1.16 MB
 - research\zone_mechanics_lifecycle.csv: 2.276 MB
@@ -95,10 +95,10 @@ Updated UTC: 2026-06-16 07:33:07
 - research\zone_mechanics_sigma_evolution.csv: 0.884 MB
 - research\zone_mechanics_verestchaguine.csv: 0.828 MB
 - research\zone_real_geometry_tracking.csv: 3.251 MB
-- research\zone_live_rdm_evolution.csv: 950.274 MB
+- research\zone_live_rdm_evolution.csv: 1741.671 MB
 - research\zone_interaction_core_geometry.csv: 1.903 MB
-- research\zone_interaction_density_map.csv: 1.022 MB
-- research\zone_true_lifecycle_tracking.csv: 1.608 MB
+- research\zone_interaction_density_map.csv: 1.027 MB
+- research\zone_true_lifecycle_tracking.csv: 1.572 MB
 - research\zone_birth_registry.csv: 2.097 MB
 - research\zone_death_registry.csv: 1.184 MB
 - research\zone_evolution_chart.csv: 1.731 MB

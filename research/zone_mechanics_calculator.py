@@ -8416,5 +8416,141 @@ def relative_path(path: Path) -> str:
         return str(path)
 
 
+# ==================================================
+# RDM V1.6-B12.5 (LIVE) — Dynamic Post-Return Timeline for LIVE Data
+# Mirrors run_zone_visit_timeline_dynamic() and add_dynamic_layers_to_timeline()
+# but reads from LIVE pipeline files and writes to a SEPARATE output file.
+# research/zone_visit_timeline_dynamic.csv (REPLAY) is NEVER touched.
+# ==================================================
+
+def run_zone_visit_timeline_dynamic_live() -> None:
+    """Standalone builder for live_zone_visit_timeline_dynamic.csv.
+
+    Mirrors run_zone_visit_timeline_dynamic() but reads from the LIVE
+    pipeline output files instead of the REPLAY research files.
+
+    Input files:
+        outputs/live_rdm_results.csv          (LIVE zone results)
+        outputs/live_rdm_evolution.csv        (LIVE per-row mechanical state)
+        research/train_zone_visit_timeline.csv (LIVE pre-return visit history)
+
+    Output:
+        research/live_zone_visit_timeline_dynamic.csv
+        (NEW file — never touches research/zone_visit_timeline_dynamic.csv)
+
+    Run with:
+        python -c "from research.zone_mechanics_calculator import run_zone_visit_timeline_dynamic_live as r; r()"
+    """
+    _live_results_file    = OUTPUT_DIR / "live_rdm_results.csv"
+    _live_evolution_file  = OUTPUT_DIR / "live_rdm_evolution.csv"
+    _train_timeline_file  = RESEARCH_DIR / "train_zone_visit_timeline.csv"
+    _live_dynamic_file    = RESEARCH_DIR / "live_zone_visit_timeline_dynamic.csv"
+
+    run_utc = utc_now()
+    results_df             = read_csv(_live_results_file)
+    evolution_df           = read_csv(_live_evolution_file)
+    pre_return_timeline_df = read_csv(_train_timeline_file)
+
+    results_df = results_df.sort_values("analysis_run_utc").drop_duplicates(
+        subset=["case_id"], keep="last"
+    )
+
+    dynamic_df = build_zone_visit_timeline_dynamic(
+        results_df, evolution_df, pre_return_timeline_df, run_utc
+    )
+
+    tmp_path = _live_dynamic_file.with_suffix(".tmp.csv")
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    dynamic_df.to_csv(tmp_path, index=False)
+    tmp_path.replace(_live_dynamic_file)
+
+    print(f"Live dynamic post-return visit timeline: {relative_path(_live_dynamic_file)}")
+    print(f"Rows: {len(dynamic_df)}")
+    if not dynamic_df.empty:
+        print(f"Unique returning zones: {dynamic_df['case_id'].nunique()}")
+        zero_rows = int((dynamic_df["post_return_visit_count"] == 0).sum())
+        print(f"Zones with zero post-return visits (null rows): {zero_rows}")
+        active = dynamic_df[dynamic_df["post_return_visit_count"] > 0]
+        if not active.empty:
+            print(f"Post-return visit rows: {len(active)}")
+            print(f"visit_result distribution:\n{active['visit_result'].value_counts()}")
+
+
+def add_dynamic_layers_to_timeline_live() -> None:
+    """Standalone Stage-3 builder for the LIVE dynamic timeline.
+
+    Mirrors add_dynamic_layers_to_timeline() but operates exclusively on
+    research/live_zone_visit_timeline_dynamic.csv.
+
+    Threshold choice: uses REPLAY-calibrated percentile thresholds
+    (slope_pos=3.894, slope_neg=-1.248, integral_high=410.68,
+    integral_low=76.85, sdr_high=1.079) rather than re-calibrating from
+    research/train_zone_visit_timeline.csv.  Reason: the LIVE pre-return
+    file covers only 3 days (Jun 17-19, 2,083 rows) — not representative
+    of the long-term distribution (REPLAY: 31,964 rows, Feb-Jun 2026).
+    Fixed REPLAY thresholds ensure LIVE and REPLAY dynamic_state labels
+    are directly comparable.
+
+    Overwrites research/live_zone_visit_timeline_dynamic.csv (adds the 10
+    dynamic layer columns + dynamic_state). No other file is written.
+
+    Run with:
+        python -c "from research.zone_mechanics_calculator import add_dynamic_layers_to_timeline_live as r; r()"
+    """
+    _live_dynamic_file = RESEARCH_DIR / "live_zone_visit_timeline_dynamic.csv"
+
+    # REPLAY-calibrated thresholds — fixed for LIVE/REPLAY comparability.
+    # Source: _calibrate_dynamic_thresholds() on zone_visit_timeline.csv
+    # (31,964 rows, Feb-Jun 2026 REPLAY archive).
+    thresholds = {
+        "slope_pos":     3.894,
+        "slope_neg":    -1.248,
+        "integral_high": 410.68,
+        "integral_low":   76.85,
+        "sdr_high":        1.079,
+    }
+
+    print("Thresholds (REPLAY-calibrated, fixed for LIVE/REPLAY comparability):")
+    for key, val in thresholds.items():
+        print(f"  {key:16s} = {val:.6f}")
+
+    df = read_csv(_live_dynamic_file)
+
+    if "post_return_visit_count" in df.columns:
+        active_mask = pd.to_numeric(
+            df["post_return_visit_count"], errors="coerce"
+        ).fillna(0) > 0
+    else:
+        active_mask = pd.Series(True, index=df.index)
+
+    active    = df[active_mask].copy()
+    null_rows = df[~active_mask].copy()
+
+    if not active.empty:
+        active = _compute_dynamic_layers(active)
+        active["dynamic_state"] = active.apply(
+            lambda r: _classify_dynamic_state(r, thresholds), axis=1
+        )
+
+    if not null_rows.empty:
+        for col in DYNAMIC_LAYER_COLUMNS:
+            null_rows[col] = np.nan
+        null_rows["dynamic_state"] = "NO_DATA"
+
+    combined = pd.concat([active, null_rows]) if not null_rows.empty else active
+    combined = combined.sort_index()
+
+    tmp_path = _live_dynamic_file.with_suffix(".tmp.csv")
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    combined.to_csv(tmp_path, index=False)
+    tmp_path.replace(_live_dynamic_file)
+
+    print(f"\nUpdated: {relative_path(_live_dynamic_file)}")
+    print(f"Total rows: {len(combined)}")
+    if "dynamic_state" in combined.columns:
+        print("dynamic_state distribution:")
+        print(combined["dynamic_state"].value_counts(dropna=False))
+
+
 if __name__ == "__main__":
     main()

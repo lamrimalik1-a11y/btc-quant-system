@@ -126,203 +126,203 @@
     },
     "rdm_zone_mechanics_calculator": {
       "script": "rdm_zone_mechanics_calculator",
-      "run_utc": "2026-06-16 07:33:07",
-      "total_runtime_seconds": 2957.247753,
+      "run_utc": "2026-06-16 22:03:16",
+      "total_runtime_seconds": 4995.477633,
       "slowest_step": {
         "name": "rdm_live_evolution_after_cache",
-        "duration_seconds": 1046.502867
+        "duration_seconds": 1874.895102
       },
       "bottleneck_likely": "RAM_LIMIT",
       "steps": [
         {
           "name": "csv_read_rdm_inputs",
-          "duration_seconds": 3.24139
+          "duration_seconds": 3.312831
         },
         {
           "name": "jsonl_read_lifecycle_events",
-          "duration_seconds": 1.642073
+          "duration_seconds": 1.674612
         },
         {
           "name": "pandas_dataset_build",
-          "duration_seconds": 0.266082
+          "duration_seconds": 0.248394
         },
         {
           "name": "rdm_base_mechanics",
-          "duration_seconds": 91.029328
+          "duration_seconds": 92.921065
         },
         {
           "name": "pandas_dataframe_build",
-          "duration_seconds": 0.080909
+          "duration_seconds": 0.087905
         },
         {
           "name": "rdm_capacity",
-          "duration_seconds": 3.024826
+          "duration_seconds": 3.053169
         },
         {
           "name": "rdm_sigma",
-          "duration_seconds": 1.798124
+          "duration_seconds": 1.750454
         },
         {
           "name": "rdm_sigma_evolution",
-          "duration_seconds": 2.006667
+          "duration_seconds": 2.231716
         },
         {
           "name": "rdm_verestchaguine",
-          "duration_seconds": 2.344097
+          "duration_seconds": 2.341534
         },
         {
           "name": "rdm_result_summaries",
-          "duration_seconds": 5.63956
+          "duration_seconds": 5.842188
         },
         {
           "name": "rdm_real_geometry_tracking",
-          "duration_seconds": 3.499321
+          "duration_seconds": 4.1597
         },
         {
           "name": "rdm_live_evolution_after_cache",
-          "duration_seconds": 1046.502867
+          "duration_seconds": 1874.895102
         },
         {
           "name": "rdm_v16b_attacker_basics",
-          "duration_seconds": 530.133847
+          "duration_seconds": 1064.450847
         },
         {
           "name": "rdm_case_cache_build_time",
-          "duration_seconds": 15.839292
+          "duration_seconds": 16.617021
         },
         {
           "name": "interaction_mask_build_time",
-          "duration_seconds": 60.785809
+          "duration_seconds": 69.434259
         },
         {
           "name": "rdm_interaction_core_after_cache",
-          "duration_seconds": 131.761679
+          "duration_seconds": 133.337823
         },
         {
           "name": "rdm_density_after_cache",
-          "duration_seconds": 130.940607
+          "duration_seconds": 178.48343
         },
         {
           "name": "rdm_true_lifecycle",
-          "duration_seconds": 69.924131
+          "duration_seconds": 77.628629
         },
         {
           "name": "rdm_v16_numeric_foundation",
-          "duration_seconds": 19.840493
+          "duration_seconds": 19.848218
         },
         {
           "name": "rdm_v16b4_zone_strength_foundation",
-          "duration_seconds": 2.884113
+          "duration_seconds": 2.841127
         },
         {
           "name": "rdm_v16b4_zone_vs_attacker",
-          "duration_seconds": 5.277408
+          "duration_seconds": 5.275363
         },
         {
           "name": "rdm_v16b5_anomaly_physics",
-          "duration_seconds": 4.605336
+          "duration_seconds": 4.742054
         },
         {
           "name": "rdm_v16b6_reinforcement_physics",
-          "duration_seconds": 4.563782
+          "duration_seconds": 4.567301
         },
         {
           "name": "rdm_v16b7_attacker_conversion_physics",
-          "duration_seconds": 5.089942
+          "duration_seconds": 5.063209
         },
         {
           "name": "rdm_v16b75b_force_allocation_physics",
-          "duration_seconds": 5.198602
+          "duration_seconds": 5.058404
         },
         {
           "name": "rdm_v16b8_zone_visit_timeline",
-          "duration_seconds": 155.576833
+          "duration_seconds": 324.257249
         },
         {
           "name": "rdm_v16b9_zone_health_evolution",
-          "duration_seconds": 60.036262
+          "duration_seconds": 59.95876
         },
         {
           "name": "rdm_v16b10_zone_structural_trajectory",
-          "duration_seconds": 4.994573
+          "duration_seconds": 5.010465
         },
         {
           "name": "rdm_v16b11_zone_structural_prediction",
-          "duration_seconds": 5.66133
+          "duration_seconds": 5.40232
         },
         {
           "name": "rdm_synthesis_engine",
-          "duration_seconds": 6.578067
+          "duration_seconds": 6.646705
         },
         {
           "name": "rdm_timeline_lifecycle",
-          "duration_seconds": 4.084957
+          "duration_seconds": 4.030135
         },
         {
           "name": "rdm_birth_death_memory",
-          "duration_seconds": 14.780242
+          "duration_seconds": 14.318396
         },
         {
           "name": "rdm_evolution_chart",
-          "duration_seconds": 6.751746
+          "duration_seconds": 6.606619
         },
         {
           "name": "rdm_summary_notes_build",
-          "duration_seconds": 34.619379
+          "duration_seconds": 63.424595
         },
         {
           "name": "csv_write_rdm_outputs",
-          "duration_seconds": 514.789198
+          "duration_seconds": 924.481199
         },
         {
           "name": "text_json_write_rdm_outputs",
-          "duration_seconds": 1.360183
+          "duration_seconds": 1.352896
         }
       ],
       "step_totals": {
-        "rdm_live_evolution_after_cache": 1046.502867,
-        "rdm_v16b_attacker_basics": 530.133847,
-        "csv_write_rdm_outputs": 514.789198,
-        "rdm_v16b8_zone_visit_timeline": 155.576833,
-        "rdm_interaction_core_after_cache": 131.761679,
-        "rdm_density_after_cache": 130.940607,
-        "rdm_base_mechanics": 91.029328,
-        "rdm_true_lifecycle": 69.924131,
-        "interaction_mask_build_time": 60.785809,
-        "rdm_v16b9_zone_health_evolution": 60.036262,
-        "rdm_summary_notes_build": 34.619379,
-        "rdm_v16_numeric_foundation": 19.840493,
-        "rdm_case_cache_build_time": 15.839292,
-        "rdm_birth_death_memory": 14.780242,
-        "rdm_evolution_chart": 6.751746,
-        "rdm_synthesis_engine": 6.578067,
-        "rdm_v16b11_zone_structural_prediction": 5.66133,
-        "rdm_result_summaries": 5.63956,
-        "rdm_v16b4_zone_vs_attacker": 5.277408,
-        "rdm_v16b75b_force_allocation_physics": 5.198602,
-        "rdm_v16b7_attacker_conversion_physics": 5.089942,
-        "rdm_v16b10_zone_structural_trajectory": 4.994573,
-        "rdm_v16b5_anomaly_physics": 4.605336,
-        "rdm_v16b6_reinforcement_physics": 4.563782,
-        "rdm_timeline_lifecycle": 4.084957,
-        "rdm_real_geometry_tracking": 3.499321,
-        "csv_read_rdm_inputs": 3.24139,
-        "rdm_capacity": 3.024826,
-        "rdm_v16b4_zone_strength_foundation": 2.884113,
-        "rdm_verestchaguine": 2.344097,
-        "rdm_sigma_evolution": 2.006667,
-        "rdm_sigma": 1.798124,
-        "jsonl_read_lifecycle_events": 1.642073,
-        "text_json_write_rdm_outputs": 1.360183,
-        "pandas_dataset_build": 0.266082,
-        "pandas_dataframe_build": 0.080909
+        "rdm_live_evolution_after_cache": 1874.895102,
+        "rdm_v16b_attacker_basics": 1064.450847,
+        "csv_write_rdm_outputs": 924.481199,
+        "rdm_v16b8_zone_visit_timeline": 324.257249,
+        "rdm_density_after_cache": 178.48343,
+        "rdm_interaction_core_after_cache": 133.337823,
+        "rdm_base_mechanics": 92.921065,
+        "rdm_true_lifecycle": 77.628629,
+        "interaction_mask_build_time": 69.434259,
+        "rdm_summary_notes_build": 63.424595,
+        "rdm_v16b9_zone_health_evolution": 59.95876,
+        "rdm_v16_numeric_foundation": 19.848218,
+        "rdm_case_cache_build_time": 16.617021,
+        "rdm_birth_death_memory": 14.318396,
+        "rdm_synthesis_engine": 6.646705,
+        "rdm_evolution_chart": 6.606619,
+        "rdm_result_summaries": 5.842188,
+        "rdm_v16b11_zone_structural_prediction": 5.40232,
+        "rdm_v16b4_zone_vs_attacker": 5.275363,
+        "rdm_v16b7_attacker_conversion_physics": 5.063209,
+        "rdm_v16b75b_force_allocation_physics": 5.058404,
+        "rdm_v16b10_zone_structural_trajectory": 5.010465,
+        "rdm_v16b5_anomaly_physics": 4.742054,
+        "rdm_v16b6_reinforcement_physics": 4.567301,
+        "rdm_real_geometry_tracking": 4.1597,
+        "rdm_timeline_lifecycle": 4.030135,
+        "csv_read_rdm_inputs": 3.312831,
+        "rdm_capacity": 3.053169,
+        "rdm_v16b4_zone_strength_foundation": 2.841127,
+        "rdm_verestchaguine": 2.341534,
+        "rdm_sigma_evolution": 2.231716,
+        "rdm_sigma": 1.750454,
+        "jsonl_read_lifecycle_events": 1.674612,
+        "text_json_write_rdm_outputs": 1.352896,
+        "pandas_dataset_build": 0.248394,
+        "pandas_dataframe_build": 0.087905
       },
       "metrics": {
         "rdm_case_cache_count": 4859,
         "interaction_mask_reuse_count": 4859,
         "rows_processed": 4859,
         "historical_rows_loaded": 295822,
-        "live_evolution_rows": 1809010,
+        "live_evolution_rows": 3298628,
         "attacker_evolution_rows": 4859,
         "zone_strength_profile_rows": 4859,
         "zone_vs_attacker_rows": 4859,
@@ -330,7 +330,7 @@
         "zone_reinforcement_rows": 4859,
         "attacker_conversion_rows": 4859,
         "force_allocation_rows": 4859,
-        "zone_visit_timeline_rows": 14083,
+        "zone_visit_timeline_rows": 31964,
         "zone_health_evolution_rows": 4859,
         "zone_structural_trajectory_rows": 4859,
         "zone_structural_prediction_rows": 4859,
@@ -343,8 +343,8 @@
       "csv_file_sizes": [
         {
           "path": "research\\zone_mechanics_cycle3_results.csv",
-          "size_bytes": 16829146,
-          "size_mb": 16.05
+          "size_bytes": 16714814,
+          "size_mb": 15.94
         },
         {
           "path": "research\\zone_mechanics_cycle3_summary.csv",
@@ -388,8 +388,8 @@
         },
         {
           "path": "research\\zone_live_rdm_evolution.csv",
-          "size_bytes": 996434128,
-          "size_mb": 950.274
+          "size_bytes": 1826274094,
+          "size_mb": 1741.671
         },
         {
           "path": "research\\zone_interaction_core_geometry.csv",
@@ -398,13 +398,13 @@
         },
         {
           "path": "research\\zone_interaction_density_map.csv",
-          "size_bytes": 1072087,
-          "size_mb": 1.022
+          "size_bytes": 1077347,
+          "size_mb": 1.027
         },
         {
           "path": "research\\zone_true_lifecycle_tracking.csv",
-          "size_bytes": 1685960,
-          "size_mb": 1.608
+          "size_bytes": 1648402,
+          "size_mb": 1.572
         },
         {
           "path": "research\\zone_birth_registry.csv",
@@ -428,10 +428,10 @@
         }
       ],
       "memory": {
-        "current_python_heap_mb": 1447.087,
-        "peak_python_heap_mb": 1681.091
+        "current_python_heap_mb": 2239.407,
+        "peak_python_heap_mb": 2858.765
       }
     }
   },
-  "updated_utc": "2026-06-16 07:33:07"
+  "updated_utc": "2026-06-16 22:03:16"
 }

@@ -5166,6 +5166,10 @@ def main():
         _today = datetime.today().date()
         _dfrom = _dmin or _today
         _dto = _dmax or _today
+        if st.session_state.get("_date_range_reset_pending"):
+            st.session_state["date_range_from"] = _dfrom
+            st.session_state["date_range_to"] = _dto
+            st.session_state["_date_range_reset_pending"] = False
         if "date_range_from" not in st.session_state:
             st.session_state["date_range_from"] = _dfrom
         if "date_range_to" not in st.session_state:
@@ -5180,8 +5184,7 @@ def main():
             st.write("")
             st.write("")
             if st.button("Reset", key="reset_date_range"):
-                st.session_state["date_range_from"] = _dfrom
-                st.session_state["date_range_to"] = _dto
+                st.session_state["_date_range_reset_pending"] = True
                 st.rerun()
         if from_date > to_date:
             st.warning("From > To — no data will be shown.")

@@ -86,6 +86,7 @@ import pandas as pd
 
 from research.zone_mechanics_calculator import (
     RdmCaseCache,
+    add_dynamic_layers_to_timeline_live,
     add_rdm_result_summaries,
     add_rdm_v16_numeric_foundation,
     build_attacker_evolution,
@@ -121,6 +122,7 @@ from research.zone_mechanics_calculator import (
     merge_true_lifecycle_into_results,
     merge_verestchaguine_into_results,
     round_float,
+    run_zone_visit_timeline_dynamic_live,
     to_float,
     utc_now,
     value,
@@ -579,6 +581,15 @@ def compute_live_rdm_for_case(
 
     _live_rdm_state[case_id] = record
     _persist_record(record)
+
+    # B12.5 auto-trigger — rebuild live dynamic visit timeline immediately
+    # after the new zone is persisted. Runtime confirmed <2s (50 zones).
+    # Failure must never block the main live pipeline.
+    try:
+        run_zone_visit_timeline_dynamic_live()
+        add_dynamic_layers_to_timeline_live()
+    except Exception:
+        pass
 
     return record
 

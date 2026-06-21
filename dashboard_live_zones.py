@@ -183,7 +183,7 @@ def _read(path: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=10)
 def _load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return _read(_RESULTS_PATH), _read(_EVOL_PATH), _read(_DYN_PATH)
 
@@ -593,21 +593,33 @@ def _render_expander(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _render() -> None:
-    n_hours: int = int(st.session_state.get("n_hours_ctrl", 24))
+    window: str = str(st.session_state.get("date_window_ctrl", "Today"))
 
     results, evo, dynamic = _load()
 
     now     = pd.Timestamp.now(tz="UTC")
     now_alg = now.astimezone(ALGERIA_TZ)
-    cutoff  = now - pd.Timedelta(hours=n_hours)
+
+    # Compute Algeria-midnight cutoffs for calendar-day filtering.
+    today_midnight_alg = now_alg.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_midnight_utc = today_midnight_alg.tz_convert("UTC")
+    if window == "Yesterday":
+        cutoff      = today_midnight_utc - pd.Timedelta(days=1)
+        cutoff_high = today_midnight_utc
+    elif window == "Last 3 days":
+        cutoff      = today_midnight_utc - pd.Timedelta(days=2)
+        cutoff_high = None
+    else:  # "Today" (default)
+        cutoff      = today_midnight_utc
+        cutoff_high = None
 
     # ── Page header ───────────────────────────────────────────────────────
     st.markdown(
         f'<h1 style="color:#f9fafb;font-size:1.7rem;margin-bottom:2px;">'
-        f'⚡ Live Zones — Last {n_hours}h</h1>'
+        f'⚡ Live Zones — {window}</h1>'
         f'<div style="font-size:0.82rem;color:#6b7280;font-family:monospace;margin-bottom:16px;">'
         f'Algeria time &nbsp;·&nbsp; {now_alg.strftime("%Y-%m-%d %H:%M:%S")} (UTC+1)'
-        f' &nbsp;·&nbsp; auto-refresh every 60s</div>',
+        f' &nbsp;·&nbsp; auto-refresh every 15s</div>',
         unsafe_allow_html=True,
     )
 
@@ -641,9 +653,12 @@ def _render() -> None:
         }
         latest = pd.Series(pairs)
 
-    # ── Apply N-hour window filter ─────────────────────────────────────────
+    # ── Apply calendar-day window filter ──────────────────────────────────
     if not latest.empty:
-        active_ids = set(latest[latest >= cutoff].index)
+        mask = latest >= cutoff
+        if cutoff_high is not None:
+            mask = mask & (latest < cutoff_high)
+        active_ids = set(latest[mask].index)
         filtered   = results[results["case_id"].isin(active_ids)].reset_index(drop=True)
     else:
         filtered = results.copy()
@@ -682,8 +697,8 @@ def _render() -> None:
     if filtered.empty:
         st.markdown(
             f'<div class="empty-msg">'
-            f'No zones with activity in the last {n_hours} hours.<br/>'
-            f'Increase the window in the sidebar.'
+            f'No zones with activity for: {window}.<br/>'
+            f'Select a wider window in the sidebar.'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -736,33 +751,31 @@ def main() -> None:
     # ── Sidebar ────────────────────────────────────────────────────────────
     with st.sidebar:
         st.markdown("### ⚡ Live Zone Monitor")
-        st.number_input(
-            "Show zones active in the last N hours",
-            min_value=1,
-            max_value=168,
-            value=24,
-            step=1,
-            key="n_hours_ctrl",
-            help="Default 24h. Set to 72h+ if live data has gaps between sessions.",
+        st.selectbox(
+            "Show zones from",
+            options=["Today", "Yesterday", "Last 3 days"],
+            index=0,
+            key="date_window_ctrl",
+            help="'Today' = since 00:00 Algeria time. 'Last 3 days' for catch-up when stream has gaps.",
         )
         if st.button("↻ Refresh Now", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
         st.caption(
-            "Auto-refreshes every 60 seconds via Streamlit fragment.  \n"
-            "A zone exits the view when its last evolution activity  \n"
-            "exceeds the N-hour window."
+            "Auto-refreshes every 15 seconds via Streamlit fragment.  \n"
+            "Filter by Algeria calendar day (UTC+1).  \n"
+            "Use 'Last 3 days' if the live stream has gaps."
         )
         st.markdown("---")
         st.caption("Read-only · No data files are ever modified.")
 
     # ── Auto-refresh fragment (Streamlit ≥ 1.33, confirmed 1.57 here) ─────
-    # run_every=60 re-runs _content() every 60s independently of the sidebar.
+    # run_every=15 re-runs _content() every 15s independently of the sidebar.
     # Sidebar changes still trigger a full rerun that resets the timer.
     _has_run_every = "run_every" in inspect.signature(st.fragment).parameters
 
     if _has_run_every:
-        @st.fragment(run_every=60)
+        @st.fragment(run_every=15)
         def _content() -> None:
             _render()
 

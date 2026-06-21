@@ -2,6 +2,32 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_B125_AUTOTRIGGER_STABLE
+
+B12.5 auto-triggers on every new zone detection:
+  - Wired into core/live_rdm.py inside compute_live_rdm_for_case()
+  - Fires immediately after _persist_record(); wrapped in try/except: pass
+  - Runtime confirmed <2s; failure never blocks main live pipeline
+
+Dashboard filter: calendar-day selector (Today / Yesterday / Last 3 days)
+  - Default: Today; boundary = Algeria midnight converted to UTC
+  - Auto-refresh: cache TTL 10s, fragment run_every 15s (was 30s/60s)
+  - New zones appear on dashboard within 15s, zero manual action
+
+Both dashboards:
+  streamlit run dashboard_app.py
+  streamlit run dashboard_live_zones.py --server.port 8502
+
+Live stream: python -m engines.stream_manager
+  (prevent sleep first: powercfg /change standby-timeout-ac 0)
+
+Next: run LIVE stream continuously → accumulate post-return visits →
+validate LIVE vs REPLAY dynamic_state → B13.
+
+---
+
+## Prior Stable Status (PHASE1B_B125_LIVE_DASHBOARD_STABLE)
+
 Current checkpoint: PHASE1B_B125_LIVE_DASHBOARD_STABLE
 
 B12.5 wired into LIVE pipeline:
@@ -15,16 +41,6 @@ New dashboard: dashboard_live_zones.py (port 8502)
   - Prediction reasoning per card (reuses _classify_dynamic_state rules)
   - Expandable "More Information": full visit history + outcome tracking
   - Algeria timezone throughout, auto-refresh every 60s
-
-Both dashboards:
-  streamlit run dashboard_app.py
-  streamlit run dashboard_live_zones.py --server.port 8502
-
-Live stream: python -m engines.stream_manager
-  (prevent sleep first: powercfg /change standby-timeout-ac 0)
-
-Next: run LIVE stream continuously → accumulate post-return visits →
-validate LIVE vs REPLAY dynamic_state → B13.
 
 ---
 

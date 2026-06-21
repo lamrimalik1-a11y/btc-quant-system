@@ -2,9 +2,53 @@
 
 ## Active Checkpoint
 
-Checkpoint: PHASE1B_B125_LIVE_DASHBOARD_STABLE
+Checkpoint: PHASE1B_B125_AUTOTRIGGER_STABLE
 
 What this checkpoint adds:
+- B12.5 now fires AUTOMATICALLY on every new zone detection
+  (score >= 4), wired into core/live_rdm.py inside
+  compute_live_rdm_for_case(), immediately after _persist_record().
+  Wrapped in try/except: pass so a B12.5 failure never blocks the
+  main live pipeline. Runtime confirmed <2s.
+- dashboard_live_zones.py filter changed from "last N hours" to
+  calendar-day selector: Today / Yesterday / Last 3 days
+  (default: Today, Algeria midnight as boundary)
+- Auto-refresh tightened: cache TTL 10s, fragment run_every 15s
+  (was 30s/60s) — new zones appear on dashboard within 15s with
+  zero manual action
+- Diagnostic command if auto-trigger silently fails:
+    python -c "from research.zone_mechanics_calculator import
+    run_zone_visit_timeline_dynamic_live as r1,
+    add_dynamic_layers_to_timeline_live as r2; r1(); r2();
+    print('Manual B12.5 OK')"
+
+Dashboard architecture (two separate apps, run independently):
+  dashboard_app.py            -> full historical archive (default port)
+  dashboard_live_zones.py     -> today's active zones only (port 8502)
+    Focus: Density Bands as decision zone, Active Core as context,
+    Preparation Zone in expander only. Plain-language WHY reasoning
+    per card (reuses _classify_dynamic_state rules). Expandable visit
+    history with outcome tracking (what_happened_next per visit).
+
+Run commands:
+  powercfg /change standby-timeout-ac 0
+  python -m engines.stream_manager
+  streamlit run dashboard_app.py
+  streamlit run dashboard_live_zones.py --server.port 8502
+
+Next steps:
+  - Run LIVE continuously for extended period (days) to accumulate
+    enough post-return visits for meaningful dynamic_state validation
+  - Once sufficient LIVE post-return data exists, compare LIVE vs
+    REPLAY dynamic_state distributions
+  - Consider B13 (Markov transition engine) once B12.5 is validated
+    on LIVE data
+
+---
+
+## Prior Checkpoint: PHASE1B_B125_LIVE_DASHBOARD_STABLE
+
+What this checkpoint added:
 - B12.5 wired into LIVE pipeline (run_zone_visit_timeline_dynamic_live,
   add_dynamic_layers_to_timeline_live) — uses fixed REPLAY-calibrated
   thresholds for LIVE/REPLAY comparability
@@ -27,16 +71,6 @@ LIVE data status (as of this checkpoint):
   (stream not yet run continuously)
 - 50 unique returning zones, 8 post-return visits, mostly NO_DATA/
   PROBABLE_HOLD (insufficient post-return history yet)
-- Next: run LIVE continuously for extended period to accumulate
-  enough post-return visits for meaningful LIVE vs REPLAY comparison
-
-Commands to run both dashboards simultaneously:
-  streamlit run dashboard_app.py
-  streamlit run dashboard_live_zones.py --server.port 8502
-
-Live stream command:
-  python -m engines.stream_manager
-  (prevent sleep first: powercfg /change standby-timeout-ac 0)
 
 ---
 

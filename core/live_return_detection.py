@@ -99,6 +99,7 @@ from core.live_lifecycle import (
 from core.live_rdm import (
     append_live_b12_validation_for_case,
     append_live_outcome_for_case,
+    append_post_return_tick,
     compute_live_rdm_for_case,
 )
 
@@ -204,6 +205,9 @@ class _PendingReturnZone:
         # breach_memory / guard_state captured at early-emit time.
         "inc_breach_memory",
         "inc_guard_state",
+        # Stage 1 (incremental post-return evolution): per-tick counters.
+        "inc_last_appended_row_id",   # idempotency guard
+        "inc_post_return_row_count",  # 500-row hard cap counter
     )
 
     def __init__(
@@ -274,6 +278,9 @@ class _PendingReturnZone:
         # by _seed_incremental_state() in core.live_rdm at early-emit time.
         self.inc_breach_memory = {}
         self.inc_guard_state = {}
+        # Stage 1 (incremental post-return evolution): per-tick counters.
+        self.inc_last_appended_row_id = None
+        self.inc_post_return_row_count = 0
 
     def is_ready_to_finalize(self):
         return (
@@ -609,6 +616,13 @@ def _advance_pending_zone(pending, market_dt, close_price, row_id, raw_row, feat
         post_return_window_end = pending.return_dt + FOUR_HOURS
         if pending.return_dt <= market_dt <= post_return_window_end:
             pending.post_return_feature_window_rows.append(feature_row)
+            # Stage 1 (incremental post-return evolution): append one row
+            # immediately, using persisted state seeded at Stage 0.
+            # try/except: pass — failure must never block the live pipeline.
+            try:
+                append_post_return_tick(pending, feature_row)
+            except Exception:
+                pass
         if market_dt > post_return_window_end:
             pending.post_return_capture_complete = True
 

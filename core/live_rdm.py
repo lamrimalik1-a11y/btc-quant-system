@@ -89,6 +89,7 @@ from research.zone_mechanics_calculator import (
     add_dynamic_layers_to_timeline_live,
     add_rdm_result_summaries,
     add_rdm_v16_numeric_foundation,
+    apply_live_rdm_guard,
     build_attacker_evolution,
     build_force_allocation_profile,
     build_interaction_core_geometry,
@@ -112,6 +113,7 @@ from research.zone_mechanics_calculator import (
     build_zone_structural_trajectory,
     build_zone_visit_timeline,
     calculate_zone_mechanics_row,
+    live_evolution_record,
     merge_capacity_into_results,
     merge_interaction_core_into_results,
     merge_interaction_density_into_results,
@@ -149,6 +151,10 @@ LIVE_B12_VALIDATION_FILE = OUTPUT_DIR / "live_b12_validation.csv"
 LIVE_B10_TRAJECTORY_FILE = OUTPUT_DIR / "live_b10_trajectory.csv"
 LIVE_B11_PREDICTION_FILE = OUTPUT_DIR / "live_b11_prediction.csv"
 LIVE_SYNTHESIS_FILE = OUTPUT_DIR / "live_synthesis.csv"
+
+# Stage 1 (incremental post-return evolution): hard cap on post-return rows
+# per zone, mirroring REPLAY's return_row+500 bound in live_row_window().
+_POST_RETURN_MAX_ROWS = 500
 
 # Fields the live dataset row carries directly under the SAME name offline's
 # dataset (research_log + episodes peak_* merge) uses — pure pass-through,
@@ -601,6 +607,70 @@ def compute_live_rdm_for_case(
         pass
 
     return record
+
+
+def append_post_return_tick(pending, feature_row):
+    """Stage 1 (incremental post-return evolution): compute and append ONE
+    evolution row for a single post-return tick.
+
+    Called from _advance_pending_zone immediately after the tick is appended
+    to post_return_feature_window_rows, inside the [return_dt, +4h] gate.
+    The caller is already inside that gate so no second temporal check is
+    needed here, but two hard guards are enforced:
+
+      - Idempotency: skip if feature_row["row_id"] was already appended
+        (prevents double-append on any replay of the same tick).
+      - 500-row cap: mirrors REPLAY's return_row+500 bound in live_row_window;
+        prevents unbounded growth regardless of tick rate or window duration.
+
+    Uses the Formation zone Series from _live_rdm_state (real_zone edges intact,
+    no Active Core override — preserves LIVE/REPLAY comparability).  Passes
+    inc_breach_memory and inc_guard_state, which mutate in place, advancing the
+    state by exactly one step — identical to live_evolution_rows_for_zone's
+    loop body in REPLAY.
+
+    ADDITIVE ONLY.  Does not call build_live_rdm_evolution, does not trigger
+    B12.5, does not alter any existing CSV beyond appending one row.
+    Caller wraps this in try/except: pass — failure never blocks the pipeline.
+    """
+    # Idempotency guard
+    row_id = feature_row.get("row_id")
+    if row_id is not None and row_id == pending.inc_last_appended_row_id:
+        return
+
+    # 500-row hard cap
+    if pending.inc_post_return_row_count >= _POST_RETURN_MAX_ROWS:
+        return
+
+    # Look up the PENDING case record (Formation zone Series)
+    cached = _live_rdm_state.get(pending.zone_id)
+    if cached is None:
+        return
+    zone = pd.Series(cached["result_row"])
+    run_utc = utc_now()
+
+    # One evolution row — same call pair as REPLAY's live_evolution_rows_for_zone
+    record = live_evolution_record(
+        zone=zone,
+        row_index=feature_row.get("row_id"),
+        timestamp=feature_row.get("market_timestamp"),
+        price=to_float(feature_row.get("close")),
+        source_row=pd.Series(feature_row),
+        run_utc=run_utc,
+        breach_memory=pending.inc_breach_memory,   # mutates in place
+    )
+    apply_live_rdm_guard(record, pending.inc_guard_state)  # mutates in place
+
+    # Append single-row DataFrame via existing path (mode="a", schema-identical)
+    _append_evolution_csv(
+        pending.zone_id,
+        pending.episode_id,
+        pd.DataFrame([record]),
+    )
+
+    # Advance counters
+    pending.inc_last_appended_row_id = row_id
+    pending.inc_post_return_row_count += 1
 
 
 def _seed_incremental_state(pending, live_evolution_df):

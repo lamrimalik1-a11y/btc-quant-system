@@ -200,6 +200,10 @@ class _PendingReturnZone:
         "early_emit_done",
         "post_return_feature_window_rows",
         "post_return_capture_complete",
+        # Stage 0 (incremental post-return evolution): end-of-pre-return
+        # breach_memory / guard_state captured at early-emit time.
+        "inc_breach_memory",
+        "inc_guard_state",
     )
 
     def __init__(
@@ -265,6 +269,11 @@ class _PendingReturnZone:
         # existing buffer/flag.
         self.post_return_feature_window_rows = []
         self.post_return_capture_complete = False
+
+        # Stage 0 (incremental post-return evolution): seeded empty; populated
+        # by _seed_incremental_state() in core.live_rdm at early-emit time.
+        self.inc_breach_memory = {}
+        self.inc_guard_state = {}
 
     def is_ready_to_finalize(self):
         return (

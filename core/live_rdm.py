@@ -582,6 +582,15 @@ def compute_live_rdm_for_case(
     _live_rdm_state[case_id] = record
     _persist_record(record)
 
+    # Stage 0 (incremental post-return evolution): capture end-of-pre-return
+    # breach_memory / guard_state from the just-built evolution DataFrame.
+    # Reads from already-computed live_evolution_df — zero extra I/O, zero
+    # formula change. Failure must never block the main live pipeline.
+    try:
+        _seed_incremental_state(pending, live_evolution_df)
+    except Exception:
+        pass
+
     # B12.5 auto-trigger — rebuild live dynamic visit timeline immediately
     # after the new zone is persisted. Runtime confirmed <2s (50 zones).
     # Failure must never block the main live pipeline.
@@ -592,6 +601,59 @@ def compute_live_rdm_for_case(
         pass
 
     return record
+
+
+def _seed_incremental_state(pending, live_evolution_df):
+    """Stage 0 (incremental post-return evolution) — state-capture seam.
+
+    Derives end-of-pre-return breach_memory / guard_state from the LAST ROW
+    of the just-built pre-return evolution DataFrame and stores them on the
+    pending zone.  Both dicts are exactly what live_evolution_rows_for_zone /
+    apply_live_rdm_guard held after processing the return row:
+
+    breach_memory — monotonic OR-latch (4 bools).  Recovered from
+        mechanical_breach_summary_live: "|"-joined UPPERCASE keys where the
+        flag is True.  The last row of live_evolution_df carries the
+        accumulated (never-reset) state for the whole pre-return window.
+
+    guard_state — 5 Markovian streak counters.  Recovered directly from the
+        five streak columns already written into the last evolution row:
+        live_inside_zone_streak, live_breach_streak, live_rupture_streak,
+        live_recovery_streak, live_stress_persistence.
+
+    ADDITIVE ONLY.  Does not write any file, does not trigger B12.5, does not
+    change live_evolution_record / apply_live_rdm_guard / build_live_rdm_evolution
+    or any RDM formula.
+    """
+    if live_evolution_df is None or live_evolution_df.empty:
+        return
+
+    last = live_evolution_df.iloc[-1]
+
+    # breach_memory: keys are lowercase; summary stores them UPPERCASE.
+    # Filter out pandas NaN serialized as the string "nan".
+    summary = str(last.get("mechanical_breach_summary_live") or "")
+    breach_keys = {
+        item.lower()
+        for item in summary.split("|")
+        if item.strip() and item.lower() != "nan"
+    }
+    pending.inc_breach_memory = {key: True for key in breach_keys}
+
+    # guard_state: keys match apply_live_rdm_guard's state dict exactly.
+    def _to_int(v):
+        try:
+            return int(float(v)) if str(v) not in ("", "nan") else 0
+        except (ValueError, TypeError):
+            return 0
+
+    pending.inc_guard_state = {
+        "inside":   _to_int(last.get("live_inside_zone_streak")),
+        "breach":   _to_int(last.get("live_breach_streak")),
+        "rupture":  _to_int(last.get("live_rupture_streak")),
+        "recovery": _to_int(last.get("live_recovery_streak")),
+        "stress":   _to_int(last.get("live_stress_persistence")),
+    }
 
 
 def append_live_outcome_for_case(pending, merged_row, event_timestamp):

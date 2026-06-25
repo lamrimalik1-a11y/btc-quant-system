@@ -21,6 +21,13 @@ MARKET_ROW_COLUMNS = [
     "renko_event",
     "renko_bricks",
     "market_timestamp",
+    # OHLC persistence (ADDITIVE). open/high/low are already computed by
+    # build_trade_row(); appended AFTER all existing columns so "close" and
+    # every prior column keep their exact byte positions. LIVE going forward
+    # only — does not retroactively populate already-written rows.
+    "open",
+    "high",
+    "low",
 ]
 
 
@@ -93,23 +100,33 @@ def ensure_market_timestamp_column():
 
     header = rows[0]
 
-    if "market_timestamp" in header:
+    # Append ANY MARKET_ROW_COLUMNS missing from the on-disk header (ADDITIVE
+    # migration). Originally market_timestamp-only; generalized so newly-added
+    # trailing columns (open/high/low) are migrated onto existing files too.
+    # New columns are only ever appended at the end of MARKET_ROW_COLUMNS, so
+    # existing column positions are preserved; already-written rows receive
+    # empty trailing cells for the new columns.
+    missing = [
+        column
+        for column in MARKET_ROW_COLUMNS
+        if column not in header
+    ]
+
+    if not missing:
         return
 
-    updated_header = header + [
-        "market_timestamp"
-    ]
+    updated_header = header + missing
 
     updated_rows = [
         updated_header
     ]
 
+    pad = [""] * len(missing)
+
     for row in rows[1:]:
 
         updated_rows.append(
-            row + [
-                ""
-            ]
+            row + pad
         )
 
     with open(
@@ -174,4 +191,10 @@ def save_row(row):
                     ""
                 )
             ),
+
+            row["open"],
+
+            row["high"],
+
+            row["low"],
         ])

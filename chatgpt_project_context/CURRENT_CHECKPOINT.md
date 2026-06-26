@@ -123,3 +123,46 @@ Prior checkpoints (preserved):
   - PHASE1B_SYNTHESIS_ENGINE_STABLE
 
 ---
+
+---
+
+## Active Checkpoint: PHASE1B_RDM_V2_MECHANICAL_ARCHITECTURE_STABLE
+
+Status: STABLE RESEARCH CHECKPOINT
+
+This checkpoint consolidates the current RDM V2 mechanical architecture after Stage 5H.
+
+Included stages:
+- Stage 5D Dynamic State signature analysis
+- Stage 5E transition analysis
+- Stage 5F transition family discovery
+- Stage 5G attacker force causality analysis
+- Stage 5H mechanical dependency graph
+
+New spec:
+- docs/RDM_V2_MECHANICAL_ARCHITECTURE_SPEC.md
+
+Stage 5H graph summary:
+- 49 variables classified
+- 113 dependency edges
+- 21 dependency layers
+- max dependency depth = 20
+- direct dependency loops = 0
+
+Core conclusion:
+The implemented mechanical engine is feed-forward at artifact-generation time. It has temporal memory through integrals, guards, health evolution, sigma evolution, and structural damage, but no same-step algebraic dependency loop was confirmed.
+
+Important research conclusions:
+- Stage 2C acute pressure + chronic structural damage is mechanically superior to frozen post-return behavior.
+- ATTACKER_DOMINANT has a distinct mechanical signature and is the strongest continuation-bearing Dynamic State so far.
+- STABLE / PROBABLE_HOLD are more rejection-biased.
+- Attacker Force and Omega are common first movers.
+- Fatigue is the clearest deterioration precursor.
+- Attacker Force is interaction-conditioned, not raw-delta-only.
+
+Project state:
+- Project 1 remains Phase 1B+ research expansion.
+- Project 2 has not begun; when approved, it should replace only the Geometry Engine while reusing replay, statistics, dashboard, research infrastructure, and validation methodology.
+
+Rules:
+No Phase 2, no Footprint, no execution, no entries/exits, no BUY/SELL, no live signals, no scoring changes, no RDM formula changes, no Dynamic State threshold changes.

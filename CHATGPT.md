@@ -235,3 +235,79 @@ Goal: Characterize the remaining error concentration in EXHAUSTED_ZONE.
     (BREAKDOWN threshold of rig_birth*0.50 not reached because rig_birth > 30)
   - Question: Is STABLE trajectory in EXHAUSTED_ZONE a systematic B10 error
     or a genuine edge case (zone that was stable until a sudden event)?
+
+==================================================
+PHASE1B_RDM_V2_MECHANICAL_ARCHITECTURE_STABLE
+==================================================
+
+STATUS:
+STABLE RESEARCH CHECKPOINT
+
+SCOPE:
+Documentation and architecture consolidation only.
+
+COMPLETED:
+- Stage 5D Dynamic State signature analysis
+- Stage 5E transition analysis
+- Stage 5F transition family discovery
+- Stage 5G attacker force causality analysis
+- Stage 5H mechanical dependency graph
+
+NEW DOCUMENTATION:
+- docs/RDM_V2_MECHANICAL_ARCHITECTURE_SPEC.md
+
+STAGE 5H DEPENDENCY GRAPH:
+- Variables classified: 49
+- Dependency edges: 113
+- Dependency layers: 21
+- Max dependency depth: 20
+- Direct dependency loops: 0
+
+CORE ARCHITECTURE:
+Raw Market Data
+    -> Statistics Engine
+    -> Geometry Engine
+    -> Interaction / Penetration
+    -> Mechanical Exposure
+    -> RDM V2
+    -> SDR / Derivative / Integral
+    -> Dynamic State
+    -> Structural Prediction
+
+VALIDATED CONCLUSIONS:
+- The mechanical engine is feed-forward at artifact-generation time.
+- Temporal memory exists through integrals, guards, health evolution, sigma evolution, and structural damage.
+- No same-step algebraic loop was confirmed.
+- Stage 2C replaced frozen post-return mechanics with acute pressure + chronic structural damage.
+- Stage 2C is mechanically superior to frozen post-return behavior.
+- ATTACKER_DOMINANT has a distinct mechanical signature.
+- ATTACKER_DOMINANT is the strongest continuation-bearing Dynamic State so far.
+- STABLE / PROBABLE_HOLD are more rejection-biased.
+- Attacker Force and Omega are common first movers in transition analysis.
+- Fatigue is the clearest deterioration precursor.
+- Attacker Force appears interaction-conditioned, not raw-delta-only.
+
+ARCHITECTURAL DECISION:
+Current mechanical architecture is accepted as a stable research checkpoint.
+It is not approved for production replacement.
+It is not trading validation.
+It does not start Phase 2.
+
+PROJECT STATUS:
+Project 1 remains inside Phase 1B+ research expansion.
+Project 2 remains not implemented; its intended philosophy is to replace only the Geometry Engine while reusing replay, statistics, dashboard, research infrastructure, and validation methodology.
+
+RULES PRESERVED:
+No production formula change.
+No replay change.
+No dashboard logic change.
+No RDM formula change.
+No Dynamic State threshold change.
+No execution.
+No entries/exits.
+No BUY/SELL.
+No live signals.
+No Phase 2.
+
+NEXT ARCHITECTURAL DECISION:
+Decide whether to continue Dynamic State architecture review, study redundancy/merging questions, or begin the next approved research stage. Do not implement Project 2 until explicitly approved.

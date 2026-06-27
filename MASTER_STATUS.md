@@ -2917,3 +2917,59 @@ No Phase 2.
 
 NEXT ARCHITECTURAL DECISION:
 Decide whether to continue Dynamic State architecture review, study redundancy/merging questions, or begin the next approved research stage. Do not implement Project 2 until explicitly approved.
+
+
+==================================================
+RDM_V2_EVENT_DRIVEN_SHADOW_FOUNDATION
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+OBJECTIVE:
+Establish the first deterministic, event-driven RDM V2 foundation
+without connecting it to any production or LIVE processing path.
+
+COMPONENTS:
+- Interaction Interpreter
+  - Pure normalization layer from market row + geometry state to
+    MechanicalEvent records.
+  - Supported shadow events: TOUCH, ZONE_ENTER, ZONE_EXIT, RETURN,
+    PENETRATION_UPDATED, VISIT_STARTED, VISIT_COMPLETED.
+- Mechanical Refresh Coordinator
+  - Pure orchestration planner from InteractionState + MechanicalEvent
+    records to dirty flags and an ordered RefreshPlan.
+  - Does not calculate mechanics or call RDM components.
+- Interpreter + Coordinator Shadow Chain Test
+  - Deterministic synthetic sequence validates:
+    market row + geometry -> events -> refresh plan.
+  - Two identical runs produce identical event and plan output.
+  - Expected events and dirty flags pass with zero mismatches.
+
+ARCHITECTURAL ROLE:
+Foundation for a future Event-Driven RDM V2 refresh pipeline.
+Interaction interpretation and refresh planning are now explicit while
+all existing calculations and consumers remain unchanged.
+
+ISOLATION:
+- Shadow mode only.
+- Not consumed by the production pipeline.
+- No LIVE integration.
+- No file routing or snapshot writes.
+- No dashboard integration.
+- No Stage 2C integration.
+- No RDM formula change.
+- No Dynamic State change.
+- No production behavior change.
+
+VALIDATION:
+- core/interaction_interpreter.py compile: PASS
+- core/mechanical_refresh_coordinator.py compile: PASS
+- experiments/event_refresh_shadow_chain.py compile: PASS
+- SHADOW_CHAIN_TEST = PASS
+- DETERMINISTIC_REPLAY = PASS
+- PRODUCTION_EFFECTS = FALSE
+- MISMATCHES = NONE
+
+NEXT:
+Await architectural approval before any production integration.

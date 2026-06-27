@@ -250,3 +250,41 @@ Project state:
 
 Rules:
 No Phase 2, no Footprint, no execution, no entries/exits, no BUY/SELL, no live signals, no scoring changes, no RDM formula changes, no Dynamic State threshold changes.
+
+
+---
+
+## Active Checkpoint: RDM_V2_EVENT_DRIVEN_SHADOW_FOUNDATION
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Purpose:
+Create an explicit event-driven RDM V2 foundation without changing
+production behavior.
+
+Components:
+- Interaction Interpreter:
+  market row + geometry -> deterministic MechanicalEvent records.
+- Mechanical Refresh Coordinator:
+  InteractionState + events -> dirty flags -> ordered RefreshPlan.
+- Shadow Chain Test:
+  deterministic end-to-end validation with zero mismatches.
+
+Supported shadow events:
+TOUCH, ZONE_ENTER, ZONE_EXIT, RETURN, PENETRATION_UPDATED,
+VISIT_STARTED, VISIT_COMPLETED.
+
+Validation:
+- Requested modules compile: PASS
+- Shadow chain test: PASS
+- Deterministic replay: PASS
+- Mismatches: NONE
+- Production effects: FALSE
+
+Isolation:
+Shadow mode only. No production or LIVE consumer, no RDM execution,
+no Stage 2C integration, no snapshots, no dashboard changes, and no
+formula or Dynamic State changes.
+
+Next:
+Await architectural decision before production integration.

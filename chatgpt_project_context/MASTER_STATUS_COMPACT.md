@@ -363,3 +363,36 @@ Validation:
 
 Next:
 Await first mechanical component integration approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_ROW_MECHANICS_ADAPTER_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Files:
+- core/row_mechanics_adapter.py
+- experiments/row_mechanics_adapter/shadow_test.py
+
+Implemented:
+- 17 current-row mechanical fields mapped
+- Explicit source-field provenance
+- NOT_AVAILABLE missing-field handling
+- Zero and False preserved as valid values
+- Canonical Snapshot patch compatibility
+
+Boundary:
+Mapping only. No arithmetic, coercion, normalization, fallback mechanical
+derivation, production consumer, LIVE integration, RDM changes, Dynamic
+State, Stage 2C, B10/B11, dashboard, CSV writes, or persistence.
+
+Validation:
+- Module and shadow test compile: PASS
+- Normal and missing-field mapping: PASS
+- No calculations: PASS
+- Snapshot-store application: PASS
+- Production effects: FALSE
+
+Next:
+Await next mechanical adapter approval.

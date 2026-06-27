@@ -483,3 +483,60 @@ VALIDATION:
 
 NEXT:
 Await explicit approval before integrating the first mechanical component.
+
+
+==================================================
+RDM_V2_ROW_MECHANICS_ADAPTER_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+FILES:
+- core/row_mechanics_adapter.py
+- experiments/row_mechanics_adapter/shadow_test.py
+
+IMPLEMENTED:
+- Row Mechanics Adapter Stage 1
+- Mapping of 17 existing current-row mechanical fields:
+  price, timestamp, row ID, zone presence, touch, distance, penetration,
+  fleche, sigma market, sigma barre, load, Omega, fatigue, recovery,
+  rigidity, capacity, and health.
+- Explicit source aliases with source-field provenance.
+- NOT_AVAILABLE handling for absent, blank, None, or NaN inputs.
+- Zero and False remain valid source values.
+- RefreshResult-style Current Row Mechanics patch output.
+- Canonical Snapshot shadow-store compatibility.
+
+CALCULATION BOUNDARY:
+- Mapping only.
+- No arithmetic.
+- No numeric coercion.
+- No normalization.
+- No fallback mechanical derivation.
+- Existing values are copied unchanged.
+
+ISOLATION:
+- Shadow mode only.
+- No production consumer.
+- No LIVE integration.
+- No live_rdm changes.
+- No RDM formula changes.
+- No Dynamic State.
+- No Stage 2C.
+- No B10/B11.
+- No dashboard.
+- No CSV writes or snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- core/row_mechanics_adapter.py compile: PASS
+- experiments/row_mechanics_adapter/shadow_test.py compile: PASS
+- Normal row mapping: PASS
+- Missing-field handling: PASS
+- No-calculation proof: PASS
+- Canonical Snapshot patch application: PASS
+- Production effects: FALSE
+
+NEXT:
+Await approval for the next mechanical adapter.

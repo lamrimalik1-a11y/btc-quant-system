@@ -3032,3 +3032,60 @@ ISOLATION:
 NEXT:
 Await explicit approval before implementing the Canonical Snapshot or
 connecting any shadow component to production.
+
+
+==================================================
+RDM_V2_CANONICAL_SNAPSHOT_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+IMPLEMENTED:
+- CanonicalZoneSnapshot
+  - Deeply immutable current-state projection for one shadow zone.
+- SnapshotBuilder
+  - Assembles supplied RefreshPlan result patches.
+  - Does not calculate mechanical values.
+- SnapshotStore
+  - In-memory current-snapshot store.
+  - Supports create, get_current, and update.
+
+INITIAL SNAPSHOT SECTIONS:
+- Metadata
+- Geometry
+- Current Row Mechanics
+- Open Visit
+
+REVISION MODEL:
+- Snapshot creation begins at revision 1.
+- Every successful update increments the revision.
+- Updates use copy-on-write.
+- A candidate revision is built completely before publication.
+- A failed update leaves the previous immutable revision valid.
+
+BOUNDARY:
+- In-memory shadow only.
+- No persistence or CSV writes.
+- No production consumer.
+- No stream_manager, observation_logger, or LIVE integration.
+- No dashboard integration.
+- No Last Completed Visit section yet.
+- No Dynamic Mechanics or Dynamic State.
+- No transitions.
+- No Stage 2C.
+- No B10/B11 or prediction.
+- No RDM formula change.
+- No production behavior change.
+
+VALIDATION:
+- core/canonical_snapshot.py compile: PASS
+- experiments/canonical_snapshot/shadow_test.py compile: PASS
+- Snapshot creation: PASS
+- Snapshot update: PASS
+- Revision increment: PASS
+- Failed update preserved previous revision: PASS
+- Production effects: FALSE
+
+NEXT:
+Await explicit approval before integrating the first mechanical component.

@@ -325,3 +325,41 @@ or runtime file writes were added.
 
 Next:
 Await Canonical Snapshot implementation approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Implemented:
+- CanonicalZoneSnapshot
+- SnapshotBuilder
+- SnapshotStore
+
+Initial sections:
+- Metadata
+- Geometry
+- Current Row Mechanics
+- Open Visit
+
+Revision behavior:
+- In-memory copy-on-write
+- Revision starts at 1
+- Successful updates increment revision
+- Failed updates preserve the previous immutable revision
+
+Boundary:
+Shadow only. No persistence, production consumer, LIVE integration,
+dashboard integration, Stage 2C, Dynamic State, transitions, B10/B11,
+prediction, or formula changes.
+
+Validation:
+- Module and shadow test compile: PASS
+- Creation/update/revision tests: PASS
+- Failed-update preservation: PASS
+- Production effects: FALSE
+
+Next:
+Await first mechanical component integration approval.

@@ -396,3 +396,40 @@ Validation:
 
 Next:
 Await next mechanical adapter approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_OPEN_VISIT_ADAPTER_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Files:
+- core/open_visit_adapter.py
+- experiments/open_visit_adapter/shadow_test.py
+
+Implemented:
+- Existing InteractionState/visit values -> Open Visit snapshot patch
+- active_visit_flag
+- Source-field provenance
+- NOT_AVAILABLE handling
+- Canonical Snapshot patch compatibility
+
+Inactive visit:
+active_visit_flag is False; visit-specific fields are NOT_AVAILABLE while
+available interaction booleans remain unchanged.
+
+Boundary:
+Mapping only. No accumulation, inferred mechanics, production consumer,
+LIVE integration, Dynamic State, Stage 2C, B10/B11, dashboard, CSV writes,
+or persistence.
+
+Validation:
+- Module and shadow test compile: PASS
+- Active/inactive visit mapping: PASS
+- Missing fields and no-calculation proof: PASS
+- Snapshot-store application: PASS
+- Production effects: FALSE
+
+Next:
+Await next adapter approval.

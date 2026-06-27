@@ -676,3 +676,65 @@ VALIDATION:
 
 NEXT:
 Await approval for the next mechanical adapter.
+
+
+==================================================
+RDM_V2_OPEN_VISIT_ADAPTER_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+FILES:
+- core/open_visit_adapter.py
+- experiments/open_visit_adapter/shadow_test.py
+
+IMPLEMENTED:
+- Open Visit Adapter Stage 1
+- Mapping from existing InteractionState or visit-style dictionaries into
+  Canonical Snapshot Open Visit patches.
+- Open Visit fields include visit identity/status, start row/time/price,
+  row count, maximum penetration, cumulative Omega, accumulated pressure,
+  attacker force, interaction flags, and last event/row identity.
+- active_visit_flag explicitly identifies active versus inactive visits.
+- Explicit source-field provenance.
+- NOT_AVAILABLE handling for missing visit values.
+- Available False and zero values remain valid.
+- Canonical Snapshot shadow-store patch compatibility.
+
+NO-ACTIVE-VISIT BEHAVIOR:
+- active_visit_flag = False.
+- Visit-specific fields are NOT_AVAILABLE.
+- Existing interaction facts such as inside_zone=False and
+  touch_active=False remain available and unchanged.
+
+CALCULATION BOUNDARY:
+- Mapping only.
+- No accumulation.
+- No inferred visit outcome.
+- No inferred Omega, pressure, attacker force, or visit status.
+- No mechanical formulas or coercion.
+
+ISOLATION:
+- Shadow mode only.
+- No production consumer.
+- No LIVE or live_rdm integration.
+- No Dynamic State.
+- No Stage 2C.
+- No B10/B11.
+- No dashboard.
+- No CSV writes or snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- core/open_visit_adapter.py compile: PASS
+- experiments/open_visit_adapter/shadow_test.py compile: PASS
+- Active visit mapping: PASS
+- No-active-visit behavior: PASS
+- Missing-field handling: PASS
+- No-calculation proof: PASS
+- Canonical Snapshot patch application: PASS
+- Production effects: FALSE
+
+NEXT:
+Await approval for the next adapter.

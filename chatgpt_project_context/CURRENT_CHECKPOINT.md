@@ -204,3 +204,40 @@ formula or Dynamic State changes.
 
 Next:
 Await architectural decision before production integration.
+
+
+---
+
+## Active Checkpoint: RDM_V2_EVENT_DRIVEN_BACKBONE_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Shadow backbone:
+
+```text
+Interaction Interpreter
+    -> Event Dispatcher
+    -> Mechanical Refresh Coordinator
+```
+
+Responsibilities:
+- Interpreter: market row + geometry -> normalized MechanicalEvent records.
+- Dispatcher: identity/order validation, event-ID deduplication, atomic
+  shadow batch delivery.
+- Coordinator: events -> dirty flags -> ordered RefreshPlan.
+
+Validation:
+- Valid ordered dispatch: PASS
+- Duplicate/replayed IDs: PASS
+- Invalid order rejection: PASS
+- Zone mismatch rejection: PASS
+- Shadow coordinator plan: PASS
+- Production effects: FALSE
+
+Boundary:
+All three components are shadow-only. No production consumer, LIVE
+integration, RDM execution, Stage 2C, Dynamic State, dashboard, snapshot,
+or runtime file writes were added.
+
+Next:
+Await Canonical Snapshot implementation approval.

@@ -367,3 +367,62 @@ VALIDATION:
 
 NEXT:
 Await architectural approval before any production integration.
+
+
+==================================================
+RDM_V2_EVENT_DRIVEN_BACKBONE_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+SHADOW BACKBONE:
+Interaction Interpreter
+    ->
+Event Dispatcher
+    ->
+Mechanical Refresh Coordinator
+
+COMPONENT RESPONSIBILITIES:
+- Interaction Interpreter
+  - Converts market row + geometry state into normalized MechanicalEvent
+    records.
+- Event Dispatcher
+  - Validates identity and event ordering.
+  - Deduplicates event IDs.
+  - Sends one accepted event batch to the shadow coordinator.
+- Mechanical Refresh Coordinator
+  - Converts InteractionState + MechanicalEvent records into dirty flags
+    and an ordered RefreshPlan.
+  - Plans refresh work without executing mechanical calculations.
+
+EVENT DISPATCHER VALIDATION:
+- Valid ordered batch: PASS
+- Duplicate event IDs: PASS
+- Replayed event IDs: PASS
+- Invalid event order rejection: PASS
+- Zone mismatch rejection: PASS
+- Shadow coordinator plan returned: PASS
+- Production effects: FALSE
+
+ARCHITECTURAL ROLE:
+The event-driven RDM V2 shadow backbone is now complete. It establishes
+deterministic event interpretation, transport, validation, deduplication,
+and refresh planning before any future Canonical Snapshot integration.
+
+ISOLATION:
+- Shadow mode only.
+- No production consumer.
+- No stream_manager or observation_logger integration.
+- No LIVE pipeline changes.
+- No RDM formula changes.
+- No Dynamic State changes.
+- No Stage 2C integration.
+- No dashboard changes.
+- No snapshot implementation.
+- No runtime file writes.
+- No production behavior change.
+
+NEXT:
+Await explicit approval before implementing the Canonical Snapshot or
+connecting any shadow component to production.

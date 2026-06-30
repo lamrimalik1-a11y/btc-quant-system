@@ -433,3 +433,39 @@ Validation:
 
 Next:
 Await next adapter approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Files:
+- core/canonical_snapshot.py
+- core/last_completed_visit_adapter.py
+- experiments/last_completed_visit_adapter/shadow_test.py
+
+Implemented:
+- Canonical snapshot last_completed_visit section
+- 22 completed-visit fields mapped
+- Current visit-timeline aliases supported
+- Source-field provenance
+- NOT_AVAILABLE handling
+- Zero and False preserved
+- Snapshot patch compatibility
+
+Boundary:
+Mapping only. No duration calculation, visit classification, inferred flags,
+production consumer, LIVE integration, Dynamic State, Stage 2C, B10/B11,
+dashboard, CSV writes, or persistence.
+
+Validation:
+- All requested compile checks: PASS
+- Adapter mapping and missing handling: PASS
+- Existing snapshot regression: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+Next:
+Await Dynamic Mechanics Adapter approval.

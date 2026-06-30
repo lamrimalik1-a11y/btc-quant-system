@@ -1,7 +1,7 @@
 """Shadow-only canonical snapshot assembly and in-memory storage.
 
 Stage 1 contains no mechanical formulas and has no production consumers.
-SnapshotBuilder assembles validated patches for four initial sections, while
+SnapshotBuilder assembles validated patches for shadow sections, while
 SnapshotStore publishes complete immutable revisions using copy-on-write.
 """
 
@@ -22,6 +22,7 @@ SNAPSHOT_SECTIONS = (
     "geometry",
     "current_row_mechanics",
     "open_visit",
+    "last_completed_visit",
 )
 _PROTECTED_METADATA_FIELDS = frozenset(
     {
@@ -43,6 +44,7 @@ class CanonicalZoneSnapshot:
     geometry: Mapping[str, Any]
     current_row_mechanics: Mapping[str, Any]
     open_visit: Mapping[str, Any]
+    last_completed_visit: Mapping[str, Any]
     source_plan_id: str
     source_event_ids: tuple[str, ...]
     shadow_only: bool = True
@@ -58,6 +60,9 @@ class CanonicalZoneSnapshot:
                 self.current_row_mechanics
             ),
             "open_visit": _thaw(self.open_visit),
+            "last_completed_visit": _thaw(
+                self.last_completed_visit
+            ),
             "source_plan_id": self.source_plan_id,
             "source_event_ids": list(self.source_event_ids),
             "shadow_only": self.shadow_only,
@@ -115,6 +120,9 @@ class SnapshotBuilder:
                 sections["current_row_mechanics"]
             ),
             open_visit=_freeze(sections["open_visit"]),
+            last_completed_visit=_freeze(
+                sections["last_completed_visit"]
+            ),
             source_plan_id=plan.plan_id,
             source_event_ids=tuple(plan.event_ids),
         )

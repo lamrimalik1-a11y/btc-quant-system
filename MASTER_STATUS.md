@@ -3208,3 +3208,69 @@ VALIDATION:
 
 NEXT:
 Await approval for the next adapter.
+
+
+==================================================
+RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+FILES:
+- core/canonical_snapshot.py
+- core/last_completed_visit_adapter.py
+- experiments/last_completed_visit_adapter/shadow_test.py
+
+SNAPSHOT EXTENSION:
+- CanonicalZoneSnapshot now includes last_completed_visit.
+- SnapshotBuilder and SnapshotStore accept immutable
+  last_completed_visit patches.
+- Existing copy-on-write revision behavior is unchanged.
+- Existing snapshot tests remain valid.
+
+ADAPTER:
+- Last Completed Visit Adapter Stage 1.
+- Maps 22 existing completed-visit fields.
+- Includes visit identity, row/time boundaries, duration, row count,
+  penetration, Omega, attacker force, structural values, visit result and
+  classification, plus absorption/reflection/reclaim/damage/growth flags.
+- Supports current timeline aliases including visit_start_time,
+  visit_end_time, visit_duration_rows, and max_penetration_at_visit.
+- Explicit source-field provenance.
+- NOT_AVAILABLE handling for absent, blank, None, or NaN values.
+- Zero and False are preserved as valid source values.
+- Canonical Snapshot patch compatibility.
+
+CALCULATION BOUNDARY:
+- Mapping only.
+- No duration calculation.
+- No visit classification.
+- No inferred outcome flags.
+- No formulas, coercion, or fallback mechanical derivation.
+
+ISOLATION:
+- Shadow mode only.
+- No production consumer.
+- No LIVE or live_rdm integration.
+- No Dynamic State.
+- No Stage 2C.
+- No B10/B11.
+- No dashboard.
+- No CSV writes or snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- core/canonical_snapshot.py compile: PASS
+- core/last_completed_visit_adapter.py compile: PASS
+- Adapter shadow test compile: PASS
+- Completed-visit mapping: PASS
+- Missing-field handling: PASS
+- Zero/False preservation: PASS
+- No-calculation proof: PASS
+- Snapshot patch application: PASS
+- Existing Canonical Snapshot regression: PASS
+- Production effects: FALSE
+
+NEXT:
+Await Dynamic Mechanics Adapter approval.

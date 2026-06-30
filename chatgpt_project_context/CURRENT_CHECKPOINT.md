@@ -739,3 +739,33 @@ B10/B11, CSV writes, or persistence.
 
 Next:
 Await multi-adapter shadow integration approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_MULTI_ADAPTER_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Status: VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+Chain:
+RefreshPlan -> Row Mechanics Adapter + Open Visit Adapter -> merged patches
+-> one Canonical Snapshot commit.
+
+Validated:
+- Both adapters execute in one refresh cycle
+- Patches merge before publication
+- Exactly one revision per merged commit
+- Copy-on-write preserves prior revisions
+- Skip or Open Visit failure produces no partial commit
+- Previous revision remains authoritative after failure
+- global_zone_key and source_plan_id are preserved
+- Adapter provenance is preserved
+- No calculations
+- Production effects: FALSE
+
+Boundary:
+Shadow only. No production consumer, LIVE integration, Dynamic State,
+Stage 2C, B10/B11, dashboard, CSV writes, or persistence.
+
+Next:
+Await next integration approval.

@@ -1097,3 +1097,73 @@ VALIDATION:
 
 NEXT:
 Await multi-adapter shadow integration approval.
+
+
+==================================================
+RDM_V2_MULTI_ADAPTER_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+ARTIFACT:
+- experiments/coordinator_snapshot_integration/shadow_test.py
+
+INTEGRATION:
+MechanicalRefreshCoordinator
+    -> one RefreshPlan
+    -> RowMechanicsAdapter
+    -> OpenVisitAdapter
+    -> merged patches
+    -> one Canonical Snapshot commit
+
+VALIDATED BEHAVIOR:
+- Row Mechanics Adapter and Open Visit Adapter execute in one refresh cycle.
+- Both patches are built independently and merged before store publication.
+- Patch sections are disjoint:
+  current_row_mechanics and open_visit.
+- Each merged commit creates exactly one snapshot revision.
+- Revision 1 remains immutable after revision 2 is committed.
+- global_zone_key remains the canonical session-scoped identity.
+- source_plan_id remains the exact RefreshPlan provenance.
+- Both adapter provenance maps remain present in the snapshot.
+
+ATOMICITY:
+- No partial commit is possible through the tested integration helper.
+- If Open Visit gating is absent, the entire multi-adapter update is skipped.
+- If OpenVisitAdapter fails after the Row Mechanics patch is built,
+  SnapshotStore.update is never called.
+- Adapter failure leaves the previous snapshot revision authoritative and
+  unchanged.
+
+CALCULATION BOUNDARY:
+- No calculations.
+- No formulas.
+- No Dynamic State.
+- No Stage 2C.
+- No B10/B11.
+
+ISOLATION:
+- Shadow test only.
+- No production consumer.
+- No LIVE integration.
+- No dashboard.
+- No CSV writes.
+- No snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- Integration test compile: PASS
+- Multi-adapter refresh cycle: PASS
+- Merged section integrity: PASS
+- One revision per merged commit: PASS
+- Copy-on-write preservation: PASS
+- Skip control: PASS
+- Adapter-failure rollback: PASS
+- global_zone_key preservation: PASS
+- source_plan_id preservation: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+NEXT:
+Await next integration approval.

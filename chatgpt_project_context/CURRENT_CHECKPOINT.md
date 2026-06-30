@@ -769,3 +769,29 @@ Stage 2C, B10/B11, dashboard, CSV writes, or persistence.
 
 Next:
 Await next integration approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_COMPLETED_VISIT_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Status: VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+Validated:
+- VISIT_COMPLETED supplies visit_dirty + response_dirty
+- Last Completed Visit Adapter is gated only by completed-visit flags
+- Row/Open adapters can participate in the same cycle
+- Three patches commit as one atomic snapshot revision
+- Row-only updates preserve last_completed_visit
+- Adapter failure prevents partial commit
+- Prior revision remains authoritative
+- global_zone_key and source_plan_id are preserved
+- No calculations
+- Production effects: FALSE
+
+Boundary:
+Shadow only. No production consumer, LIVE integration, Dynamic State,
+Stage 2C, B10/B11, dashboard, CSV writes, or persistence.
+
+Next:
+Await Dynamic Mechanics integration approval.

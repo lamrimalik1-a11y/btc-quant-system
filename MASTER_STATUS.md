@@ -3830,3 +3830,69 @@ VALIDATION:
 
 NEXT:
 Await next integration approval.
+
+
+==================================================
+RDM_V2_COMPLETED_VISIT_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+ARTIFACT:
+- experiments/coordinator_snapshot_integration/shadow_test.py
+
+COMPLETED-VISIT GATING:
+- A real InteractionInterpreter VISIT_COMPLETED event produces a RefreshPlan
+  carrying visit_dirty and response_dirty.
+- visit_dirty + response_dirty gates LastCompletedVisitAdapter.
+- VISIT_STARTED cannot accidentally freeze a completed visit.
+- Completed-visit patches update the immutable last_completed_visit section.
+
+MULTI-ADAPTER CYCLES:
+- Row Mechanics and Open Visit adapters may participate in the same refresh
+  cycle when their own dirty flags are present.
+- A mixed cycle builds current_row_mechanics, open_visit, and
+  last_completed_visit patches before one store publication.
+- The mixed cycle creates exactly one atomic snapshot revision.
+
+PRESERVATION AND ATOMICITY:
+- A row-only update advances current-row mechanics but preserves the existing
+  last_completed_visit unchanged.
+- Adapter provenance remains present in every updated section.
+- global_zone_key remains the canonical session-scoped identity.
+- source_plan_id remains exact RefreshPlan provenance.
+- If LastCompletedVisitAdapter fails after row/open patches are built,
+  SnapshotStore.update is never called.
+- Failure prevents partial commit and leaves the prior revision authoritative.
+
+CALCULATION BOUNDARY:
+- No calculations.
+- No formulas.
+- No Dynamic State.
+- No Stage 2C.
+- No B10/B11.
+
+ISOLATION:
+- Shadow test only.
+- No production consumer.
+- No LIVE integration.
+- No dashboard.
+- No CSV writes.
+- No snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- Integration test compile: PASS
+- Real VISIT_COMPLETED plan: PASS
+- Last Completed Visit mapping: PASS
+- Row-only preservation: PASS
+- Three-adapter mixed cycle: PASS
+- One atomic revision per cycle: PASS
+- Failure rollback: PASS
+- global_zone_key and source_plan_id preservation: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+NEXT:
+Await Dynamic Mechanics integration approval.

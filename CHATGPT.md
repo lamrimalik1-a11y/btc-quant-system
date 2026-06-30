@@ -1040,3 +1040,60 @@ VALIDATION:
 
 NEXT:
 Await first shadow integration pipeline approval.
+
+
+==================================================
+RDM_V2_COORDINATOR_ROW_MECHANICS_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+ARTIFACT:
+- experiments/coordinator_snapshot_integration/shadow_test.py
+
+INTEGRATION:
+MechanicalRefreshCoordinator
+    -> RefreshPlan dirty flags
+    -> RowMechanicsAdapter
+    -> Canonical Snapshot
+
+VALIDATED BEHAVIOR:
+- RefreshPlan row-mechanics dirty flags gate RowMechanicsAdapter execution.
+- The Row Mechanics patch creates and updates the Canonical Snapshot.
+- Snapshot revisions advance from 1 to 2.
+- Copy-on-write preserves revision 1 after revision 2 is committed.
+- A negative-control plan without row-mechanics dirty flags skips the
+  adapter and leaves the current snapshot unchanged.
+- global_zone_key is preserved as the session-scoped snapshot identity.
+- Existing zone_id remains metadata/provenance only.
+
+CALCULATION BOUNDARY:
+- No calculations.
+- No mechanical formulas.
+- No Dynamic State calculation.
+- No Stage 2C.
+- No B10/B11.
+
+ISOLATION:
+- Shadow test only.
+- No production consumer.
+- No LIVE pipeline integration.
+- No dashboard.
+- No CSV writes.
+- No snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- Integration test compile: PASS
+- Coordinator dirty-flag gating: PASS
+- Row Mechanics mapping: PASS
+- Snapshot revision 1 -> 2: PASS
+- Copy-on-write preservation: PASS
+- Negative-control skip: PASS
+- global_zone_key identity: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+NEXT:
+Await multi-adapter shadow integration approval.

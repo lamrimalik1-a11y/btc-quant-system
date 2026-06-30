@@ -709,3 +709,33 @@ CSV writes, persistence, formulas, or production behavior changes.
 
 Next:
 Await first shadow integration pipeline approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_COORDINATOR_ROW_MECHANICS_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Status: VALIDATED SHADOW INTEGRATION CHECKPOINT
+
+Artifact:
+- experiments/coordinator_snapshot_integration/shadow_test.py
+
+Chain:
+MechanicalRefreshCoordinator -> dirty flags -> RowMechanicsAdapter ->
+Canonical Snapshot.
+
+Validated:
+- Dirty flags gate Row Mechanics mapping
+- Snapshot revisions 1 -> 2
+- Copy-on-write preserves the prior revision
+- Negative-control plan skips the update
+- global_zone_key remains the canonical identity
+- No calculations
+- Production effects: FALSE
+
+Boundary:
+Shadow only. No production consumer, LIVE integration, dashboard, Stage 2C,
+B10/B11, CSV writes, or persistence.
+
+Next:
+Await multi-adapter shadow integration approval.

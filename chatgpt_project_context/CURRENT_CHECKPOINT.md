@@ -1,5 +1,51 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. Phase 0C
+of the production-integration migration: the standalone shadow emitter that will
+LATER receive the finalized record from compute_live_rdm_for_case, built and
+validated BEFORE the LIVE tap exists.
+
+New module core/shadow_runtime_emitter.py (standalone; imports only Phase 0A
+core/shadow_safety):
+- **standalone shadow_runtime_emitter** — ShadowRuntimeEmitter.emit(record) +
+  ShadowPayload / EmitResult + module-level emit() / get_default_emitter().
+- **flags default OFF** — disabled -> no-op, queue untouched (status DISABLED);
+  the default emitter reads flags from env, so emit() is inert until enabled.
+- **kill switch blocks emit** — kill_switch.allows() False (breaker latched or
+  manual env/file kill) -> no-op, status KILLED.
+- **bounded queue non-blocking** — BoundedDropQueue.offer(); full -> DROPPED,
+  never blocks / never raises.
+- **deep-copied immutable payload** — every field copy.deepcopy-ed then frozen
+  (MappingProxyType / tuples) inside a frozen ShadowPayload; source mutation
+  after emit cannot affect the enqueued payload.
+- **global_zone_key = session_id::zone_id** — derived from candidate session /
+  zone keys in the record or its result_row (session falls back to
+  UNKNOWN_SESSION; zone keys the snapshot).
+- **geometry_version synthesized from pinned geometry** — deterministic SHA1
+  (GEOMv1:<hex>) over the formation / active-core / density edges; GEOMv1:NA when
+  no edges.
+- **bad record never raises** — whole emit body wrapped (try/except BaseException,
+  re-raising only KeyboardInterrupt/SystemExit); malformed record -> status ERROR.
+
+Strictly: **no live tap** (live_rdm.py untouched); **no production imports**
+(nothing in core/research/tools/engines imports shadow_runtime_emitter except the
+module itself); **no production behavior changed** (no dashboard, formulas, Stage
+2C, or CSV writes — the emitter only enqueues into the in-memory bounded queue).
+
+Validation (all pass):
+- py_compile core/shadow_runtime_emitter.py +
+  experiments/shadow_runtime_emitter/shadow_test.py -> OK
+- shadow emitter test PASS (disabled no-op; enabled enqueues; kill switch blocks;
+  queue full drops without blocking; bad record never raises; payload deep-copied;
+  global_zone_key + geometry_version generated)
+- git diff --check clean
+
+Next: Phase 0D live tap approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. First

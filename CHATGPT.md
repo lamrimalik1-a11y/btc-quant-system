@@ -1,4 +1,33 @@
 ==================================================
+RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
+==================================================
+
+STATUS: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Phase 0C: standalone shadow emitter, built/validated BEFORE the LIVE tap exists.
+
+New module core/shadow_runtime_emitter.py (imports only Phase 0A
+core/shadow_safety):
+- standalone shadow_runtime_emitter (ShadowRuntimeEmitter.emit + ShadowPayload /
+  EmitResult + module-level emit/get_default_emitter).
+- flags default OFF -> no-op (status DISABLED); default emitter reads env (OFF).
+- kill switch blocks emit (status KILLED) when breaker latched or env/file kill.
+- bounded queue non-blocking (full -> DROPPED, never blocks / raises).
+- deep-copied immutable payload (deepcopy + MappingProxyType/tuples, frozen
+  ShadowPayload); source mutation after emit cannot affect the payload.
+- global_zone_key = session_id::zone_id (session falls back to UNKNOWN_SESSION).
+- geometry_version synthesized from pinned geometry edges (GEOMv1:<hex>;
+  deterministic; GEOMv1:NA when none).
+- bad record never raises (try/except BaseException; malformed -> ERROR).
+
+No live tap (live_rdm.py untouched); no production imports; no production
+behavior changed (no dashboard, formulas, Stage 2C, or CSV writes).
+
+Validation: py_compile emitter + test OK; shadow emitter test PASS (all 8
+requirements); git diff --check clean.
+
+Next: Phase 0D live tap approval.
+
+==================================================
 RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
 ==================================================
 

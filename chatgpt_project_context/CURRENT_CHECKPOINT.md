@@ -1,5 +1,47 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Row Ordering Contract in the Interaction Interpreter (shadow-only):
+- New entry point **`interpret_in_order()`** enforces row ordering BEFORE any
+  transition; it delegates to the existing pure `interpret()` only on accept, so
+  no state mutation / event generation occurs before the ordering check passes.
+- New **`OrderingResult`** result type (status + audit + state + events).
+- Statuses: **ORDER_ACCEPTED**, **ROW_DUPLICATE**, **ROW_OUT_OF_ORDER**.
+- **InteractionState remains the single ordering watermark** (via
+  `previous_row_index`). **No dispatcher watermark. No coordinator watermark.**
+- **row_index is authoritative; timestamp is informational only** — equal
+  timestamps with an increasing row_index remain valid.
+- **No events are emitted for duplicate / out-of-order rows** (audit code only);
+  on rejection the unchanged input state is returned (identity-preserved).
+- **Existing `interpret()` remains unchanged.**
+- No production behavior changed (interaction_interpreter is shadow-only; no
+  production consumers).
+
+Rules (per global_zone_key):
+  incoming.row_index >  previous_row_index -> ACCEPT, normal transition.
+  incoming.row_index == previous_row_index -> ROW_DUPLICATE, no change.
+  incoming.row_index <  previous_row_index -> ROW_OUT_OF_ORDER, no change.
+
+Validation (all pass):
+- python -m py_compile core/interaction_interpreter.py +
+  experiments/interaction_interpreter/shadow_test.py +
+  experiments/interaction_interpreter_ordering/shadow_test.py -> OK
+- Existing interaction interpreter shadow test PASS (interpret() unchanged)
+- New row ordering shadow test PASS (all 6 cases)
+- Full shadow-suite regression (11 tests) PASS
+- git diff --check clean
+
+Files: core/interaction_interpreter.py (additive) +
+experiments/interaction_interpreter_ordering/shadow_test.py (new).
+
+Next: Restart / Durability Contract review (rehydrating the InteractionState
+watermark across restarts so the ordering guard survives process restart).
+
+---
+
 ## Active Checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

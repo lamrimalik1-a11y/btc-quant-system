@@ -24,6 +24,11 @@ SUPPORTED_EVENT_TYPES = frozenset(
     }
 )
 
+# Row Ordering Contract statuses / audit codes (shadow-only).
+ORDER_ACCEPTED = "ACCEPTED"
+AUDIT_ROW_DUPLICATE = "ROW_DUPLICATE"
+AUDIT_ROW_OUT_OF_ORDER = "ROW_OUT_OF_ORDER"
+
 
 @dataclass(frozen=True)
 class MechanicalEvent:
@@ -71,6 +76,28 @@ class InteractionState:
     completed_visit_count: int = 0
     return_count: int = 0
     last_penetration_depth: float = 0.0
+
+
+@dataclass(frozen=True)
+class OrderingResult:
+    """Result of the Row Ordering Contract entry point.
+
+    On ACCEPTED, `state` is the advanced state and `events` are the emitted
+    events. On ROW_DUPLICATE / ROW_OUT_OF_ORDER, `state` is the unchanged input
+    state (identity-preserved), `events` is empty, and `audit` carries the code.
+    """
+
+    status: str
+    state: InteractionState
+    events: tuple[MechanicalEvent, ...]
+    audit: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "audit": list(self.audit),
+            "events": [event.to_dict() for event in self.events],
+        }
 
 
 class InteractionInterpreter:
@@ -343,6 +370,66 @@ class InteractionInterpreter:
         )
         return new_state, tuple(events)
 
+    def interpret_in_order(
+        self,
+        state: InteractionState,
+        *,
+        row_index: Any,
+        timestamp: Any,
+        price: float,
+        return_eligible: bool = False,
+    ) -> OrderingResult:
+        """Row Ordering Contract entry point (shadow-only).
+
+        Enforces row_index monotonicity per global_zone_key BEFORE any
+        transition. The InteractionState is the single watermark source of
+        truth (via previous_row_index) -- no separate watermark is created.
+        Ordering uses row_index ONLY; timestamp is informational, so equal
+        timestamps with an increasing row_index remain valid.
+
+          incoming.row_index >  previous_row_index -> ACCEPT, normal transition.
+          incoming.row_index == previous_row_index -> ROW_DUPLICATE, no change.
+          incoming.row_index <  previous_row_index -> ROW_OUT_OF_ORDER, no change.
+
+        On rejection NO state mutation and NO event generation occur: the
+        unchanged input state is returned and the audit code is emitted.
+        """
+        if state.zone_id != self.zone_id:
+            raise ValueError("InteractionState belongs to a different zone")
+
+        previous = state.previous_row_index
+        if previous is not None:
+            current_ordinal = _row_ordinal(row_index)
+            previous_ordinal = _row_ordinal(previous)
+            if current_ordinal == previous_ordinal:
+                return OrderingResult(
+                    status=AUDIT_ROW_DUPLICATE,
+                    state=state,
+                    events=(),
+                    audit=(AUDIT_ROW_DUPLICATE,),
+                )
+            if current_ordinal < previous_ordinal:
+                return OrderingResult(
+                    status=AUDIT_ROW_OUT_OF_ORDER,
+                    state=state,
+                    events=(),
+                    audit=(AUDIT_ROW_OUT_OF_ORDER,),
+                )
+
+        new_state, events = self.interpret(
+            state,
+            row_index=row_index,
+            timestamp=timestamp,
+            price=price,
+            return_eligible=return_eligible,
+        )
+        return OrderingResult(
+            status=ORDER_ACCEPTED,
+            state=new_state,
+            events=events,
+            audit=(),
+        )
+
 
 def _finite_float(value: Any, field_name: str) -> float:
     try:
@@ -361,9 +448,23 @@ def _finite_non_negative(value: Any, field_name: str) -> float:
     return result
 
 
+def _row_ordinal(value: Any) -> int:
+    """Row ordering key. row_index is an integer ordinal; timestamp is never used."""
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "row_index must be an integer-compatible ordinal"
+        ) from error
+
+
 __all__ = [
+    "AUDIT_ROW_DUPLICATE",
+    "AUDIT_ROW_OUT_OF_ORDER",
     "InteractionInterpreter",
     "InteractionState",
     "MechanicalEvent",
+    "ORDER_ACCEPTED",
+    "OrderingResult",
     "SUPPORTED_EVENT_TYPES",
 ]

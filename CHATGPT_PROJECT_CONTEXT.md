@@ -1,5 +1,31 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Row Ordering Contract in the Interaction Interpreter:
+- New **interpret_in_order()** enforces row ordering BEFORE any transition;
+  delegates to the existing pure **interpret()** only on accept.
+- New **OrderingResult** (status + audit + state + events).
+- Statuses: **ORDER_ACCEPTED**, **ROW_DUPLICATE**, **ROW_OUT_OF_ORDER**.
+- **InteractionState remains the single ordering watermark** (previous_row_index).
+- **No dispatcher watermark. No coordinator watermark.**
+- **row_index is authoritative; timestamp is informational only** (equal
+  timestamps with increasing row_index remain valid).
+- **No events are emitted for duplicate / out-of-order rows** (audit code only);
+  unchanged input state returned on rejection.
+- **Existing interpret() remains unchanged.**
+- No production behavior changed (interaction_interpreter is shadow-only).
+
+Validation (all pass): py_compile of core + both shadow tests OK; existing
+interpreter shadow test PASS; new row ordering shadow test PASS (all 6 cases);
+full shadow-suite regression (11 tests) PASS; git diff --check clean.
+
+Next: Restart / Durability Contract review.
+
+---
+
 ## Active Checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

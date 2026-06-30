@@ -2,6 +2,31 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
+
+Row Ordering Contract in the Interaction Interpreter (shadow-only):
+- New interpret_in_order() enforces ordering BEFORE any transition; delegates to
+  the existing pure interpret() only on accept.
+- New OrderingResult (status + audit + state + events).
+- Statuses: ORDER_ACCEPTED, ROW_DUPLICATE, ROW_OUT_OF_ORDER.
+- InteractionState remains the single ordering watermark (previous_row_index).
+- No dispatcher watermark. No coordinator watermark.
+- row_index is authoritative; timestamp is informational only.
+- No events are emitted for duplicate / out-of-order rows; unchanged state
+  returned on rejection.
+- Existing interpret() remains unchanged.
+- No production behavior changed (interaction_interpreter is shadow-only).
+
+Validation: py_compile of core + both shadow tests OK; existing interpreter
+shadow test PASS; new row ordering shadow test PASS (all 6 cases); full
+shadow-suite regression (11 tests) PASS; git diff --check clean.
+
+Next: Restart / Durability Contract review.
+
+---
+
+## Prior Stable Status (RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE)
+
 Current checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
 
 Canonical Snapshot identity contract fix (shadow-only):

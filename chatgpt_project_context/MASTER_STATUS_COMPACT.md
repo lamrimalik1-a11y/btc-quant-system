@@ -539,3 +539,44 @@ Validation:
 
 Next:
 Await Canonical Snapshot V1 consolidation approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_V1_CONSOLIDATED_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Complete sections:
+Metadata, Geometry, Current Row Mechanics, Open Visit, Last Completed Visit,
+Dynamic Mechanics, Prediction.
+
+Adapters consolidated:
+Geometry, Row Mechanics, Open Visit, Last Completed Visit, Dynamic Mechanics,
+Prediction.
+
+Revision behavior:
+- Revision 1 -> 2
+- Copy-on-write
+- Deep immutability
+- Failed update preserves the prior revision
+
+Integrity:
+- NOT_AVAILABLE validated
+- Existing values preserved exactly
+- No geometry or mechanical calculations
+- No Dynamic State, B10, or B11 calculation
+
+Artifact:
+- experiments/canonical_snapshot_v1/consolidation_test.py
+
+Reproducibility:
+The accepted Geometry Snapshot Adapter and its shadow test are included as
+direct dependencies of the consolidation test.
+
+Boundary:
+Shadow only. No production consumer, LIVE integration, dashboard, Stage 2C,
+CSV writes, persistence, formulas, or production behavior changes.
+
+Next:
+Await first shadow integration pipeline approval.

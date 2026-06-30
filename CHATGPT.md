@@ -811,3 +811,81 @@ VALIDATION:
 
 NEXT:
 Await Canonical Snapshot V1 consolidation approval.
+
+
+==================================================
+RDM_V2_CANONICAL_SNAPSHOT_V1_CONSOLIDATED_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+COMPLETE CANONICAL SNAPSHOT V1:
+- One immutable in-memory snapshot assembled from all accepted shadow
+  adapters.
+- No production integration or persistence.
+
+VALIDATED SECTIONS:
+- Metadata
+- Geometry
+- Current Row Mechanics
+- Open Visit
+- Last Completed Visit
+- Dynamic Mechanics
+- Prediction
+
+SIX ADAPTERS TESTED TOGETHER:
+- Project 1 Geometry Snapshot Adapter
+- Row Mechanics Adapter
+- Open Visit Adapter
+- Last Completed Visit Adapter
+- Dynamic Mechanics Adapter
+- Prediction Adapter
+
+REVISION AND ATOMICITY:
+- Initial snapshot revision = 1.
+- Successful update produces revision 2.
+- Copy-on-write preserves the immutable prior revision.
+- Top-level and nested snapshot mappings are deeply immutable.
+- A failed update leaves revision 2 authoritative and unchanged.
+
+MAPPING INTEGRITY:
+- NOT_AVAILABLE behavior validated across sections.
+- Precomputed values remain unchanged.
+- Intentionally non-derived geometry values remain unchanged.
+- No adapter calculates geometry, mechanics, derivatives, integrals, SDR,
+  Dynamic State, B10, or B11.
+
+ARTIFACT:
+- experiments/canonical_snapshot_v1/consolidation_test.py
+
+REPRODUCIBLE GEOMETRY DEPENDENCY:
+- core/geometry_snapshot_adapter.py
+- experiments/geometry_snapshot_adapter/shadow_test.py
+- These accepted shadow files are included because the consolidation test
+  imports and validates the Geometry Snapshot Adapter directly.
+
+ISOLATION:
+- Shadow test only.
+- No production consumer.
+- No LIVE or live_rdm changes.
+- No dashboard.
+- No Stage 2C.
+- No CSV writes.
+- No snapshot persistence.
+- No formulas.
+- No production behavior change.
+
+VALIDATION:
+- Consolidation test compile: PASS
+- Six-adapter snapshot build: PASS
+- All seven sections present: PASS
+- Revision 1 -> 2: PASS
+- Deep immutability: PASS
+- Failed-update rollback: PASS
+- NOT_AVAILABLE handling: PASS
+- No-calculation proof: PASS
+- Production effects: FALSE
+
+NEXT:
+Await first shadow integration pipeline approval.

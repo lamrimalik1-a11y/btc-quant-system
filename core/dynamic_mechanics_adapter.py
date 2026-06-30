@@ -18,6 +18,7 @@ DYNAMIC_MECHANICS_FIELD_MAP: dict[str, tuple[str, ...]] = {
     "visit_id": ("visit_id",),
     "dynamic_state": ("dynamic_state",),
     "previous_dynamic_state": ("previous_dynamic_state",),
+    "transition_name": ("transition_name",),
     "first_derivative": ("first_derivative",),
     "second_derivative": ("second_derivative",),
     "zone_integral": ("zone_integral",),

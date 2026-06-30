@@ -44,6 +44,10 @@ PREDICTION_FIELD_MAP: dict[str, tuple[str, ...]] = {
         "b11_confidence",
         "prediction_confidence",
     ),
+    "prediction_uncertainty": (
+        "prediction_uncertainty",
+        "uncertainty",
+    ),
     "prediction_version": ("prediction_version",),
     "prediction_status": (
         "prediction_status",

@@ -1,5 +1,48 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
+
+Status: MILESTONE CHECKPOINT — shadow-only, no production behavior changed.
+
+All six Canonical Snapshot adapters are now shadow-ready. Each maps already-
+existing values into one snapshot section; none calculates, infers, or rebuilds.
+
+The six adapters (one per snapshot section):
+- **geometry** — GeometrySnapshotAdapter -> `geometry`
+- **current row mechanics** — RowMechanicsAdapter -> `current_row_mechanics`
+- **open visit** — OpenVisitAdapter -> `open_visit`
+- **last completed visit** — LastCompletedVisitAdapter -> `last_completed_visit`
+- **dynamic mechanics** — DynamicMechanicsAdapter -> `dynamic_mechanics`
+- **prediction** — PredictionAdapter -> `prediction`
+
+Shared, enforced properties across all six:
+- **Pure mapping only** — value pass-through via ordered source aliases; first
+  present/available alias wins, primary names first.
+- **No calculations** — no Dynamic State recompute, derivatives, integrals, SDR,
+  classifier, thresholds, B10/B11 execution, Stage 2C, dashboard, CSV writes, or
+  persistence.
+- **NOT_AVAILABLE handling** — any target whose aliases are all absent, or present
+  but None / empty-string / NaN, becomes NOT_AVAILABLE in both the value and its
+  source_fields provenance entry. No defaulting.
+- **Snapshot compatibility** — every adapter emits a RefreshResult-style patch
+  that builds cleanly into a CanonicalZoneSnapshot section; the six together
+  consolidate into one immutable copy-on-write snapshot (consolidation test).
+- **No production behavior changed** — nothing in core/research/tools imports any
+  adapter except the shadow tests.
+
+Most recent additive work folded into this milestone: DynamicMechanicsAdapter
+gained `transition_name`; PredictionAdapter gained `prediction_uncertainty`.
+
+Validation (all pass):
+- py_compile of all six adapter files + their shadow tests -> OK
+- All adapter shadow tests PASS
+- Consolidation test PASS
+- git diff --check clean
+
+Next: first real mechanical integration decision.
+
+---
+
 ## Active Checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

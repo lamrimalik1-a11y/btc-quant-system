@@ -39,6 +39,7 @@ def main() -> None:
         "visit_id": "DYNAMIC_ZONE_1:V000004",
         "dynamic_state": "ATTACKER_DOMINANT",
         "previous_dynamic_state": "DEGRADING",
+        "transition_name": "DEGRADING_TO_ATTACKER_DOMINANT",
         "first_derivative": -4.5,
         "second_derivative": -1.25,
         "zone_integral": 318.0,
@@ -59,6 +60,7 @@ def main() -> None:
     assert dynamic["visit_id"] == source_row["visit_id"]
     assert dynamic["dynamic_state"] == "ATTACKER_DOMINANT"
     assert dynamic["previous_dynamic_state"] == "DEGRADING"
+    assert dynamic["transition_name"] == "DEGRADING_TO_ATTACKER_DOMINANT"
     assert dynamic["first_derivative"] == -4.5
     assert dynamic["second_derivative"] == -1.25
     assert dynamic["zone_integral"] == 318.0
@@ -102,6 +104,7 @@ def main() -> None:
     assert missing["first_derivative"] == NOT_AVAILABLE
     assert missing["second_derivative"] == 0.0
     assert missing["zone_integral"] == NOT_AVAILABLE
+    assert missing["transition_name"] == NOT_AVAILABLE
 
     opaque_patch = adapter.build_patch(
         {
@@ -149,6 +152,7 @@ def main() -> None:
 
     print("DYNAMIC_MECHANICS_ADAPTER_SHADOW_TEST = PASS")
     print("MAPPED_DYNAMIC_STATE", dynamic["dynamic_state"])
+    print("MAPPED_TRANSITION_NAME", dynamic["transition_name"])
     print("SDR_ALIAS", alias["source_fields"]["SDR"])
     print("MISSING_FIELD_VALUE", missing["zone_integral"])
     print("SNAPSHOT_REVISION", snapshot.revision)

@@ -44,6 +44,7 @@ def main() -> None:
         "b11_state": "PRECOMPUTED_B11_STATE",
         "prediction_reason": "PRECOMPUTED_B11_REASON",
         "prediction_confidence": "MEDIUM",
+        "prediction_uncertainty": "PRECOMPUTED_B11_UNCERTAINTY",
         "prediction_version": "B11_V1",
         "emit_status": "PENDING_FINALIZATION",
         "dynamic_state": "ATTACKER_DOMINANT",
@@ -62,6 +63,9 @@ def main() -> None:
     assert prediction["b11_state"] == "PRECOMPUTED_B11_STATE"
     assert prediction["b11_reason"] == "PRECOMPUTED_B11_REASON"
     assert prediction["b11_confidence"] == "MEDIUM"
+    assert prediction["prediction_uncertainty"] == (
+        "PRECOMPUTED_B11_UNCERTAINTY"
+    )
     assert prediction["prediction_status"] == "PENDING_FINALIZATION"
     assert prediction["input_dynamic_state"] == "ATTACKER_DOMINANT"
     assert prediction["input_visit_id"] == (
@@ -85,6 +89,7 @@ def main() -> None:
             "b11_prediction": "LIKELY_HOLD",
             "prediction_status": "PRECOMPUTED_STATUS",
             "prediction_updated_at": "PRECOMPUTED_TIME",
+            "uncertainty": 0.18,
         }
     )
     alias = alias_patch["prediction"]
@@ -93,6 +98,8 @@ def main() -> None:
     assert alias["b11_prediction"] == "LIKELY_HOLD"
     assert alias["prediction_status"] == "PRECOMPUTED_STATUS"
     assert alias["prediction_updated_at"] == "PRECOMPUTED_TIME"
+    assert alias["prediction_uncertainty"] == 0.18
+    assert alias["source_fields"]["prediction_uncertainty"] == "uncertainty"
 
     missing_patch = adapter.build_patch(
         {
@@ -106,6 +113,7 @@ def main() -> None:
     assert missing["b11_confidence"] == NOT_AVAILABLE
     assert missing["b10_trajectory"] == NOT_AVAILABLE
     assert missing["prediction_as_of_visit"] == 0
+    assert missing["prediction_uncertainty"] == NOT_AVAILABLE
 
     opaque_patch = adapter.build_patch(
         {
@@ -153,6 +161,8 @@ def main() -> None:
     print("PREDICTION_ADAPTER_SHADOW_TEST = PASS")
     print("B10_ALIAS", prediction["source_fields"]["b10_trajectory"])
     print("B11_ALIAS", prediction["source_fields"]["b11_prediction"])
+    print("MAPPED_UNCERTAINTY", prediction["prediction_uncertainty"])
+    print("UNCERTAINTY_ALIAS_SOURCE", alias["source_fields"]["prediction_uncertainty"])
     print("MISSING_FIELD_VALUE", missing["b11_prediction"])
     print("SNAPSHOT_REVISION", snapshot.revision)
     print("NO_PREDICTION_CALCULATIONS = TRUE")

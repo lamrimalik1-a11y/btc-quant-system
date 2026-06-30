@@ -2,6 +2,33 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
+
+All six Canonical Snapshot adapters are now shadow-ready (one per section):
+geometry, current row mechanics, open visit, last completed visit, dynamic
+mechanics, prediction.
+
+Shared properties (all six):
+- Pure mapping only (value pass-through via ordered source aliases).
+- No calculations (no Dynamic State recompute, derivatives, integrals, SDR,
+  classifier, thresholds, B10/B11, Stage 2C, dashboard, CSV, persistence).
+- NOT_AVAILABLE for absent / None / empty / NaN (no defaulting).
+- Snapshot compatibility: the six consolidate into one immutable copy-on-write
+  snapshot.
+- No production behavior changed.
+
+Recent additive work folded in: DynamicMechanicsAdapter +transition_name;
+PredictionAdapter +prediction_uncertainty.
+
+Validation: py_compile all six adapters + tests OK; all adapter shadow tests
+PASS; consolidation test PASS; git diff --check clean.
+
+Next: first real mechanical integration decision.
+
+---
+
+## Prior Stable Status (RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE)
+
 Current checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
 
 Last Completed Visit Adapter Stage 1 (shadow-only):

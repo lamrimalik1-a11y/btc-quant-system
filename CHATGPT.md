@@ -1,4 +1,33 @@
 ==================================================
+RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
+==================================================
+
+STATUS: ACCEPTED CONTRACT — architecture decision only. NO code implemented,
+no production code changed.
+
+Restart / Durability Contract (what the shadow backbone must follow before
+production integration):
+- The append-only ordered row log is the source of truth (per session_id; each
+  row carries global_zone_key and geometry_version in effect).
+- Persist-before-process: a row is durably appended BEFORE InteractionState
+  advances from it -> an open visit is always replayable.
+- Rebuild-from-history is the primary recovery mechanism (restart = replay rows
+  through interpret_in_order; rebuild InteractionState + SnapshotStore).
+- The snapshot is a cache / projection only — never the source of truth.
+- Watermark = InteractionState.previous_row_index is the single recovery anchor.
+- Geometry-in-effect must be pinned (geometry_version + bounds) or replay
+  diverges.
+- Checkpoints are an optimization, not correctness (carry cumulative counters:
+  revision, active_visit_index, completed_visit_count, return_count, guard/breach).
+
+Primary (must persist): ordered row log, session_id, global_zone_key,
+geometry-in-effect. Everything else is DERIVED and rebuildable from history.
+
+No production code changed (documentation/design only).
+
+Next: Restart / Durability implementation decision.
+
+==================================================
 RDM_V2_ROW_ORDERING_CONTRACT_STABLE
 ==================================================
 

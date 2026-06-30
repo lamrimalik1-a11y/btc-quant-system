@@ -2,6 +2,27 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
+
+Restart / Durability Contract (ACCEPTED — architecture decision only, NO code):
+- The append-only ordered row log is the source of truth.
+- Persist-before-process (durably append row before InteractionState advances).
+- Rebuild-from-history is the primary recovery mechanism.
+- The snapshot is a cache / projection only — never the source of truth.
+- Watermark = InteractionState.previous_row_index (single recovery anchor).
+- Geometry-in-effect must be pinned (geometry_version + bounds) or replay diverges.
+- Checkpoints are an optimization, not correctness.
+- No production code changed.
+
+Primary (must persist): ordered row log, session_id, global_zone_key,
+geometry-in-effect. Everything else is DERIVED and rebuildable from history.
+
+Next: Restart / Durability implementation decision.
+
+---
+
+## Prior Stable Status (RDM_V2_ROW_ORDERING_CONTRACT_STABLE)
+
 Current checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
 
 Row Ordering Contract in the Interaction Interpreter (shadow-only):

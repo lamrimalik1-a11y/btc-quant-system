@@ -1,5 +1,46 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
+
+Status: ACCEPTED CONTRACT (architecture decision only — NO code implemented,
+no production code changed). Records the restart/durability design the shadow
+backbone must follow before any production integration.
+
+Restart / Durability Contract:
+- **The append-only ordered row log is the source of truth.** Per session_id,
+  each row carries global_zone_key and the geometry_version in effect.
+- **Persist-before-process (write-ahead ordering):** a row is durably appended
+  BEFORE InteractionState advances from it -> an open visit is always replayable.
+- **Rebuild-from-history is the primary recovery mechanism.** Restart = replay
+  the durable rows forward through interpret_in_order; rebuild InteractionState
+  and the SnapshotStore rather than trusting them.
+- **The snapshot is a cache / projection only — never the source of truth.**
+  Copy-on-write CanonicalZoneSnapshot is derived from plan+patches and may be
+  discarded and rebuilt; if used as a file cache it is tagged
+  (global_zone_key, revision, watermark_row_index) and never loaded when its
+  watermark is ahead of the durable row log.
+- **Watermark = InteractionState.previous_row_index** is the single recovery
+  anchor (same single source of truth as the Row Ordering Contract). After
+  rebuild it must equal the last durable row; only greater row_index is accepted.
+- **Geometry-in-effect must be pinned** (geometry_version + bounds). If geometry
+  is recomputed differently on restart, replay diverges — replay parity requires
+  reusing the same geometry inputs.
+- **Checkpoints are an optimization, not correctness.** A periodic
+  InteractionState checkpoint (carrying the cumulative counters revision,
+  active_visit_index, completed_visit_count, return_count, and guard/breach
+  state) only bounds replay cost; it is never authoritative.
+
+Primary (must persist): ordered row log, session_id, global_zone_key,
+geometry-in-effect. Everything else (InteractionState, watermark, open visit,
+snapshots, revision, last event id, dedup ledger, guard/breach) is DERIVED and
+rebuildable from history.
+
+No production code changed (documentation/design only).
+
+Next: Restart / Durability implementation decision.
+
+---
+
 ## Active Checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

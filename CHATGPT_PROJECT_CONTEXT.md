@@ -874,3 +874,76 @@ VALIDATION:
 
 NEXT:
 Await prediction adapter approval.
+
+
+==================================================
+RDM_V2_PREDICTION_ADAPTER_SHADOW_STABLE
+==================================================
+
+STATUS:
+VALIDATED SHADOW CHECKPOINT
+
+FILES:
+- core/canonical_snapshot.py
+- core/prediction_adapter.py
+- experiments/prediction_adapter/shadow_test.py
+
+SNAPSHOT EXTENSION:
+- CanonicalZoneSnapshot now includes prediction.
+- SnapshotBuilder and SnapshotStore accept immutable prediction patches.
+- Existing copy-on-write revision behavior is unchanged.
+- Existing snapshot, Dynamic Mechanics, and completed-visit regressions
+  remain valid.
+
+ADAPTER:
+- Prediction Adapter Stage 1.
+- Maps 14 existing B10/B11 prediction fields.
+- Includes B10 trajectory/state/reason/confidence, B11 prediction/state/
+  reason/confidence, version/status, input Dynamic State/visit, as-of visit,
+  and update timestamp.
+- Alias support:
+  - structural_trajectory -> b10_trajectory
+  - trajectory_direction -> b10_state
+  - trajectory_reason/confidence -> B10 reason/confidence
+  - structural_prediction -> b11_prediction
+  - prediction_reason/confidence -> B11 reason/confidence
+  - emit_status -> prediction_status
+  - dynamic_state/visit_id/visit_index -> input/as-of provenance
+  - analysis_run_utc -> prediction_updated_at
+- Explicit source-field provenance.
+- NOT_AVAILABLE handling for absent, blank, None, or NaN values.
+- Zero and False remain valid source values.
+- Canonical Snapshot patch compatibility.
+
+CALCULATION BOUNDARY:
+- Mapping only.
+- No B10 calculation.
+- No B11 calculation.
+- No prediction or confidence calculation.
+- No Dynamic State calculation.
+- No formulas, coercion, or fallback prediction.
+
+ISOLATION:
+- Shadow mode only.
+- No production consumer.
+- No LIVE or live_rdm integration.
+- No Stage 2C.
+- No dashboard.
+- No CSV writes or snapshot persistence.
+- No production behavior change.
+
+VALIDATION:
+- core/canonical_snapshot.py compile: PASS
+- core/prediction_adapter.py compile: PASS
+- Adapter shadow test compile: PASS
+- Prediction mapping: PASS
+- Alias and missing-field handling: PASS
+- No-calculation proof: PASS
+- Snapshot patch application: PASS
+- Existing Canonical Snapshot regression: PASS
+- Existing Dynamic Mechanics regression: PASS
+- Existing Last Completed Visit regression: PASS
+- Production effects: FALSE
+
+NEXT:
+Await Canonical Snapshot V1 consolidation approval.

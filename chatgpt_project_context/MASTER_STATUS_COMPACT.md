@@ -505,3 +505,37 @@ Validation:
 
 Next:
 Await prediction adapter approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_PREDICTION_ADAPTER_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Files:
+- core/canonical_snapshot.py
+- core/prediction_adapter.py
+- experiments/prediction_adapter/shadow_test.py
+
+Implemented:
+- Canonical snapshot prediction section
+- 14 existing B10/B11 fields mapped
+- Semantic aliases and source-field provenance
+- NOT_AVAILABLE handling
+- Snapshot patch compatibility
+
+Boundary:
+Mapping only. No B10, B11, prediction, confidence, or Dynamic State
+calculation. No production consumer, LIVE integration, Stage 2C, dashboard,
+CSV writes, or persistence.
+
+Validation:
+- All requested compile checks: PASS
+- Prediction mapping, aliases, and missing handling: PASS
+- Snapshot, Dynamic Mechanics, and completed-visit regressions: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+Next:
+Await Canonical Snapshot V1 consolidation approval.

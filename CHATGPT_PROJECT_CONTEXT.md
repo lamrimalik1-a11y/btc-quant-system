@@ -1,5 +1,34 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Last Completed Visit Adapter Stage 1 (shadow-only):
+- **Extended the existing adapter additively** (committed aefec1c) — existing
+  target names/behavior untouched; dependent consolidation test stays green.
+- **Maps existing completed-visit fields into the Canonical Snapshot
+  "last_completed_visit" section** (projection only, no rebuild, no inference).
+- **Adds `max_penetration_ratio` and `defender_state`** (plus `visit_start_price`
+  / `visit_end_price`) as new mapped target fields.
+- **Supports aliases** (first present/available alias wins, primary names first):
+  completed_visit_id, visit_max_penetration, visit_max_penetration_ratio,
+  visit_final_omega, visit_attacker_force, visit_defender_state,
+  visit_health/rigidity/capacity/fatigue/recovery.
+- **NOT_AVAILABLE behavior** for absent / None / empty / NaN (no defaulting),
+  recorded in source_fields.
+- **No calculations** (no Dynamic State, derivatives, integrals, SDR, Stage 2C,
+  B10, B11, dashboard, CSV writes, persistence).
+- **Snapshot compatibility** validated.
+- **No production behavior changed** (no importer outside shadow tests).
+
+Validation (all pass): py_compile adapter + test OK; extended shadow test PASS;
+consolidation test PASS; git diff --check clean.
+
+Next: Dynamic Mechanics Adapter approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
 
 Status: ACCEPTED CONTRACT — architecture decision only. NO code implemented,

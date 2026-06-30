@@ -2,6 +2,29 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
+
+Last Completed Visit Adapter Stage 1 (shadow-only):
+- Extended the existing adapter additively (committed aefec1c); existing target
+  names/behavior untouched, dependent consolidation test stays green.
+- Maps existing completed-visit fields into the Canonical Snapshot
+  "last_completed_visit" section (projection only, no rebuild, no inference).
+- Adds max_penetration_ratio and defender_state (plus visit_start_price /
+  visit_end_price).
+- Supports aliases (completed_visit_id, visit_final_omega, visit_health, etc.).
+- NOT_AVAILABLE behavior for absent / None / empty / NaN (no defaulting).
+- No calculations; snapshot compatibility validated.
+- No production behavior changed.
+
+Validation: py_compile adapter + test OK; extended shadow test PASS;
+consolidation test PASS; git diff --check clean.
+
+Next: Dynamic Mechanics Adapter approval.
+
+---
+
+## Prior Stable Status (RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED)
+
 Current checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
 
 Restart / Durability Contract (ACCEPTED — architecture decision only, NO code):

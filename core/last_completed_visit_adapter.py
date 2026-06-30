@@ -13,8 +13,11 @@ from typing import Any, Mapping
 from core.row_mechanics_adapter import NOT_AVAILABLE
 
 
+# Canonical snapshot field -> ordered source aliases. The FIRST alias present
+# with an available value wins, so existing primary names stay first and Stage-1
+# additive aliases are appended. Mapping only -- no value is ever computed.
 LAST_COMPLETED_VISIT_FIELD_MAP: dict[str, tuple[str, ...]] = {
-    "visit_id": ("visit_id",),
+    "visit_id": ("visit_id", "completed_visit_id"),
     "visit_start_row": ("visit_start_row",),
     "visit_end_row": ("visit_end_row",),
     "visit_start_timestamp": (
@@ -25,6 +28,8 @@ LAST_COMPLETED_VISIT_FIELD_MAP: dict[str, tuple[str, ...]] = {
         "visit_end_timestamp",
         "visit_end_time",
     ),
+    "visit_start_price": ("visit_start_price",),
+    "visit_end_price": ("visit_end_price",),
     "visit_duration": (
         "visit_duration",
         "visit_duration_rows",
@@ -36,14 +41,24 @@ LAST_COMPLETED_VISIT_FIELD_MAP: dict[str, tuple[str, ...]] = {
     "max_penetration": (
         "max_penetration",
         "max_penetration_at_visit",
+        "visit_max_penetration",
     ),
-    "omega_at_visit": ("omega_at_visit",),
-    "attacker_force_at_visit": ("attacker_force_at_visit",),
-    "health_at_visit": ("health_at_visit",),
-    "rigidity_at_visit": ("rigidity_at_visit",),
-    "capacity_at_visit": ("capacity_at_visit",),
-    "fatigue_at_visit": ("fatigue_at_visit",),
-    "recovery_at_visit": ("recovery_at_visit",),
+    "max_penetration_ratio": (
+        "max_penetration_ratio",
+        "max_penetration_ratio_at_visit",
+        "visit_max_penetration_ratio",
+    ),
+    "omega_at_visit": ("omega_at_visit", "visit_final_omega"),
+    "attacker_force_at_visit": (
+        "attacker_force_at_visit",
+        "visit_attacker_force",
+    ),
+    "defender_state": ("defender_state", "visit_defender_state"),
+    "health_at_visit": ("health_at_visit", "visit_health"),
+    "rigidity_at_visit": ("rigidity_at_visit", "visit_rigidity"),
+    "capacity_at_visit": ("capacity_at_visit", "visit_capacity"),
+    "fatigue_at_visit": ("fatigue_at_visit", "visit_fatigue"),
+    "recovery_at_visit": ("recovery_at_visit", "visit_recovery"),
     "visit_result": ("visit_result",),
     "visit_classification": ("visit_classification",),
     "absorption_flag": ("absorption_flag",),

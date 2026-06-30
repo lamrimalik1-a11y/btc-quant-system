@@ -1,5 +1,49 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Last Completed Visit Adapter Stage 1 (shadow-only):
+- **Extended the existing adapter additively** (core/last_completed_visit_adapter.py,
+  originally committed aefec1c) — existing target field names and behavior are
+  untouched, so the dependent consolidation test stays green.
+- **Maps already-existing completed-visit fields into the Canonical Snapshot
+  "last_completed_visit" section** — projection only, no rebuild, no inference.
+- **Adds `max_penetration_ratio` and `defender_state`** (plus `visit_start_price`
+  and `visit_end_price`) as new mapped target fields this stage.
+- **Supports aliases** (first present/available alias wins, primary names first):
+  completed_visit_id->visit_id, visit_max_penetration->max_penetration,
+  visit_max_penetration_ratio->max_penetration_ratio, visit_final_omega->
+  omega_at_visit, visit_attacker_force->attacker_force_at_visit,
+  visit_defender_state->defender_state, visit_health/rigidity/capacity/fatigue/
+  recovery->*_at_visit (pre-existing aliases retained: visit_start_time,
+  visit_end_time, visit_duration_rows, max_penetration_at_visit).
+- **NOT_AVAILABLE behavior** — any target whose aliases are all absent, or present
+  but None / empty-string / NaN, becomes NOT_AVAILABLE in both the value and its
+  source_fields provenance entry. No defaulting.
+- **No calculations** — no Dynamic State, derivatives, integrals, SDR, Stage 2C,
+  B10, B11, dashboard, CSV writes, or persistence. Opaque pass-through preserved.
+- **Snapshot compatibility** — the patch builds a CanonicalZoneSnapshot
+  last_completed_visit section cleanly.
+- **No production behavior changed** — nothing in core/research/tools imports the
+  adapter except the shadow tests.
+
+Validation (all pass):
+- py_compile core/last_completed_visit_adapter.py +
+  experiments/last_completed_visit_adapter/shadow_test.py -> OK
+- Extended shadow test PASS (normal / partial / missing / new fields / alias /
+  no-calculations / snapshot compatibility)
+- Consolidation test PASS (NOT_AVAILABLE_VALIDATED = TRUE)
+- git diff --check clean
+
+Files: core/last_completed_visit_adapter.py (additive) +
+experiments/last_completed_visit_adapter/shadow_test.py (extended).
+
+Next: Dynamic Mechanics Adapter approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
 
 Status: ACCEPTED CONTRACT — architecture decision only. NO code implemented,

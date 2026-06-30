@@ -1,5 +1,33 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. First
+step of the production-integration migration: standalone Phase 0 safety
+scaffolding (Phase 0A), built/validated BEFORE any LIVE tap exists.
+
+New package core/shadow_safety/ (fail-closed, standalone):
+- **feature flags default OFF** (feature_flag.py): SHADOW_RUNTIME_ENABLED /
+  SHADOW_DRY_RUN / SHADOW_SAMPLE_RATE; absent/garbage -> OFF; explicit opt-in.
+- **kill switch / circuit breaker** (kill_switch.py): latches KILLED on trip() or
+  N consecutive failures; never self-revives (reset() only); manual env/file
+  kill; fail-closed.
+- **bounded non-blocking queue** (bounded_queue.py): offer() drops on full +
+  counts; never blocks / never raises.
+- **isolated worker wrapper** (isolated_worker.py): swallows + counts exceptions
+  (re-raises only KeyboardInterrupt/SystemExit); latched breaker short-circuits.
+- **parity log writer confined to research/shadow_parity/** (parity_log.py).
+
+**No live tap** (live_rdm.py untouched); **no production imports**; **no
+production behavior changed**.
+
+Validation: py_compile all modules + test OK; shadow safety test PASS; git diff
+--check clean.
+
+Next: Phase 0B tap point review.
+
+---
+
 ## Active Checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

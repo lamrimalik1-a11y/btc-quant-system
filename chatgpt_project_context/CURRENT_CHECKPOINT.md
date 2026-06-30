@@ -1,5 +1,48 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. First
+step of the production-integration migration: the standalone Phase 0 safety
+scaffolding (Phase 0A), built and validated BEFORE any LIVE tap exists.
+
+New package core/shadow_safety/ (standalone, fail-closed building blocks for the
+not-yet-wired Passive Shadow Runtime):
+- **feature flags default OFF** (core/shadow_safety/feature_flag.py) — reads
+  SHADOW_RUNTIME_ENABLED / SHADOW_DRY_RUN / SHADOW_SAMPLE_RATE; absent / garbage /
+  unreadable -> OFF; explicit truthy opt-in only; should_run() + should_sample().
+- **kill switch / circuit breaker** (core/shadow_safety/kill_switch.py) —
+  CircuitBreaker latches KILLED on trip() or N consecutive failures and never
+  self-revives (only reset()); KillSwitch adds manual env (SHADOW_KILL) +
+  on-disk flag-file kill; fail-closed (unreadable -> KILLED).
+- **bounded non-blocking queue** (core/shadow_safety/bounded_queue.py) —
+  BoundedDropQueue.offer() uses put_nowait; full -> drop + count, never blocks /
+  never raises; poll() non-blocking.
+- **isolated worker wrapper** (core/shadow_safety/isolated_worker.py) —
+  IsolatedWorker.process() runs the handler behind a try/except BaseException
+  boundary (re-raises only KeyboardInterrupt/SystemExit); failures swallowed,
+  counted, fed to the breaker; a latched breaker short-circuits without calling
+  the handler.
+- **parity log writer confined to research/shadow_parity/**
+  (core/shadow_safety/parity_log.py) — ParityLogWriter appends timestamped JSONL
+  only inside research/shadow_parity/; escaping paths rejected at construction.
+
+Strictly: **no live tap** (live_rdm.py untouched, no tap line); **no production
+imports** (nothing in core/research/tools/engines imports core.shadow_safety
+except the package itself); **no production behavior changed** (no dashboard, RDM
+formulas, Stage 2C, or outputs).
+
+Validation (all pass):
+- py_compile all shadow safety modules + test -> OK
+- shadow safety test PASS (flags default OFF; kill switch latches closed +
+  auto-trips; queue drops on full and never blocks; worker swallows + counts
+  exceptions; parity logger confined to research/shadow_parity/)
+- git diff --check clean
+
+Next: Phase 0B tap point review.
+
+---
+
 ## Active Checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

@@ -2,6 +2,30 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
+
+Phase 0A safety scaffolding (standalone, shadow-only; built BEFORE any LIVE tap).
+New package core/shadow_safety/ (fail-closed):
+- feature flags default OFF (feature_flag.py): explicit opt-in only.
+- kill switch / circuit breaker (kill_switch.py): latches KILLED on trip / N
+  consecutive failures; reset() only; manual env/file kill; fail-closed.
+- bounded non-blocking queue (bounded_queue.py): offer drops on full + counts,
+  never blocks / raises.
+- isolated worker wrapper (isolated_worker.py): swallows + counts exceptions
+  (re-raises only KeyboardInterrupt/SystemExit).
+- parity log writer confined to research/shadow_parity/ (parity_log.py).
+No live tap (live_rdm.py untouched); no production imports; no production
+behavior changed.
+
+Validation: py_compile all modules + test OK; shadow safety test PASS; git diff
+--check clean.
+
+Next: Phase 0B tap point review.
+
+---
+
+## Prior Stable Status (RDM_V2_FULL_SHADOW_RUNTIME_STABLE)
+
 Current checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
 
 Consolidation of the entire RDM V2 shadow architecture phase (shadow-only):

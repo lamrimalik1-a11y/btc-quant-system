@@ -108,7 +108,7 @@ def main() -> None:
         store.update(
             "SNAPSHOT_ZONE_1",
             update_plan,
-            ({"dynamic_mechanics": {"dynamic_state": "STABLE"}},),
+            ({"future_prediction": {"prediction": "NOT_IMPLEMENTED"}},),
         )
     except ValueError as error:
         assert "Unsupported snapshot sections" in str(error)

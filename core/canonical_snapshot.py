@@ -23,6 +23,7 @@ SNAPSHOT_SECTIONS = (
     "current_row_mechanics",
     "open_visit",
     "last_completed_visit",
+    "dynamic_mechanics",
 )
 _PROTECTED_METADATA_FIELDS = frozenset(
     {
@@ -45,6 +46,7 @@ class CanonicalZoneSnapshot:
     current_row_mechanics: Mapping[str, Any]
     open_visit: Mapping[str, Any]
     last_completed_visit: Mapping[str, Any]
+    dynamic_mechanics: Mapping[str, Any]
     source_plan_id: str
     source_event_ids: tuple[str, ...]
     shadow_only: bool = True
@@ -63,6 +65,7 @@ class CanonicalZoneSnapshot:
             "last_completed_visit": _thaw(
                 self.last_completed_visit
             ),
+            "dynamic_mechanics": _thaw(self.dynamic_mechanics),
             "source_plan_id": self.source_plan_id,
             "source_event_ids": list(self.source_event_ids),
             "shadow_only": self.shadow_only,
@@ -122,6 +125,9 @@ class SnapshotBuilder:
             open_visit=_freeze(sections["open_visit"]),
             last_completed_visit=_freeze(
                 sections["last_completed_visit"]
+            ),
+            dynamic_mechanics=_freeze(
+                sections["dynamic_mechanics"]
             ),
             source_plan_id=plan.plan_id,
             source_event_ids=tuple(plan.event_ids),

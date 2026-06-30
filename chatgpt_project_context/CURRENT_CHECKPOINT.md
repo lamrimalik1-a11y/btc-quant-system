@@ -385,3 +385,39 @@ Validation:
 
 Next:
 Await Dynamic Mechanics Adapter approval.
+
+
+---
+
+## Active Checkpoint: RDM_V2_DYNAMIC_MECHANICS_ADAPTER_SHADOW_STABLE
+
+Status: VALIDATED SHADOW CHECKPOINT
+
+Files:
+- core/canonical_snapshot.py
+- core/dynamic_mechanics_adapter.py
+- experiments/dynamic_mechanics_adapter/shadow_test.py
+- Canonical Snapshot regression fixture update
+
+Implemented:
+- Canonical snapshot dynamic_mechanics section
+- 16 dynamic timeline fields mapped
+- SDR, derivatives, integrals, and Dynamic State mapping only
+- Alias and source-field provenance
+- NOT_AVAILABLE handling
+- Snapshot patch compatibility
+
+Boundary:
+No derivative, integral, SDR, or Dynamic State calculation. No production
+consumer, LIVE integration, Stage 2C, B10/B11, dashboard, CSV writes, or
+persistence.
+
+Validation:
+- All requested compile checks: PASS
+- Adapter mapping, aliases, and missing handling: PASS
+- Existing snapshot and completed-visit regressions: PASS
+- No calculations: PASS
+- Production effects: FALSE
+
+Next:
+Await prediction adapter approval.

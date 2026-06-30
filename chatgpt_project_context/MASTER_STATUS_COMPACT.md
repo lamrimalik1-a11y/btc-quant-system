@@ -2,6 +2,27 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
+
+Canonical Snapshot identity contract fix (shadow-only):
+- Canonical Snapshot identity is now global_zone_key.
+- zone_id is descriptive metadata only (no longer determines identity).
+- SnapshotStore keyed by global_zone_key (was: bare zone_id).
+- Session-scoped identity matches the Event Dispatcher identity contract.
+- Snapshot revision model unchanged; copy-on-write unchanged; sections unchanged.
+- Production behavior unchanged (canonical_snapshot is shadow-only; only
+  experiment shadow tests import it).
+
+Validation: py_compile OK; all 8 Canonical Snapshot / adapter shadow tests PASS;
+identity-collision shadow test PASS (same zone_id reused across two sessions ->
+two independent snapshots, no collision, no overwrite); git diff --check clean.
+
+Next: Row Ordering Guard architectural review.
+
+---
+
+## Prior Stable Status (PHASE1B_B125_AUTOTRIGGER_STABLE)
+
 Current checkpoint: PHASE1B_B125_AUTOTRIGGER_STABLE
 
 B12.5 auto-triggers on every new zone detection:

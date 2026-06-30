@@ -137,6 +137,7 @@ def main() -> None:
             },
             patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.dynamic_mechanics["dynamic_state"] == (
         "ATTACKER_DOMINANT"

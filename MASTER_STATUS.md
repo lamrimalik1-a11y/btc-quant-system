@@ -1,5 +1,45 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Canonical Snapshot identity contract fix:
+- Canonical Snapshot identity is now **global_zone_key**.
+- zone_id is descriptive metadata only (no longer determines identity).
+- SnapshotStore is keyed by global_zone_key (was: bare zone_id).
+- Session-scoped identity now matches the Event Dispatcher identity contract.
+- Snapshot revision model unchanged.
+- Copy-on-write behavior unchanged.
+- Snapshot sections unchanged.
+- Production behavior unchanged (core/canonical_snapshot.py is shadow-only;
+  only experiment shadow tests import it — no live/dashboard consumer).
+
+Why: the Event Dispatcher namespaces identity by session_id (+ global_zone_key),
+but the snapshot store keyed by bare zone_id. zone_id is legitimately reused
+across daily sessions, so the snapshot layer could collide ("Snapshot already
+exists for zone …") or overwrite the wrong session. Fixed by keying the store
+and CanonicalZoneSnapshot identity on global_zone_key (zone_id retained as
+metadata; global_zone_key added to protected metadata, validated non-empty and
+for revision continuity).
+
+Validation (all pass):
+- python -m py_compile core/canonical_snapshot.py -> OK
+- All 8 Canonical Snapshot / adapter shadow tests PASS
+- New identity-collision shadow test PASS — same zone_id reused across two
+  sessions yields two INDEPENDENT snapshots, no collision, no overwrite:
+    Session A = BTCUSDT_2026-06-28_230000Z::SNAPSHOT_ZONE_1
+    Session B = BTCUSDT_2026-06-29_230000Z::SNAPSHOT_ZONE_1
+    shared zone_id = SNAPSHOT_ZONE_1; independent state (geometry width 10 vs 20).
+- git diff --check clean
+
+Files: core/canonical_snapshot.py + Canonical Snapshot / adapter shadow tests.
+
+Next: Row Ordering Guard architectural review (monotonic row_index/timestamp
+guard at the interpreter/dispatcher seam for out-of-order / late rows).
+
+---
+
 ==================================================
 STATISTICAL FOUNDATION UPDATE
 ==================================================

@@ -124,6 +124,7 @@ def main() -> None:
             },
             patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.last_completed_visit["visit_id"] == (
         "COMPLETED_VISIT_ZONE_1:V000003"

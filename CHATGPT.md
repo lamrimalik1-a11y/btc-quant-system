@@ -1,4 +1,32 @@
 ==================================================
+RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
+==================================================
+
+STATUS: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Canonical Snapshot identity contract fix:
+- Canonical Snapshot identity is now global_zone_key.
+- zone_id is descriptive metadata only (no longer determines identity).
+- SnapshotStore is keyed by global_zone_key (was: bare zone_id).
+- Session-scoped identity now matches the Event Dispatcher identity contract.
+- Snapshot revision model unchanged.
+- Copy-on-write behavior unchanged.
+- Snapshot sections unchanged.
+- Production behavior unchanged (core/canonical_snapshot.py is shadow-only;
+  only experiment shadow tests import it).
+
+Validation (all pass):
+- python -m py_compile core/canonical_snapshot.py -> OK
+- All 8 Canonical Snapshot / adapter shadow tests PASS
+- Identity-collision shadow test PASS — same zone_id reused across two sessions
+  (BTCUSDT_2026-06-28_230000Z::SNAPSHOT_ZONE_1 vs
+   BTCUSDT_2026-06-29_230000Z::SNAPSHOT_ZONE_1) -> two independent snapshots,
+  no collision, no overwrite, independent state.
+- git diff --check clean
+
+Next: Row Ordering Guard architectural review.
+
+==================================================
 PHASE1B_DOWNLOAD_STABILITY_FIX_STABLE
 ==================================================
 

@@ -126,6 +126,7 @@ def main() -> None:
             },
             full_patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.geometry["formation_width"] == 20.0
     assert snapshot.geometry["active_core_width"] == 10.0

@@ -104,6 +104,7 @@ def main() -> None:
             },
             active_patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.open_visit["active_visit_flag"] is True
     assert snapshot.open_visit["visit_id"] == (

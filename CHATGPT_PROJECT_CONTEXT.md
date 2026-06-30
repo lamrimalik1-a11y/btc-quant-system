@@ -1,5 +1,27 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+- Canonical Snapshot identity is now **global_zone_key**.
+- zone_id is descriptive metadata only (no longer determines identity).
+- SnapshotStore is keyed by global_zone_key (was: bare zone_id).
+- Session-scoped identity now matches the Event Dispatcher identity contract.
+- Snapshot revision model unchanged; copy-on-write unchanged; sections unchanged.
+- Production behavior unchanged (canonical_snapshot is shadow-only; only
+  experiment shadow tests import it).
+
+Validation (all pass): py_compile OK; all 8 Canonical Snapshot / adapter shadow
+tests PASS; identity-collision shadow test PASS (same zone_id reused across
+Session A = BTCUSDT_2026-06-28_230000Z::SNAPSHOT_ZONE_1 and
+Session B = BTCUSDT_2026-06-29_230000Z::SNAPSHOT_ZONE_1 -> two independent
+snapshots, no collision, no overwrite); git diff --check clean.
+
+Next: Row Ordering Guard architectural review.
+
+---
+
 Current stable checkpoint:
 
 `PHASE1B_LIVE_ZONE_ENGINE_STABLE`

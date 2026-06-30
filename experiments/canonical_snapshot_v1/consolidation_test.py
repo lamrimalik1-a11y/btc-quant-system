@@ -26,6 +26,8 @@ from core.row_mechanics_adapter import NOT_AVAILABLE, RowMechanicsAdapter
 
 
 ZONE_ID = "CANONICAL_V1_ZONE_1"
+# Session-scoped canonical identity (same contract as the Event Dispatcher).
+GLOBAL_KEY = "BTCUSDT_2026-06-28_230000Z::CANONICAL_V1_ZONE_1"
 SESSION_ID = "BTCUSDT_2026-06-28_230000Z"
 
 
@@ -191,6 +193,7 @@ def main() -> None:
     first = store.create(
         make_plan(1000, "2026-06-28T00:10:00Z", 70180.0),
         initial_patches(),
+        global_zone_key=GLOBAL_KEY,
     )
 
     expected_sections = {
@@ -221,7 +224,6 @@ def main() -> None:
     assert first.prediction["b11_state"] == NOT_AVAILABLE
 
     second = store.update(
-        ZONE_ID,
         make_plan(1001, "2026-06-28T00:10:01Z", 70210.0),
         (
             RowMechanicsAdapter().build_patch(
@@ -263,6 +265,7 @@ def main() -> None:
                 }
             ),
         ),
+        global_zone_key=GLOBAL_KEY,
     )
     assert second.revision == 2
     assert second.current_row_mechanics["price"] == 70210.0
@@ -287,16 +290,16 @@ def main() -> None:
 
     try:
         store.update(
-            ZONE_ID,
             make_plan(1002, "2026-06-28T00:10:02Z", 70220.0),
             ({"unsupported_future_section": {"value": 1}},),
+            global_zone_key=GLOBAL_KEY,
         )
     except ValueError as error:
         assert "Unsupported snapshot sections" in str(error)
     else:
         raise AssertionError("Invalid update unexpectedly succeeded")
 
-    after_failure = store.get_current(ZONE_ID)
+    after_failure = store.get_current(GLOBAL_KEY)
     assert after_failure is second
     assert after_failure.revision == 2
     assert after_failure.current_row_mechanics["price"] == 70210.0

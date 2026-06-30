@@ -142,6 +142,7 @@ def main() -> None:
             },
             patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.prediction["b10_trajectory"] == "DEGRADING"
     assert snapshot.prediction["b11_prediction"] == "LIKELY_FAILURE"

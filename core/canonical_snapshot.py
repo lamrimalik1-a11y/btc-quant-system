@@ -28,6 +28,7 @@ SNAPSHOT_SECTIONS = (
 )
 _PROTECTED_METADATA_FIELDS = frozenset(
     {
+        "global_zone_key",
         "zone_id",
         "revision",
         "snapshot_version",
@@ -39,6 +40,11 @@ _PROTECTED_METADATA_FIELDS = frozenset(
 
 @dataclass(frozen=True)
 class CanonicalZoneSnapshot:
+    # global_zone_key is the canonical, session-scoped IDENTITY (the same
+    # identity the Event Dispatcher uses). zone_id is descriptive metadata only
+    # and must NOT be used as a primary key, because zone_id is legitimately
+    # reused across daily sessions.
+    global_zone_key: str
     zone_id: str
     revision: int
     snapshot_version: str
@@ -55,6 +61,7 @@ class CanonicalZoneSnapshot:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "global_zone_key": self.global_zone_key,
             "zone_id": self.zone_id,
             "revision": self.revision,
             "snapshot_version": self.snapshot_version,
@@ -83,9 +90,16 @@ class SnapshotBuilder:
         plan: RefreshPlan,
         refresh_result_patches: Iterable[Mapping[str, Any]],
         *,
+        global_zone_key: str,
         previous: CanonicalZoneSnapshot | None = None,
     ) -> CanonicalZoneSnapshot:
+        if not str(global_zone_key).strip():
+            raise ValueError("global_zone_key must not be empty")
         self._validate_plan(plan, previous)
+        if previous is not None and previous.global_zone_key != global_zone_key:
+            raise ValueError(
+                "RefreshPlan global_zone_key does not match previous snapshot"
+            )
 
         sections = {
             section: (
@@ -108,6 +122,7 @@ class SnapshotBuilder:
         last_event_id = plan.event_ids[-1] if plan.event_ids else ""
         metadata = sections["metadata"]
         protected_values = {
+            "global_zone_key": global_zone_key,
             "zone_id": plan.zone_id,
             "revision": revision,
             "snapshot_version": SNAPSHOT_VERSION,
@@ -117,6 +132,7 @@ class SnapshotBuilder:
         metadata.update(protected_values)
 
         return CanonicalZoneSnapshot(
+            global_zone_key=global_zone_key,
             zone_id=plan.zone_id,
             revision=revision,
             snapshot_version=SNAPSHOT_VERSION,
@@ -199,39 +215,41 @@ class SnapshotStore:
         self,
         plan: RefreshPlan,
         refresh_result_patches: Iterable[Mapping[str, Any]],
+        *,
+        global_zone_key: str,
     ) -> CanonicalZoneSnapshot:
         with self._lock:
-            if plan.zone_id in self._current:
+            if global_zone_key in self._current:
                 raise ValueError(
-                    f"Snapshot already exists for zone {plan.zone_id}"
+                    f"Snapshot already exists for zone {global_zone_key}"
                 )
             candidate = self._builder.build(
                 plan,
                 refresh_result_patches,
+                global_zone_key=global_zone_key,
             )
-            self._current[plan.zone_id] = candidate
+            self._current[global_zone_key] = candidate
             return candidate
 
     def get_current(
         self,
-        zone_id: str,
+        global_zone_key: str,
     ) -> CanonicalZoneSnapshot | None:
         with self._lock:
-            return self._current.get(zone_id)
+            return self._current.get(global_zone_key)
 
     def update(
         self,
-        zone_id: str,
         plan: RefreshPlan,
         refresh_result_patches: Iterable[Mapping[str, Any]],
+        *,
+        global_zone_key: str,
     ) -> CanonicalZoneSnapshot:
         with self._lock:
-            current = self._current.get(zone_id)
+            current = self._current.get(global_zone_key)
             if current is None:
-                raise KeyError(f"No snapshot exists for zone {zone_id}")
-            if plan.zone_id != zone_id:
-                raise ValueError(
-                    "RefreshPlan zone does not match requested zone"
+                raise KeyError(
+                    f"No snapshot exists for zone {global_zone_key}"
                 )
 
             # Build completely before publishing. Any exception leaves the
@@ -239,9 +257,10 @@ class SnapshotStore:
             candidate = self._builder.build(
                 plan,
                 refresh_result_patches,
+                global_zone_key=global_zone_key,
                 previous=current,
             )
-            self._current[zone_id] = candidate
+            self._current[global_zone_key] = candidate
             return candidate
 
 

@@ -102,6 +102,7 @@ def main() -> None:
             },
             patch,
         ),
+        global_zone_key="BTCUSDT_2026-06-28_230000Z::ADAPTER_SHADOW_ZONE",
     )
     assert snapshot.current_row_mechanics["price"] == 103.25
     assert snapshot.current_row_mechanics["health_live"] == 84.0

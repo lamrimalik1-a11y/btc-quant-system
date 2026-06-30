@@ -24,6 +24,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from core.canonical_snapshot import SnapshotStore
 from core.interaction_interpreter import InteractionInterpreter
+from core.dynamic_mechanics_adapter import DynamicMechanicsAdapter
 from core.last_completed_visit_adapter import LastCompletedVisitAdapter
 from core.mechanical_refresh_coordinator import (
     MechanicalRefreshCoordinator,
@@ -31,7 +32,8 @@ from core.mechanical_refresh_coordinator import (
     RefreshPlan,
 )
 from core.open_visit_adapter import OpenVisitAdapter
-from core.row_mechanics_adapter import RowMechanicsAdapter
+from core.prediction_adapter import PredictionAdapter
+from core.row_mechanics_adapter import NOT_AVAILABLE, RowMechanicsAdapter
 
 
 GLOBAL_KEY = "BTCUSDT_2026-06-28_230000Z::COORD_SNAPSHOT_ZONE"
@@ -47,6 +49,10 @@ ROW_MECHANICS_DIRTY_FLAGS = (
 )
 OPEN_VISIT_DIRTY_FLAGS = ("interaction_dirty",)
 COMPLETED_VISIT_DIRTY_FLAGS = ("visit_dirty", "response_dirty")
+DYNAMIC_MECHANICS_DIRTY_FLAGS = ("response_dirty", "state_dirty")
+# Prediction runs after Dynamic Mechanics; gated by ALL(trajectory_dirty,
+# prediction_dirty) to encode the B10 trajectory -> B11 prediction dependency.
+PREDICTION_DIRTY_FLAGS = ("trajectory_dirty", "prediction_dirty")
 
 
 def plan_has_row_mechanics(plan: RefreshPlan) -> bool:
@@ -121,6 +127,19 @@ def plan_has_completed_visit(plan: RefreshPlan) -> bool:
         for flag in COMPLETED_VISIT_DIRTY_FLAGS
     )
 
+def plan_has_dynamic_mechanics(plan: RefreshPlan) -> bool:
+    return all(
+        getattr(plan.dirty_flags, flag)
+        for flag in DYNAMIC_MECHANICS_DIRTY_FLAGS
+    )
+
+
+def plan_has_prediction(plan: RefreshPlan) -> bool:
+    return all(
+        getattr(plan.dirty_flags, flag)
+        for flag in PREDICTION_DIRTY_FLAGS
+    )
+
 
 def apply_refresh_adapters(
     store,
@@ -129,10 +148,14 @@ def apply_refresh_adapters(
     row=None,
     open_visit=None,
     completed_visit=None,
+    dynamic_mechanics=None,
+    prediction=None,
     seed_patches=(),
     row_adapter=None,
     open_visit_adapter=None,
     completed_visit_adapter=None,
+    dynamic_mechanics_adapter=None,
+    prediction_adapter=None,
 ):
     """Build every dirty-gated patch before one atomic store publication."""
     patches = []
@@ -163,6 +186,35 @@ def apply_refresh_adapters(
             ).build_patch(completed_visit)
         )
 
+    if plan_has_dynamic_mechanics(plan):
+        if dynamic_mechanics is None:
+            raise ValueError("dynamic mechanics input required by RefreshPlan")
+        patches.append(
+            (
+                dynamic_mechanics_adapter
+                or DynamicMechanicsAdapter()
+            ).build_patch(dynamic_mechanics)
+        )
+
+    if plan_has_prediction(plan):
+        # B11 prediction is asynchronous to its VISIT_COMPLETED trigger. If the
+        # prediction data is missing / B11 is pending, do NOT abort the atomic
+        # update: map a PENDING / NOT_AVAILABLE prediction section instead, so
+        # the ready sections (row/open/completed/dynamic) still commit. An
+        # adapter that itself raises an unexpected error is NOT swallowed -- it
+        # propagates and blocks the whole revision (no partial commit), matching
+        # every other section's failure contract.
+        prediction_input = (
+            prediction
+            if prediction is not None
+            else {"prediction_status": "PENDING"}
+        )
+        patches.append(
+            (prediction_adapter or PredictionAdapter()).build_patch(
+                prediction_input
+            )
+        )
+
     if not patches:
         return None, ()
 
@@ -188,6 +240,14 @@ def apply_refresh_adapters(
 class FailingCompletedVisitAdapter:
     def build_patch(self, _visit):
         raise RuntimeError("synthetic completed-visit adapter failure")
+
+class FailingDynamicMechanicsAdapter:
+    def build_patch(self, _timeline_row):
+        raise RuntimeError("synthetic dynamic-mechanics adapter failure")
+
+class FailingPredictionAdapter:
+    def build_patch(self, _prediction_row):
+        raise RuntimeError("synthetic prediction adapter failure")
 
 
 def main() -> None:
@@ -456,6 +516,7 @@ def main() -> None:
     assert plan_has_completed_visit(completed_plan)
     assert not plan_has_row_mechanics(completed_plan)
     assert not plan_has_open_visit(completed_plan)
+    assert plan_has_dynamic_mechanics(completed_plan)
 
     completed_visit1 = {
         "visit_id": "COORD_SNAPSHOT_ZONE:V000001",
@@ -482,6 +543,25 @@ def main() -> None:
         "growth_flag": True,
     }
 
+    dynamic_visit1 = {
+        "visit_id": "COORD_SNAPSHOT_ZONE:V000001",
+        "dynamic_state": "STABLE",
+        "previous_dynamic_state": "RECOVERING",
+        "transition_name": "RECOVERING_TO_STABLE",
+        "first_derivative": 2.0,
+        "second_derivative": 0.5,
+        "zone_integral": 330.0,
+        "attacker_integral": 280.0,
+        "SDR": 0.8485,
+        "health_slope": 1.25,
+        "health_total_change": 7.0,
+        "omega_total": 306.0,
+        "omega_mean": 102.0,
+        "dynamic_state_reason": "PRECOMPUTED_DYNAMIC_REASON",
+        "dynamic_state_confidence": 0.82,
+        "dynamic_state_as_of_visit": 1,
+        "dynamic_updated_at": "2026-06-28T00:00:10Z",
+    }
     completed_store = SnapshotStore()
     completed_base, base_patches = apply_refresh_adapters(
         completed_store,
@@ -500,10 +580,18 @@ def main() -> None:
         completed_store,
         completed_plan,
         completed_visit=completed_visit1,
+        dynamic_mechanics=dynamic_visit1,
     )
     assert completed1.revision == completed_base.revision + 1
-    assert len(completed_patches) == 1
-    assert set(completed_patches[0]) == {"last_completed_visit"}
+    # completed_plan is a real VISIT_COMPLETED -> trajectory_dirty +
+    # prediction_dirty are set, but no prediction data was supplied, so a
+    # PENDING prediction section commits alongside the ready sections.
+    assert len(completed_patches) == 3
+    assert tuple(next(iter(patch)) for patch in completed_patches) == (
+        "last_completed_visit",
+        "dynamic_mechanics",
+        "prediction",
+    )
     assert completed1.last_completed_visit["visit_id"] == (
         "COORD_SNAPSHOT_ZONE:V000001"
     )
@@ -514,9 +602,24 @@ def main() -> None:
     assert completed1.last_completed_visit["source_fields"]["visit_id"] == (
         "visit_id"
     )
+    assert completed1.dynamic_mechanics["dynamic_state"] == "STABLE"
+    assert completed1.dynamic_mechanics["SDR"] == 0.8485
+    assert completed1.dynamic_mechanics["adapter_mode"] == (
+        "SHADOW_MAPPING_ONLY"
+    )
+    assert completed1.dynamic_mechanics["source_fields"]["SDR"] == "SDR"
+    # Pending B11: the prediction section commits as PENDING / NOT_AVAILABLE and
+    # does NOT block the ready completed-visit and dynamic-mechanics sections.
+    assert plan_has_prediction(completed_plan)
+    assert completed1.prediction["prediction_status"] == "PENDING"
+    assert completed1.prediction["b10_trajectory"] == NOT_AVAILABLE
+    assert completed1.prediction["b11_prediction"] == NOT_AVAILABLE
+    assert completed1.prediction["b11_confidence"] == NOT_AVAILABLE
+    assert completed1.prediction["adapter_mode"] == "SHADOW_MAPPING_ONLY"
     assert completed1.global_zone_key == GLOBAL_KEY
     assert completed1.source_plan_id == completed_plan.plan_id
     assert completed_base.last_completed_visit == {}
+    assert completed_base.prediction == {}
 
     # Row-only control: snapshot advances, completed-visit section does not.
     row_only, row_only_patches = apply_refresh_adapters(
@@ -524,6 +627,7 @@ def main() -> None:
         no_open_plan,
         row=row2,
         completed_visit_adapter=FailingCompletedVisitAdapter(),
+        dynamic_mechanics_adapter=FailingDynamicMechanicsAdapter(),
     )
     assert row_only.revision == completed1.revision + 1
     assert len(row_only_patches) == 1
@@ -533,6 +637,11 @@ def main() -> None:
         completed1.last_completed_visit["visit_id"]
     )
     assert not plan_has_completed_visit(no_open_plan)
+    assert not plan_has_dynamic_mechanics(no_open_plan)
+    assert row_only.dynamic_mechanics["dynamic_state"] == (
+        completed1.dynamic_mechanics["dynamic_state"]
+    )
+    assert row_only.dynamic_mechanics["SDR"] == completed1.dynamic_mechanics["SDR"]
 
     # Mixed cycle: row, open visit, and completed visit commit once.
     mixed_plan = RefreshPlan(
@@ -551,6 +660,7 @@ def main() -> None:
             health_dirty=True,
             visit_dirty=True,
             response_dirty=True,
+            state_dirty=True,
             snapshot_dirty=True,
         ),
         execution_order=(
@@ -561,6 +671,7 @@ def main() -> None:
             "health_refresh",
             "visit_refresh",
             "response_refresh",
+            "state_refresh",
             "snapshot_refresh",
         ),
         audit_trace=("synthetic_mixed_completion",),
@@ -574,24 +685,44 @@ def main() -> None:
             "reflection_flag": False,
         }
     )
+    dynamic_visit2 = dict(dynamic_visit1)
+    dynamic_visit2.update(
+        {
+            "visit_id": "COORD_SNAPSHOT_ZONE:V000002",
+            "dynamic_state": "ATTACKER_DOMINANT",
+            "previous_dynamic_state": "STABLE",
+            "transition_name": "STABLE_TO_ATTACKER_DOMINANT",
+            "first_derivative": -4.0,
+            "second_derivative": -6.0,
+            "zone_integral": 402.0,
+            "attacker_integral": 451.0,
+            "SDR": 1.1219,
+            "dynamic_state_as_of_visit": 2,
+            "dynamic_updated_at": "2026-06-28T00:00:11Z",
+        }
+    )
     mixed, mixed_patches = apply_refresh_adapters(
         completed_store,
         mixed_plan,
         row=row2,
         open_visit=visit2,
         completed_visit=completed_visit2,
+        dynamic_mechanics=dynamic_visit2,
     )
     assert mixed.revision == row_only.revision + 1
     assert tuple(next(iter(patch)) for patch in mixed_patches) == (
         "current_row_mechanics",
         "open_visit",
         "last_completed_visit",
+        "dynamic_mechanics",
     )
     assert mixed.current_row_mechanics["row_id"] == 1001
     assert mixed.open_visit["current_row_count"] == 2
     assert mixed.last_completed_visit["visit_id"] == (
         "COORD_SNAPSHOT_ZONE:V000002"
     )
+    assert mixed.dynamic_mechanics["dynamic_state"] == "ATTACKER_DOMINANT"
+    assert mixed.dynamic_mechanics["SDR"] == 1.1219
     assert mixed.global_zone_key == GLOBAL_KEY
     assert mixed.source_plan_id == mixed_plan.plan_id
 
@@ -621,6 +752,176 @@ def main() -> None:
     assert completed_store.get_current(GLOBAL_KEY).last_completed_visit[
         "visit_id"
     ] == "COORD_SNAPSHOT_ZONE:V000002"
+
+    # Dynamic failure occurs after row/open/completed patches are built.
+    try:
+        apply_refresh_adapters(
+            completed_store,
+            mixed_plan,
+            row=row1,
+            open_visit=visit1,
+            completed_visit=completed_visit1,
+            dynamic_mechanics=dynamic_visit1,
+            dynamic_mechanics_adapter=FailingDynamicMechanicsAdapter(),
+        )
+    except RuntimeError as error:
+        assert "synthetic dynamic-mechanics adapter failure" in str(error)
+    else:
+        raise AssertionError("Dynamic Mechanics adapter failure was not raised")
+    assert completed_store.get_current(GLOBAL_KEY) is before_failure
+    assert completed_store.get_current(GLOBAL_KEY).revision == 4
+    assert completed_store.get_current(GLOBAL_KEY).dynamic_mechanics[
+        "dynamic_state"
+    ] == "ATTACKER_DOMINANT"
+    assert completed_store.get_current(GLOBAL_KEY).dynamic_mechanics[
+        "SDR"
+    ] == 1.1219
+
+    # ================================================================
+    # Prediction integration: ALL(trajectory_dirty, prediction_dirty).
+    # ================================================================
+    # A prediction-only synthetic plan isolates the prediction branch.
+    prediction_only_plan = RefreshPlan(
+        plan_id="SHADOW:COORD_SNAPSHOT_ZONE:PREDICTION_ONLY",
+        zone_id="COORD_SNAPSHOT_ZONE",
+        event_ids=("COORD_SNAPSHOT_ZONE:11:VISIT_COMPLETED:01",),
+        event_types=("VISIT_COMPLETED",),
+        dirty_flags=RefreshDirtyFlags(
+            trajectory_dirty=True,
+            prediction_dirty=True,
+            snapshot_dirty=True,
+        ),
+        execution_order=(
+            "trajectory_refresh",
+            "prediction_refresh",
+            "snapshot_refresh",
+        ),
+        audit_trace=("synthetic_prediction_only",),
+    )
+    assert plan_has_prediction(prediction_only_plan)
+    assert not plan_has_row_mechanics(prediction_only_plan)
+    assert not plan_has_open_visit(prediction_only_plan)
+    assert not plan_has_completed_visit(prediction_only_plan)
+    assert not plan_has_dynamic_mechanics(prediction_only_plan)
+
+    # (A) Prediction data present -> mapped normally into the prediction section.
+    prediction_data = {
+        "structural_trajectory": "STABLE",
+        "trajectory_direction": "HOLD",
+        "trajectory_reason": "PRECOMPUTED_B10_REASON",
+        "trajectory_confidence": "HIGH",
+        "structural_prediction": "LIKELY_HOLD",
+        "b11_state": "PRECOMPUTED_B11_STATE",
+        "prediction_reason": "PRECOMPUTED_B11_REASON",
+        "prediction_confidence": "MEDIUM",
+        "prediction_uncertainty": 0.2,
+        "prediction_version": "B11_V1",
+        "emit_status": "FINALIZED",
+        "dynamic_state": "ATTACKER_DOMINANT",
+        "visit_id": "COORD_SNAPSHOT_ZONE:V000002",
+        "visit_index": 2,
+        "analysis_run_utc": "2026-06-28T00:00:12Z",
+    }
+    pred_present, pred_present_patches = apply_refresh_adapters(
+        completed_store,
+        prediction_only_plan,
+        prediction=prediction_data,
+    )
+    assert pred_present.revision == before_failure.revision + 1
+    assert len(pred_present_patches) == 1
+    assert set(pred_present_patches[0]) == {"prediction"}
+    assert pred_present.prediction["b10_trajectory"] == "STABLE"
+    assert pred_present.prediction["b11_prediction"] == "LIKELY_HOLD"
+    assert pred_present.prediction["prediction_status"] == "FINALIZED"
+    assert pred_present.prediction["prediction_uncertainty"] == 0.2
+    assert pred_present.prediction["adapter_mode"] == "SHADOW_MAPPING_ONLY"
+    assert pred_present.prediction["source_fields"]["b10_trajectory"] == (
+        "structural_trajectory"
+    )
+    assert pred_present.global_zone_key == GLOBAL_KEY
+    assert pred_present.source_plan_id == prediction_only_plan.plan_id
+    # Ready sections from prior revisions are preserved (copy-on-write merge).
+    assert pred_present.last_completed_visit["visit_id"] == (
+        "COORD_SNAPSHOT_ZONE:V000002"
+    )
+    assert pred_present.dynamic_mechanics["dynamic_state"] == "ATTACKER_DOMINANT"
+    assert pred_present.current_row_mechanics["row_id"] == 1001
+
+    # (B) Prediction input missing / B11 pending -> PENDING section, no abort.
+    pred_pending, pred_pending_patches = apply_refresh_adapters(
+        completed_store,
+        prediction_only_plan,
+    )
+    assert pred_pending.revision == pred_present.revision + 1
+    assert len(pred_pending_patches) == 1
+    assert set(pred_pending_patches[0]) == {"prediction"}
+    assert pred_pending.prediction["prediction_status"] == "PENDING"
+    assert pred_pending.prediction["b10_trajectory"] == NOT_AVAILABLE
+    assert pred_pending.prediction["b11_prediction"] == NOT_AVAILABLE
+    # Ready sections are NOT blocked by the pending prediction.
+    assert pred_pending.last_completed_visit["visit_id"] == (
+        "COORD_SNAPSHOT_ZONE:V000002"
+    )
+    assert pred_pending.dynamic_mechanics["dynamic_state"] == "ATTACKER_DOMINANT"
+    assert pred_pending.current_row_mechanics["row_id"] == 1001
+
+    # (C) Unexpected prediction adapter failure blocks the whole revision: even
+    #     with ready row/open/completed/dynamic inputs, no partial commit leaks.
+    full_plan = RefreshPlan(
+        plan_id="SHADOW:COORD_SNAPSHOT_ZONE:FULL_PREDICTION_FAILURE",
+        zone_id="COORD_SNAPSHOT_ZONE",
+        event_ids=(
+            "COORD_SNAPSHOT_ZONE:12:PENETRATION_UPDATED:01",
+            "COORD_SNAPSHOT_ZONE:12:VISIT_COMPLETED:02",
+        ),
+        event_types=("PENETRATION_UPDATED", "VISIT_COMPLETED"),
+        dirty_flags=RefreshDirtyFlags(
+            interaction_dirty=True,
+            stress_dirty=True,
+            exposure_dirty=True,
+            fatigue_recovery_dirty=True,
+            health_dirty=True,
+            visit_dirty=True,
+            response_dirty=True,
+            state_dirty=True,
+            transition_dirty=True,
+            trajectory_dirty=True,
+            prediction_dirty=True,
+            snapshot_dirty=True,
+        ),
+        execution_order=("snapshot_refresh",),
+        audit_trace=("synthetic_full_prediction_failure",),
+    )
+    assert plan_has_row_mechanics(full_plan)
+    assert plan_has_open_visit(full_plan)
+    assert plan_has_completed_visit(full_plan)
+    assert plan_has_dynamic_mechanics(full_plan)
+    assert plan_has_prediction(full_plan)
+    stable_before_pred_fail = completed_store.get_current(GLOBAL_KEY)
+    try:
+        apply_refresh_adapters(
+            completed_store,
+            full_plan,
+            row=row1,
+            open_visit=visit1,
+            completed_visit=completed_visit1,
+            dynamic_mechanics=dynamic_visit1,
+            prediction=prediction_data,
+            prediction_adapter=FailingPredictionAdapter(),
+        )
+    except RuntimeError as error:
+        assert "synthetic prediction adapter failure" in str(error)
+    else:
+        raise AssertionError("Prediction adapter failure was not raised")
+    # No partial commit: revision and all sections unchanged.
+    assert completed_store.get_current(GLOBAL_KEY) is stable_before_pred_fail
+    assert completed_store.get_current(GLOBAL_KEY).revision == (
+        pred_pending.revision
+    )
+    assert completed_store.get_current(GLOBAL_KEY).prediction[
+        "prediction_status"
+    ] == "PENDING"
+
     print("COORDINATOR_SNAPSHOT_INTEGRATION_SHADOW_TEST = PASS")
     print("ROW1_PLAN_DIRTY", plan1.dirty_flags.active_names())
     print("ROW1_REVISION", snap1.revision)
@@ -637,6 +938,19 @@ def main() -> None:
     print("ROW_ONLY_PRESERVED_COMPLETED_VISIT", row_only.last_completed_visit["visit_id"])
     print("MIXED_COMPLETION_REVISION", mixed.revision)
     print("COMPLETED_VISIT_FAILURE_PRESERVED_REVISION", completed_store.get_current(GLOBAL_KEY) is before_failure)
+    print("DYNAMIC_MECHANICS_PLAN_DIRTY", plan_has_dynamic_mechanics(completed_plan))
+    print("DYNAMIC_MECHANICS_STATE", completed1.dynamic_mechanics["dynamic_state"])
+    print("ROW_ONLY_PRESERVED_DYNAMIC_STATE", row_only.dynamic_mechanics["dynamic_state"])
+    print("MIXED_DYNAMIC_STATE", mixed.dynamic_mechanics["dynamic_state"])
+    print("DYNAMIC_FAILURE_PRESERVED_REVISION", completed_store.get_current(GLOBAL_KEY) is before_failure)
+    print("PREDICTION_PRESENT_STATUS", pred_present.prediction["prediction_status"])
+    print("PREDICTION_PRESENT_B11", pred_present.prediction["b11_prediction"])
+    print("PREDICTION_PENDING_STATUS", pred_pending.prediction["prediction_status"])
+    print("PREDICTION_PENDING_B11", pred_pending.prediction["b11_prediction"])
+    print("READY_SECTIONS_COMMIT_WHEN_PENDING", pred_pending.last_completed_visit["visit_id"])
+    print("PREDICTION_FAILURE_PRESERVED_REVISION", completed_store.get_current(GLOBAL_KEY) is stable_before_pred_fail)
+    print("NO_PREDICTION_GENERATION = TRUE")
+    print("NO_DYNAMIC_STATE_RECOMPUTATION = TRUE")
     print("NO_CALCULATIONS = TRUE")
     print("PRODUCTION_EFFECTS = FALSE")
 

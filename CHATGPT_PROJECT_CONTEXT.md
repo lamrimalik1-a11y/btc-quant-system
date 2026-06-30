@@ -1,5 +1,29 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Prediction Adapter integrated into the coordinator snapshot integration test
+(experiments/coordinator_snapshot_integration/shadow_test.py):
+- **Prediction Adapter integrated** into the multi-adapter atomic orchestrator.
+- **Gate = ALL(trajectory_dirty, prediction_dirty)** (B10 -> B11 dependency).
+- **Prediction runs logically after Dynamic Mechanics.**
+- **Missing prediction input produces PENDING / NOT_AVAILABLE** (B11 is async to
+  its VISIT_COMPLETED trigger) instead of aborting.
+- **Pending prediction does not block completed_visit or dynamic_mechanics.**
+- **Unexpected prediction adapter failure prevents partial commit.**
+- **One atomic revision per merged commit**; revision monotonic.
+- **global_zone_key and source_plan_id preserved.**
+- **No calculations. No prediction generation. No production behavior changed.**
+
+Validation (all pass): py_compile integration test OK; integration test PASS;
+git diff --check clean.
+
+Next: full shadow runtime consolidation approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
 
 Status: MILESTONE CHECKPOINT — shadow-only, no production behavior changed.

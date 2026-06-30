@@ -1,4 +1,28 @@
 ==================================================
+RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+==================================================
+
+STATUS: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Prediction Adapter integrated into the coordinator snapshot integration test:
+- Prediction Adapter integrated into the multi-adapter atomic orchestrator.
+- Gate = ALL(trajectory_dirty, prediction_dirty) (B10 -> B11 dependency).
+- Prediction runs logically after Dynamic Mechanics.
+- Missing prediction input produces PENDING / NOT_AVAILABLE (B11 is async to its
+  VISIT_COMPLETED trigger) instead of aborting.
+- Pending prediction does not block completed_visit or dynamic_mechanics.
+- Unexpected prediction adapter failure prevents partial commit (raises and
+  blocks the whole revision; prior revision untouched).
+- One atomic revision per merged commit; revision monotonic.
+- global_zone_key and source_plan_id preserved.
+- No calculations. No prediction generation. No production behavior changed.
+
+Validation (all pass): py_compile integration test OK; integration test PASS;
+git diff --check clean.
+
+Next: full shadow runtime consolidation approval.
+
+==================================================
 RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
 ==================================================
 

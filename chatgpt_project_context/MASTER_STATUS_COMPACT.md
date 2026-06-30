@@ -2,6 +2,27 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Prediction Adapter integrated into the coordinator snapshot integration test:
+- Prediction Adapter integrated into the multi-adapter atomic orchestrator.
+- Gate = ALL(trajectory_dirty, prediction_dirty) (B10 -> B11 dependency).
+- Prediction runs logically after Dynamic Mechanics.
+- Missing prediction input produces PENDING / NOT_AVAILABLE (no abort).
+- Pending prediction does not block completed_visit or dynamic_mechanics.
+- Unexpected prediction adapter failure prevents partial commit.
+- One atomic revision per merged commit; global_zone_key + source_plan_id preserved.
+- No calculations; no prediction generation; no production behavior changed.
+
+Validation: py_compile integration test OK; integration test PASS; git diff
+--check clean.
+
+Next: full shadow runtime consolidation approval.
+
+---
+
+## Prior Stable Status (RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE)
+
 Current checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
 
 All six Canonical Snapshot adapters are now shadow-ready (one per section):

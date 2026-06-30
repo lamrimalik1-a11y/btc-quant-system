@@ -1,5 +1,43 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+
+Prediction Adapter integrated into the coordinator snapshot integration test
+(experiments/coordinator_snapshot_integration/shadow_test.py). This completes the
+event-driven Coordinator -> adapters -> one atomic Canonical Snapshot revision for
+all data sections.
+
+- **Prediction Adapter integrated** into the coordinator snapshot integration
+  (the multi-adapter atomic `apply_refresh_adapters` orchestrator).
+- **Gate = ALL(trajectory_dirty, prediction_dirty)** — encodes the B10 trajectory
+  -> B11 prediction dependency; a real VISIT_COMPLETED sets both.
+- **Prediction runs logically after Dynamic Mechanics** (last patch built before
+  the single atomic store publication).
+- **Missing prediction input produces PENDING / NOT_AVAILABLE** — B11 is
+  asynchronous to its VISIT_COMPLETED trigger, so a missing input maps a
+  `{"prediction_status": "PENDING"}` section (all other prediction fields
+  NOT_AVAILABLE) instead of aborting.
+- **Pending prediction does not block completed_visit or dynamic_mechanics** —
+  the ready sections still commit in the same revision.
+- **Unexpected prediction adapter failure prevents partial commit** — an adapter
+  that raises propagates and blocks the whole revision (all patches are built
+  before one store call), leaving the prior revision untouched.
+- **One atomic revision per merged commit**; revision monotonic.
+- **global_zone_key and source_plan_id preserved**.
+- **No calculations. No prediction generation. No production behavior changed**
+  (no core/research/tools module consumes the integration test).
+
+Validation (all pass): py_compile integration test OK; integration test PASS
+(prediction-present maps FINALIZED/LIKELY_HOLD; pending maps PENDING/NOT_AVAILABLE;
+ready sections commit when pending; unexpected adapter failure preserves revision);
+git diff --check clean.
+
+Next: full shadow runtime consolidation approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
 
 Status: MILESTONE CHECKPOINT — shadow-only, no production behavior changed.

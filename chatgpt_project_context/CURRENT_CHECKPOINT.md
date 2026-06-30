@@ -1,5 +1,69 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Consolidation checkpoint for the entire RDM V2 shadow architecture phase.
+
+### 1. Event-Driven Backbone (complete)
+    Market Row -> Interaction Interpreter -> Event Dispatcher ->
+    Mechanical Refresh Coordinator -> Canonical Snapshot
+Components: core/interaction_interpreter.py, core/event_dispatcher.py,
+core/mechanical_refresh_coordinator.py, core/canonical_snapshot.py.
+
+### 2. Operational Contracts (accepted + checkpointed)
+- **Snapshot Identity Contract**: global_zone_key is the canonical snapshot
+  identity; zone_id is metadata only; same zone_id across sessions does not
+  collide.
+- **Row Ordering Contract**: interpret_in_order(); InteractionState.
+  previous_row_index is the only watermark; row_index authoritative; timestamp
+  informational only; duplicate row -> ROW_DUPLICATE; older row ->
+  ROW_OUT_OF_ORDER; no events / no mutation on rejected rows.
+- **Restart / Durability Contract**: append-only ordered row log is source of
+  truth; persist-before-process; rebuild-from-history; snapshot is
+  projection/cache only; geometry-in-effect must be pinned; checkpoints are an
+  optimization, not correctness.
+
+### 3. Canonical Snapshot (shadow-ready sections)
+Metadata, Geometry, Current Row Mechanics, Open Visit, Last Completed Visit,
+Dynamic Mechanics, Prediction. Behavior: copy-on-write; immutable revisions; one
+atomic revision per commit; previous revision preserved on failure; keyed by
+global_zone_key.
+
+### 4. Snapshot Adapters (all shadow-only)
+core/geometry_snapshot_adapter.py, core/row_mechanics_adapter.py,
+core/open_visit_adapter.py, core/last_completed_visit_adapter.py,
+core/dynamic_mechanics_adapter.py, core/prediction_adapter.py. All: pure mapping
+only; no calculations; NOT_AVAILABLE-aware; alias-aware where needed;
+snapshot-compatible; no production consumers.
+
+### 5. Shadow Integration Tests
+- experiments/coordinator_snapshot_integration/shadow_test.py: Coordinator ->
+  Row Mechanics -> Snapshot; Coordinator -> Row Mechanics + Open Visit ->
+  Snapshot; Completed Visit; Dynamic Mechanics; Prediction integrations.
+- experiments/full_shadow_runtime/shadow_test.py: full Market Row ->
+  Interaction Interpreter -> Event Dispatcher -> Mechanical Refresh Coordinator
+  -> Adapters -> Canonical Snapshot runtime.
+
+### 6. Full Shadow Runtime Guarantees (all validated)
+one RefreshPlan per accepted event row; one atomic snapshot revision per
+committed plan; duplicate rows rejected before refresh; out-of-order rows
+rejected before refresh; adapter failure preserves the previous revision; no
+partial commit; prediction PENDING does not block completed/dynamic sections;
+global_zone_key preserved; source_plan_id preserved; adapter provenance
+preserved; copy-on-write preserved; no calculations; no prediction generation;
+no Dynamic State recomputation; no Stage 2C; no production behavior changed.
+
+Validation (all pass):
+- py_compile experiments/full_shadow_runtime/shadow_test.py -> OK
+- Full shadow runtime test PASS (6 scenarios; 8 RefreshPlans -> 7 committed
+  revisions, one rolled back by the injected failure)
+- git diff --check clean
+
+Next: production integration strategy.
+
+---
+
 ## Active Checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

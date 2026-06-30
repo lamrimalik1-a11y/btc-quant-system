@@ -1,5 +1,54 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
+
+Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Consolidation of the entire RDM V2 shadow architecture phase.
+
+1. **Event-Driven Backbone (complete)**: Market Row -> Interaction Interpreter ->
+   Event Dispatcher -> Mechanical Refresh Coordinator -> Canonical Snapshot
+   (core/interaction_interpreter.py, core/event_dispatcher.py,
+   core/mechanical_refresh_coordinator.py, core/canonical_snapshot.py).
+
+2. **Operational Contracts (accepted + checkpointed)**:
+   - Snapshot Identity: global_zone_key is canonical identity; zone_id metadata
+     only; same zone_id across sessions does not collide.
+   - Row Ordering: interpret_in_order(); previous_row_index is the only
+     watermark; row_index authoritative; timestamp informational; duplicate ->
+     ROW_DUPLICATE; older -> ROW_OUT_OF_ORDER; no events/mutation on reject.
+   - Restart/Durability: append-only ordered row log is source of truth;
+     persist-before-process; rebuild-from-history; snapshot is projection/cache
+     only; geometry-in-effect pinned; checkpoints are optimization not correctness.
+
+3. **Canonical Snapshot sections**: Metadata, Geometry, Current Row Mechanics,
+   Open Visit, Last Completed Visit, Dynamic Mechanics, Prediction. Copy-on-write;
+   immutable revisions; one atomic revision per commit; previous revision
+   preserved on failure; keyed by global_zone_key.
+
+4. **Snapshot Adapters** (all shadow-only, pure mapping, NOT_AVAILABLE-aware,
+   alias-aware, snapshot-compatible, no production consumers):
+   geometry / row_mechanics / open_visit / last_completed_visit /
+   dynamic_mechanics / prediction snapshot adapters.
+
+5. **Shadow Integration Tests**:
+   experiments/coordinator_snapshot_integration/shadow_test.py and
+   experiments/full_shadow_runtime/shadow_test.py.
+
+6. **Full Shadow Runtime Guarantees (validated)**: one RefreshPlan per accepted
+   event row; one atomic revision per committed plan; duplicate/out-of-order rows
+   rejected before refresh; adapter failure preserves previous revision (no
+   partial commit); prediction PENDING does not block completed/dynamic;
+   global_zone_key + source_plan_id + adapter provenance + copy-on-write
+   preserved; no calculations; no prediction generation; no Dynamic State
+   recompute; no Stage 2C; no production behavior changed.
+
+Validation: py_compile OK; full shadow runtime test PASS (6 scenarios; 8 plans ->
+7 committed revisions); git diff --check clean.
+
+Next: production integration strategy.
+
+---
+
 ## Active Checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.

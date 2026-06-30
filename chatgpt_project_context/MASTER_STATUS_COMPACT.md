@@ -2,6 +2,44 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
+
+Consolidation of the entire RDM V2 shadow architecture phase (shadow-only):
+- Event-Driven Backbone complete: Market Row -> Interaction Interpreter ->
+  Event Dispatcher -> Mechanical Refresh Coordinator -> Canonical Snapshot
+  (interaction_interpreter, event_dispatcher, mechanical_refresh_coordinator,
+  canonical_snapshot).
+- Contracts: Snapshot Identity (global_zone_key canonical, zone_id metadata,
+  no cross-session collision); Row Ordering (interpret_in_order;
+  previous_row_index sole watermark; row_index authoritative; duplicate ->
+  ROW_DUPLICATE; older -> ROW_OUT_OF_ORDER); Restart/Durability (append-only row
+  log is truth; persist-before-process; rebuild-from-history; snapshot is
+  cache/projection; geometry pinned; checkpoints optimization not correctness).
+- Canonical Snapshot sections: Metadata, Geometry, Current Row Mechanics, Open
+  Visit, Last Completed Visit, Dynamic Mechanics, Prediction. Copy-on-write;
+  immutable revisions; one atomic revision per commit; previous preserved on
+  failure; keyed by global_zone_key.
+- Six shadow adapters (geometry, row_mechanics, open_visit,
+  last_completed_visit, dynamic_mechanics, prediction): pure mapping,
+  NOT_AVAILABLE-aware, alias-aware, no production consumers.
+- Shadow integrations: experiments/coordinator_snapshot_integration/shadow_test.py
+  and experiments/full_shadow_runtime/shadow_test.py.
+- Full runtime guarantees: one plan per accepted event row; one atomic revision
+  per committed plan; duplicate/out-of-order rejected before refresh; adapter
+  failure preserves previous revision; no partial commit; prediction PENDING does
+  not block completed/dynamic; global_zone_key + source_plan_id + provenance +
+  copy-on-write preserved; no calculations; no prediction generation; no Dynamic
+  State recompute; no Stage 2C; no production behavior changed.
+
+Validation: py_compile OK; full shadow runtime test PASS (6 scenarios; 8 plans ->
+7 committed revisions); git diff --check clean.
+
+Next: production integration strategy.
+
+---
+
+## Prior Stable Status (RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE)
+
 Current checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
 
 Prediction Adapter integrated into the coordinator snapshot integration test:

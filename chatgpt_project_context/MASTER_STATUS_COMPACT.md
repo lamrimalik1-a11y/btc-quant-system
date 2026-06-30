@@ -2,6 +2,28 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
+
+Phase 0D: first (minimal) production wiring of the Passive Shadow Runtime — one
+flag-gated, isolated tap:
+- one minimal flag-gated tap in compute_live_rdm_for_case (core/live_rdm.py);
+  only production line is _shadow_emit(record).
+- after _persist_record / B12.5 hook, before return record.
+- local import (load-time import graph unchanged).
+- try/except isolated (never blocks LIVE, never mutates record/outputs).
+- default OFF; no-op with flag OFF -> no production behavior change with flag OFF.
+- unrelated live_rdm hunks excluded (patch-staging; 5 pre-existing hunks left
+  unstaged + unmodified).
+
+Validation: py_compile live_rdm + emitter OK; import smoke OK; emitter shadow test
+PASS; flag OFF -> no queue activity; git diff --check clean; staged diff = tap only.
+
+Next: passive shadow runtime worker approval.
+
+---
+
+## Prior Stable Status (RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE)
+
 Current checkpoint: RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
 
 Phase 0C standalone shadow emitter (core/shadow_runtime_emitter.py; imports only

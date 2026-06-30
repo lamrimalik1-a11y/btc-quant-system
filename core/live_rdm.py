@@ -606,6 +606,19 @@ def compute_live_rdm_for_case(
     except Exception:
         pass
 
+    # Passive Shadow Runtime tap (Phase 0D) — flag-gated, default OFF.
+    # Hands a deep-copied payload to the shadow emitter, which no-ops unless
+    # SHADOW_RUNTIME_ENABLED is explicitly set. The local import keeps the
+    # module's load-time import graph unchanged; the try/except guarantees the
+    # shadow path can never block the LIVE pipeline, mutate record, or alter any
+    # output. Shadow-only: no production behavior with the flag OFF.
+    try:
+        from core.shadow_runtime_emitter import emit as _shadow_emit
+
+        _shadow_emit(record)
+    except Exception:
+        pass
+
     return record
 
 

@@ -1,5 +1,38 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
+
+Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Phase 0D: the first (and minimal) production wiring of the Passive Shadow Runtime
+— a single flag-gated, isolated tap.
+
+The tap:
+- **One minimal flag-gated tap in compute_live_rdm_for_case** (core/live_rdm.py)
+  — a single ~13-line hunk; the only production line is `_shadow_emit(record)`.
+- **After _persist_record / B12.5 hook, before return record** — placed at the
+  end of the function where geometry, row mechanics, visit, and B10/B11 are
+  finalized (Phase 0B tap point).
+- **Local import** — `from core.shadow_runtime_emitter import emit as _shadow_emit`
+  inside the hook, so the module's load-time import graph is unchanged.
+- **try/except isolated** — wrapped in try/except Exception; the shadow path can
+  never block the LIVE pipeline, mutate record, or alter any output.
+- **Default OFF / no-op with flag OFF** — the emitter no-ops unless
+  SHADOW_RUNTIME_ENABLED is explicitly set (verified: status DISABLED, zero queue
+  activity), so there is **no production behavior change with the flag OFF**.
+- **Unrelated live_rdm hunks excluded** — only the Phase 0D tap hunk was staged
+  (patch-staging via git apply --cached); the 5 pre-existing, unrelated working-
+  tree hunks (imports, build_completed_live_case_row, _run_group_b,
+  append_post_return_tick, _ensure_csv) were left unstaged and unmodified.
+
+Validation (all pass): py_compile core/live_rdm.py + core/shadow_runtime_emitter.py
+OK; live_rdm import smoke OK; emitter shadow test PASS; flag OFF -> no queue
+activity (status DISABLED, enqueued=0); git diff --check clean; git diff --cached
+shows ONLY the tap hunk.
+
+Next: passive shadow runtime worker approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. Phase 0C

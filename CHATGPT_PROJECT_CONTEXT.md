@@ -1,5 +1,29 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
+
+Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Phase 0D: first (minimal) production wiring of the Passive Shadow Runtime — one
+flag-gated, isolated tap.
+
+- **one minimal flag-gated tap in compute_live_rdm_for_case** (core/live_rdm.py);
+  only production line is `_shadow_emit(record)`.
+- **after _persist_record / B12.5 hook, before return record**.
+- **local import** (load-time import graph unchanged).
+- **try/except isolated** (never blocks LIVE, never mutates record/outputs).
+- **default OFF; no-op with flag OFF** -> no production behavior change with flag
+  OFF (verified status DISABLED, zero queue activity).
+- **unrelated live_rdm hunks excluded** (patch-staging via git apply --cached;
+  the 5 pre-existing hunks left unstaged + unmodified).
+
+Validation: py_compile live_rdm + emitter OK; live_rdm import smoke OK; emitter
+shadow test PASS; flag OFF -> no queue activity; git diff --check clean; staged
+diff shows ONLY the tap hunk.
+
+Next: passive shadow runtime worker approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
 
 Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. Phase 0C:

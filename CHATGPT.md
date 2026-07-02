@@ -1,4 +1,50 @@
 ==================================================
+RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
+==================================================
+
+STATUS: PHASE 0 CLOSED — PRODUCTION SAFE (final Phase 0 checkpoint). Deliberate
+distinction from "PRODUCTION VALIDATED": end-to-end correctness under load is
+proven by the Replay Soak; the two LIVE soaks prove the passive shadow is SAFE
+alongside real production for a sustained period without impact.
+
+Journey: Safety Modules -> Runtime Emitter -> Live Tap -> Passive Worker ->
+Runtime Connection -> Parity Logging -> Bootstrap -> Repository Integrity Fix
+-> Replay Soak PASS -> Controlled LIVE Soak PASS -> Extended LIVE Soak
+INCONCLUSIVE (market_event_scarcity, shadow pipeline not at fault).
+
+Soak history:
+- Replay soak: PASS.
+- Controlled LIVE soak: PASS.
+- Extended LIVE soak: INCONCLUSIVE due to MARKET_EVENT_SCARCITY -- 60 min hard
+  cap, zero failures of any kind (failed=0, dropped=0, desynchronized=0,
+  breaker never tripped, zero production exceptions, memory flat ~99-101MB,
+  revision monotonicity / copy-on-write / identity integrity all HELD). Zero
+  payloads because none were available to process, not because any were lost.
+
+Why zero payloads (confirmed by direct evidence): outputs/live_return_detection
+.csv and outputs/live_rdm_results.csv show zero new rows during the soak AND
+for the full week preceding it (last write 2026-06-25) -- compute_live_rdm_
+for_case only runs on return_found, which never fired. live_preparation_zones
+.csv's last activity predates the soak by hours and was a logged rejection. No
+emitter DISABLED/DROPPED/ERROR at any point; stderr empty the whole hour.
+Shadow pipeline not at fault -- Project 1 (Preparation Zone / Active Core /
+Density Band -- NOT Psychological Levels) produced no Preparation/Return case.
+
+Production safety verified over 60 continuous real minutes: no exception, no
+drop, no desync, no breaker trip, no parity path violation, no memory growth,
+no interference with the live stream.
+
+Phase 0 infrastructure: COMPLETE.
+Phase 0 policy: FROZEN except critical production bug fixes.
+Not allowed: new Phase 0 architecture, refactoring, snapshot/queue/worker/
+bootstrap/contract/coordinator redesign.
+
+Future payload-rich validation runs opportunistically when Project 1 emits
+enough cases -- not a blocking gate.
+
+Next: Phase 1 -- System Intelligence.
+
+==================================================
 RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
 ==================================================
 

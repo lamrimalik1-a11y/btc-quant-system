@@ -2,6 +2,44 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
+
+PHASE 0 CLOSED — PRODUCTION SAFE (final Phase 0 checkpoint; deliberately
+distinct from "PRODUCTION VALIDATED" — correctness under load is proven by the
+Replay Soak; the LIVE soaks prove safety alongside real production).
+
+Journey: Safety Modules -> Runtime Emitter -> Live Tap -> Passive Worker ->
+Runtime Connection -> Parity Logging -> Bootstrap -> Repository Integrity Fix
+-> Replay Soak PASS -> Controlled LIVE Soak PASS -> Extended LIVE Soak
+INCONCLUSIVE (market_event_scarcity, shadow pipeline not at fault).
+
+- Replay soak: PASS. Controlled LIVE soak: PASS.
+- Extended LIVE soak: INCONCLUSIVE due to MARKET_EVENT_SCARCITY (60 min hard
+  cap, zero failures of any kind, zero payloads because none were available,
+  not because any were lost).
+- Confirmed by direct evidence: live_return_detection.csv and
+  live_rdm_results.csv show zero new rows during the soak AND for the full
+  week preceding it (compute_live_rdm_for_case only runs on return_found,
+  which never fired); live_preparation_zones.csv's last activity predates the
+  soak by hours; no emitter DISABLED/DROPPED/ERROR; stderr empty the whole
+  hour. Shadow pipeline not at fault -- Project 1 produced no Preparation/
+  Return case.
+- Production safety verified over 60 continuous real minutes: no exception, no
+  drop, no desync, no breaker trip, no parity path violation, no memory growth.
+
+Phase 0 infrastructure: COMPLETE. Phase 0 policy: FROZEN except critical
+production bug fixes. Not allowed: new Phase 0 architecture, refactoring,
+snapshot/queue/worker/bootstrap/contract/coordinator redesign.
+
+Future payload-rich validation runs opportunistically when Project 1 emits
+enough cases -- not a blocking gate.
+
+Next: Phase 1 -- System Intelligence.
+
+---
+
+## Prior Stable Status (RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS)
+
 Current checkpoint: RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
 
 First controlled LIVE passive shadow soak (SHADOW_RUNTIME_ENABLED=1,

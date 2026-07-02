@@ -1,5 +1,67 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
+
+Status: PHASE 0 CLOSED — PRODUCTION SAFE. This is the final Phase 0 checkpoint.
+Note the deliberate distinction from "PRODUCTION VALIDATED": the shadow
+pipeline's end-to-end correctness under load is proven by the Replay Soak;
+what the two LIVE soaks add is proof that the passive shadow is SAFE to run
+alongside real production for a sustained period without any impact.
+
+Journey summary: Safety Modules -> Runtime Emitter -> Live Tap -> Passive
+Worker -> Runtime Connection -> Parity Logging -> Bootstrap -> Repository
+Integrity Fix -> Replay Soak PASS -> Controlled LIVE Soak PASS -> Extended
+LIVE Soak INCONCLUSIVE (market_event_scarcity, shadow pipeline not at fault).
+
+Soak history:
+- **Replay soak: PASS** — full shadow runtime validated end-to-end against
+  research replay data (identity, ordering, atomic revisions, adapters).
+- **Controlled LIVE soak: PASS** — first real-production run of the passive
+  tap; payloads received/processed/parity all clean.
+- **Extended LIVE soak: INCONCLUSIVE due to MARKET_EVENT_SCARCITY** — 60
+  minutes at the hard cap, zero failures of any kind (failed=0, dropped=0,
+  desynchronized=0, breaker never tripped, zero production exceptions, memory
+  flat ~99-101MB, revision monotonicity / copy-on-write / identity integrity
+  all HELD vacuously). processed=0 because zero payloads were available to
+  process, not because any were lost or mishandled.
+
+Why zero payloads, confirmed by direct evidence (not inferred): checked
+outputs/live_preparation_zones.csv, outputs/live_return_detection.csv, and
+outputs/live_rdm_results.csv directly.
+- live_return_detection.csv and live_rdm_results.csv: zero new rows during the
+  soak AND zero new rows for the full week preceding it (last write
+  2026-06-25) -- consistent, since compute_live_rdm_for_case is only called on
+  return_found, and return_found never fired.
+- live_preparation_zones.csv: last preparation-candidate activity predates the
+  soak window by several hours, and even those rows were logged rejections
+  ("No preparation candidate: ... conditions were not aligned").
+- No emitter DISABLED/DROPPED/ERROR status at any point -- the tap was armed
+  (SHADOW_RUNTIME_ENABLED=1) for the full run; stderr was empty (0 lines) the
+  entire hour. The emitter/queue/worker/runtime/parity chain was never given a
+  payload to process; it did not fail to receive or handle one.
+- **Shadow pipeline not at fault.** No payloads because Project 1
+  (Preparation Zone / Active Core / Density Band geometry -- NOT Psychological
+  Levels) produced no Preparation/Return case during the window.
+
+Production safety verified over 60 continuous real minutes: no production
+exception, no drop, no desynchronization, no breaker trip, no parity path
+violation, no memory growth, no interference with the live stream at any point.
+
+Phase 0 infrastructure: **COMPLETE.**
+
+Phase 0 policy: **FROZEN**, except critical production bug fixes.
+- Allowed: critical production bug fixes only.
+- Not allowed: new Phase 0 architecture, refactoring, snapshot redesign, queue
+  redesign, worker redesign, bootstrap redesign, contract redesign, coordinator
+  redesign.
+
+Future payload-rich validation may run opportunistically whenever Project 1
+emits enough Preparation/Return cases -- not a blocking gate on further work.
+
+Next: Phase 1 -- System Intelligence.
+
+---
+
 ## Active Checkpoint: RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
 
 Status: SOAK PASS — shadow-only, no production behavior changed. First

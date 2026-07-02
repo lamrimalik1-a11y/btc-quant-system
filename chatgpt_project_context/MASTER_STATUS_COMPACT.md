@@ -975,3 +975,35 @@ recomputation, prediction generation, or production behavior changes.
 
 Next:
 Await passive shadow soak test plan.
+
+---
+
+## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_REPLAY_SOAK_PASS
+
+Status: END-TO-END REPLAY SHADOW SOAK PASS
+
+Summary:
+- Bootstrap STARTED
+- 10 attempted / 10 enqueued / 10 processed
+- 0 dropped / 0 failed / 0 desynchronized
+- Queue depth 0
+- 10 parity records / 10 success / 0 failed
+- Result: PASS
+
+Confirmed:
+Bootstrap, worker, emitter, runtime, dispatcher, coordinator, dirty-gated
+adapters, Canonical Snapshot, copy-on-write revisions, global_zone_key, row
+ordering, snapshot identity, and parity logging are operational. Restart and
+durability architecture remains unchanged.
+
+Conclusion:
+The earlier LIVE soak was inconclusive because no finalized LIVE RDM payload
+was emitted. Replay confirms the complete passive shadow pipeline works when
+finalized payloads are available.
+
+Boundary:
+No production formulas or outputs, dashboard, Stage 2C, Dynamic State
+recomputation, or prediction generation changes. Shadow remains diagnostic.
+
+Next:
+Await next production integration decision.

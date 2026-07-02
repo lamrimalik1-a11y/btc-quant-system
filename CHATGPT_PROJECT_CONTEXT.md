@@ -1611,3 +1611,69 @@ Validation:
 
 Next:
 Await passive shadow soak test plan.
+
+---
+
+## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_REPLAY_SOAK_PASS
+
+==================================================
+REPLAY SHADOW SOAK
+==================================================
+
+Replay-driven passive shadow validation completed successfully.
+
+Replay Summary:
+- bootstrap = STARTED
+- payloads_attempted = 10
+- payloads_enqueued = 10
+- payloads_processed = 10
+- payloads_dropped = 0
+- worker_failed = 0
+- worker_desynchronized = 0
+- queue_depth = 0
+- parity_records = 10
+- parity_success = 10
+- parity_failed = 0
+- result = PASS
+
+Validation confirms:
+- Passive Shadow Bootstrap operational
+- Passive Shadow Worker operational
+- Shadow Runtime operational
+- Shadow Runtime Emitter operational
+- Canonical Snapshot pipeline operational
+- Atomic snapshot revisions verified
+- Event Dispatcher operational
+- Mechanical Refresh Coordinator operational
+- Dirty-gated adapters operational
+- Copy-on-write snapshot behavior preserved
+- global_zone_key preserved
+- Row Ordering Contract preserved
+- Snapshot Identity Contract preserved
+- Restart/Durability architecture unchanged
+- Shadow parity logging operational
+
+Important conclusion:
+The passive shadow architecture has been validated end-to-end using replay data.
+The previous LIVE soak was INCONCLUSIVE because no finalized live RDM records
+were emitted during the observation window. The replay soak demonstrates that
+the complete passive shadow pipeline functions correctly when finalized
+payloads are available.
+
+Production status:
+- No production formulas changed
+- No production outputs changed
+- No dashboard changes
+- No Stage 2C changes
+- No Dynamic State recomputation
+- No prediction generation
+- Shadow remains diagnostic only
+
+Validation:
+- py_compile: PASS
+- replay soak: PASS
+- parity: PASS
+- git diff --check: PASS
+
+Next:
+Await next production integration decision.

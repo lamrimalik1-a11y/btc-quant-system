@@ -934,3 +934,24 @@ or production behavior changes.
 
 Next:
 Await Phase 0E-2 runtime connection approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E2_PASSIVE_WORKER_RUNTIME_CONNECTION_STABLE
+
+Status: VALIDATED SHADOW RUNTIME CONNECTION
+
+Validated:
+- Passive worker executes payload -> interpreter -> dispatcher -> coordinator
+  -> adapters -> internal Canonical Snapshot
+- Duplicate/out-of-order rejection
+- Adapter failure rollback
+- Worker counters and kill switch
+- Copy-on-write and global_zone_key preservation
+
+Boundary:
+No production outputs, dashboard, parity log, formulas, Stage 2C, Dynamic
+State recomputation, prediction generation, or production behavior changes.
+
+Next:
+Await Phase 0E-3 parity logging approval.

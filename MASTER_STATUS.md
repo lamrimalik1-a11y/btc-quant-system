@@ -4165,3 +4165,31 @@ Validation:
 
 Next:
 Await Phase 0E-2 runtime connection approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E2_PASSIVE_WORKER_RUNTIME_CONNECTION_STABLE
+
+Status: VALIDATED SHADOW RUNTIME CONNECTION
+
+Implemented:
+- Passive worker connected to core/passive_shadow_runtime.py
+- Payload -> Interaction Interpreter -> Event Dispatcher -> Mechanical Refresh
+  Coordinator -> mapping adapters -> Canonical Snapshot
+- Internal in-memory SnapshotStore only
+- Duplicate and out-of-order payload rows rejected
+- Adapter failure rolls back without partial snapshot publication
+- Worker counters and kill switch validated
+- Copy-on-write revisions and global_zone_key preserved
+
+Boundary:
+- No production outputs
+- No dashboard
+- No parity log yet
+- No formulas or Stage 2C
+- No Dynamic State recomputation
+- No prediction generation
+- No production behavior changed
+
+Next:
+Await Phase 0E-3 parity logging approval.

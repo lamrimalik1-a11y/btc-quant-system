@@ -1066,3 +1066,23 @@ State recomputation, prediction generation, or production behavior changes.
 
 Next:
 Await Phase 0E-3 parity logging approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E3_PARITY_LOGGING_STABLE
+
+Status: VALIDATED SHADOW PARITY LOGGING
+
+Validated:
+- Shadow-only JSONL parity records under research/shadow_parity/
+- Successful payload and pending prediction logging
+- Failure logging preserves the authoritative snapshot
+- Logger failure is non-fatal
+- Path confinement enforced
+
+Boundary:
+No production CSV writes, dashboard, formulas, Stage 2C, Dynamic State
+recomputation, prediction generation, or production behavior changes.
+
+Next:
+Await passive shadow soak test plan.

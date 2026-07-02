@@ -1575,3 +1575,39 @@ Boundary:
 
 Next:
 Await Phase 0E-3 parity logging approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E3_PARITY_LOGGING_STABLE
+
+Status: VALIDATED SHADOW PARITY LOGGING
+
+Implemented:
+- Shadow-only parity logging
+- JSONL output confined to research/shadow_parity/
+- Successful payload processing writes one parity record
+- Pending prediction state is logged without prediction generation
+- Runtime failure is logged without corrupting the authoritative snapshot
+- Parity writer failure is non-fatal to snapshot and worker processing
+- Production references, shadow values, mismatch flags, latency, and available
+  worker counters are recorded
+
+Boundary:
+- No production CSV writes
+- No dashboard
+- No formulas or Stage 2C
+- No Dynamic State recomputation
+- No prediction generation
+- No production behavior changed
+
+Validation:
+- Parity logger/runtime and tests compile: PASS
+- Successful and pending parity records: PASS
+- Failure record with snapshot preservation: PASS
+- Logger failure isolation: PASS
+- research/shadow_parity path confinement: PASS
+- Worker/runtime regressions: PASS
+- Production effects: FALSE
+
+Next:
+Await passive shadow soak test plan.

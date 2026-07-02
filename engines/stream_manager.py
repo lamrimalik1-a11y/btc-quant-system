@@ -361,7 +361,27 @@ async def start_stream():
 
 async def main():
 
-    await start_stream()
+    shadow_stop = None
+
+    try:
+        from core.passive_shadow_bootstrap import (
+            start_passive_shadow,
+            stop_passive_shadow,
+        )
+
+        start_passive_shadow()
+        shadow_stop = stop_passive_shadow
+    except Exception:
+        pass
+
+    try:
+        await start_stream()
+    finally:
+        if shadow_stop is not None:
+            try:
+                shadow_stop(drain_timeout_seconds=2.0)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

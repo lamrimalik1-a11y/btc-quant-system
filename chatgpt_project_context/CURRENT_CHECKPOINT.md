@@ -1,5 +1,43 @@
 # Current Checkpoint
 
+## Active Checkpoint: RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
+
+Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Resolves the blocker from the Final Architectural Review: the committed tree had
+the live tap, emitter, worker, and runtime, but nothing in the committed tree
+ever STARTED the passive worker for a live process.
+
+Fix: committed the isolated startup/shutdown hook in engines/stream_manager.py
+main() — the only hunk in that file (verified via `git diff`, single @@ block):
+- **Start before start_stream()** — a local import of
+  core/passive_shadow_bootstrap.{start_passive_shadow,stop_passive_shadow}
+  followed by start_passive_shadow(), BEFORE `await start_stream()`.
+- **Stop in finally** — `await start_stream()` wrapped in try/finally; the
+  finally calls `shadow_stop(drain_timeout_seconds=2.0)`.
+- **Fail-safe try/except** — both the import+start block and the stop call are
+  wrapped in try/except Exception: pass; a shadow failure can never prevent or
+  interrupt start_stream().
+- **Flag default OFF** — start_passive_shadow() delegates to
+  PassiveShadowBootstrap, whose FeatureFlags default OFF; SHADOW_RUNTIME_ENABLED
+  unset or "0" -> status DISABLED, bootstrap.running False, bootstrap.worker None.
+- **No behavior change when disabled** — verified directly against the exact
+  entry points main() calls.
+- **No unrelated stream_manager changes mixed in** — the diff for
+  engines/stream_manager.py contains exactly one hunk (the main() hook); nothing
+  else in that file was staged or touched.
+
+Validation (all pass):
+- py_compile engines/stream_manager.py + core/passive_shadow_bootstrap.py -> OK
+- bootstrap test PASS (disabled no-worker; enabled start+drain; kill switch stops
+  worker; repeated start/stop safe)
+- SHADOW_RUNTIME_ENABLED unset AND explicitly "0" both verified to start no
+  worker via start_passive_shadow()/get_default_bootstrap()
+- git diff --check clean
+
+Next: first live payload contract validation.
+
+---
+
 ## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
 
 Status: REPOSITORY INTEGRITY FIX — shadow-only, no production behavior changed.

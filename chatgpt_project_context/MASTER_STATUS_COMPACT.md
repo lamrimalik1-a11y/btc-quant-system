@@ -2,6 +2,26 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
+
+Resolves the Final Architectural Review blocker: live tap/emitter/worker/runtime
+existed but nothing in the committed tree ever STARTED the passive worker.
+Fix: isolated startup/shutdown hook in engines/stream_manager.py main() (the
+file's only diff hunk):
+- start before start_stream(); stop in finally (drain_timeout_seconds=2.0).
+- fail-safe try/except around both; shadow failure can never block start_stream().
+- flag default OFF (SHADOW_RUNTIME_ENABLED unset/"0" -> DISABLED, no worker).
+- no unrelated stream_manager changes mixed in.
+
+Validation: py_compile stream_manager + bootstrap OK; bootstrap test PASS; flag
+OFF/0 verified to start no worker; git diff --check clean.
+
+Next: first live payload contract validation.
+
+---
+
+## Prior Stable Status (RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX)
+
 Current checkpoint: RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
 
 Repository integrity fix (shadow-only, no production behavior changed):

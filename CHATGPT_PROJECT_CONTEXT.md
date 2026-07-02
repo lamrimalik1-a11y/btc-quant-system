@@ -1,5 +1,30 @@
 # ChatGPT Project Context
 
+## Active Checkpoint: RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
+
+Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Resolves the Final Architectural Review blocker: live tap/emitter/worker/runtime
+existed, but nothing in the committed tree ever STARTED the passive worker.
+
+Fix: committed the isolated startup/shutdown hook in engines/stream_manager.py
+main() (the file's only diff hunk):
+- **start before start_stream()** (local import + start_passive_shadow(), before
+  await start_stream()).
+- **stop in finally** (shadow_stop(drain_timeout_seconds=2.0)).
+- **fail-safe try/except** around both start and stop; shadow failure can never
+  block start_stream().
+- **flag default OFF** (delegates to PassiveShadowBootstrap/FeatureFlags
+  default); SHADOW_RUNTIME_ENABLED unset or "0" -> DISABLED, no worker started.
+- **no unrelated stream_manager changes mixed in** (single hunk in the file).
+
+Validation: py_compile stream_manager + bootstrap OK; bootstrap test PASS; flag
+OFF/0 verified to start no worker via the exact main() entry points; git diff
+--check clean.
+
+Next: first live payload contract validation.
+
+---
+
 ## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
 
 Status: REPOSITORY INTEGRITY FIX — shadow-only, no production behavior changed.

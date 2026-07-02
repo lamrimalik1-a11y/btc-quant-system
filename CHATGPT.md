@@ -1,4 +1,33 @@
 ==================================================
+RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
+==================================================
+
+STATUS: REPOSITORY INTEGRITY FIX — shadow-only, no production behavior changed.
+
+Problem: committed tools/passive_shadow_replay_soak.py imported
+core/passive_shadow_bootstrap.py, which was implemented/run locally (Phase 0F)
+but never committed -> a fresh clone could not run the committed soak.
+
+Fix: committed the two missing Phase 0F bootstrap files as an isolated checkpoint:
+- core/passive_shadow_bootstrap.py — fail-safe lifecycle owner (flag-gated
+  default OFF, kill-switch protected, never raises to caller; imports only
+  already-committed core modules).
+- experiments/passive_shadow_worker/bootstrap_test.py — Phase 0F lifecycle test.
+
+Scope: ONLY the two bootstrap files (+ docs) staged; daily_session.py, live_rdm
+pre-existing hunks, live_return_detection.py, observation_logger.py,
+zone_mechanics_calculator.py, research artifacts, unrelated experiments NOT staged.
+
+Validation: py_compile bootstrap + test + soak OK; bootstrap test PASS; replay
+soak import smoke OK (committed soak now resolves bootstrap); git diff --check
+clean. Result: committed soak no longer depends on untracked code.
+
+(Doc order note: Codex recorded Phase 0E-1/0E-2/0E-3 and PASSIVE_SHADOW_REPLAY_
+SOAK_PASS appended at the BOTTOM of this file; this fix is prepended at the top.)
+
+Next: Final Architectural Review.
+
+==================================================
 RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
 ==================================================
 

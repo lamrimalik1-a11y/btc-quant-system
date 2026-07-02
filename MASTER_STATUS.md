@@ -1,5 +1,47 @@
 # MASTER STATUS
 
+## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
+
+Status: REPOSITORY INTEGRITY FIX — shadow-only, no production behavior changed.
+
+Problem: the committed replay soak tool (tools/passive_shadow_replay_soak.py)
+imported core/passive_shadow_bootstrap.py, which had been implemented and run
+locally (Phase 0F) but never committed — so a fresh clone could not execute the
+committed soak (committed code depended on untracked code).
+
+Fix: committed the two missing Phase 0F bootstrap files as their own isolated
+checkpoint:
+- core/passive_shadow_bootstrap.py — fail-safe lifecycle owner
+  (PassiveShadowBootstrap.start/stop; get_default_bootstrap;
+  start_passive_shadow/stop_passive_shadow). Flag-gated default OFF, kill-switch
+  protected, try/except BaseException boundaries — never raises to its caller;
+  imports only already-committed core modules (worker, shadow_parity_runtime,
+  shadow_runtime_emitter, shadow_safety.*).
+- experiments/passive_shadow_worker/bootstrap_test.py — Phase 0F lifecycle test.
+
+Scope: this commit adds ONLY the two bootstrap files (+ these docs). The
+unrelated untracked/working-tree items (core/daily_session.py, live_rdm.py
+pre-existing hunks, live_return_detection.py, observation_logger.py,
+research/zone_mechanics_calculator.py, research artifacts, unrelated experiments)
+were NOT staged.
+
+Validation (all pass): py_compile bootstrap + bootstrap_test + replay soak OK;
+bootstrap test PASS (disabled no-worker; enabled start+drain; kill switch stops
+worker; repeated start/stop safe); replay soak import smoke OK (committed soak
+now resolves bootstrap); git diff --check clean.
+
+Result: the committed soak tool no longer depends on untracked code; the
+committed tree is self-consistent.
+
+Note on doc order: the prior (Codex) development cycle recorded the Phase 0E-1 /
+0E-2 / 0E-3 and RDM_V2_PASSIVE_SHADOW_REPLAY_SOAK_PASS checkpoints appended at the
+BOTTOM of this file; this repository-fix block is prepended at the top to restore
+an accurate current-checkpoint pointer.
+
+Next: Final Architectural Review.
+
+---
+
 ## Active Checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
 
 Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.

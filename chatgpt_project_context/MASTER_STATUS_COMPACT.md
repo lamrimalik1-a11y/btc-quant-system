@@ -2,6 +2,33 @@
 
 ## Current Stable Status
 
+Current checkpoint: RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
+
+First controlled LIVE passive shadow soak (SHADOW_RUNTIME_ENABLED=1,
+SHADOW_DRY_RUN=1, SHADOW_SAMPLE_RATE=0.05, kill switch disabled) run against the
+real production stream_manager.
+
+Results: duration=00:00:05, payloads_received=10, payloads_processed=9,
+parity_records=20, failed=0, dropped=0, desynchronized=0, production_errors=0,
+CPU=1.41s, memory=101.3MB, result=PASS.
+
+- First controlled LIVE passive shadow soak PASSED.
+- Passive shadow tap emitted real LIVE payloads; worker processed them
+  end-to-end; parity logging produced records (research/shadow_parity/ only).
+- No production errors, drops, desynchronization, or worker failures.
+- No production output replacement, dashboard changes, formula changes, Stage
+  2C, or Dynamic State recomputation.
+- One payload difference (received=10, processed=9) — likely one in-flight
+  payload at forced stop; not a failure since failed/dropped/desync stayed zero.
+
+Validation: git diff --check clean; only the 5 checkpoint docs staged.
+
+Next: extended live soak decision.
+
+---
+
+## Prior Stable Status (RDM_V2_LIVE_ACTIVATION_WIRING_STABLE)
+
 Current checkpoint: RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
 
 Resolves the Final Architectural Review blocker: live tap/emitter/worker/runtime

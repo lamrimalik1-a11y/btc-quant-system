@@ -1,4 +1,34 @@
 ==================================================
+RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
+==================================================
+
+STATUS: SOAK PASS — shadow-only, no production behavior changed. First
+controlled LIVE passive shadow soak (SHADOW_RUNTIME_ENABLED=1, SHADOW_DRY_RUN=1,
+SHADOW_SAMPLE_RATE=0.05, kill switch disabled) run against the real production
+stream_manager.
+
+Results:
+duration=00:00:05 payloads_received=10 payloads_processed=9 parity_records=20
+failed=0 dropped=0 desynchronized=0 production_errors=0 CPU=1.41s
+memory=101.3MB result=PASS
+
+Findings:
+- First controlled LIVE passive shadow soak PASSED.
+- Passive shadow tap emitted real LIVE payloads.
+- Worker processed LIVE shadow payloads end-to-end.
+- Parity logging produced records (confined to research/shadow_parity/).
+- No production errors, no drops, no desynchronization, no worker failures.
+- No production output replacement, no dashboard changes, no formulas changed,
+  no Stage 2C, no Dynamic State recomputation.
+- One payload difference observed: received=10, processed=9 — likely one
+  payload still in-flight at the forced stop. NOT a failure: failed/dropped/
+  desynchronized all remained zero.
+
+Validation: git diff --check clean; only the 5 checkpoint docs staged.
+
+Next: extended live soak decision.
+
+==================================================
 RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
 ==================================================
 

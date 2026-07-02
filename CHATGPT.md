@@ -1391,3 +1391,38 @@ VALIDATION:
 
 NEXT:
 Await Dynamic Mechanics integration approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E1_PASSIVE_SHADOW_WORKER_SKELETON_STABLE
+
+Status: VALIDATED SHADOW SAFETY CHECKPOINT
+
+Implemented:
+- Passive shadow worker skeleton
+- Feature flag gated and fail-closed
+- Kill-switch protected
+- Bounded queue draining with bounded stop timeout
+- Handler exception isolation
+- Counters: received, processed, dropped, failed, killed, desynchronized
+- No-op handler only
+
+Boundary:
+- No full shadow runtime
+- No SnapshotStore updates
+- No adapters
+- No parity logs
+- No production outputs or production consumers
+- No production behavior changed
+
+Validation:
+- Worker and shadow test compile: PASS
+- Disabled worker no-op: PASS
+- Kill switch stops processing: PASS
+- Queue saturation remains non-blocking: PASS
+- Handler failures are counted and isolated: PASS
+- Start, stop, and bounded drain: PASS
+- Production effects: FALSE
+
+Next:
+Await Phase 0E-2 runtime connection approval.

@@ -912,3 +912,25 @@ Stage 2C, B10/B11, dashboard, CSV writes, or persistence.
 
 Next:
 Await Dynamic Mechanics integration approval.
+
+---
+
+## Active Checkpoint: RDM_V2_PHASE0E1_PASSIVE_SHADOW_WORKER_SKELETON_STABLE
+
+Status: VALIDATED SHADOW SAFETY CHECKPOINT
+
+Implemented:
+- Passive shadow worker skeleton
+- Feature flag gated
+- Kill-switch protected
+- Bounded queue draining
+- Exception isolation
+- Counters: received, processed, dropped, failed, killed, desynchronized
+- No-op handler only
+
+Boundary:
+No full shadow runtime, snapshots, adapters, parity logs, production outputs,
+or production behavior changes.
+
+Next:
+Await Phase 0E-2 runtime connection approval.

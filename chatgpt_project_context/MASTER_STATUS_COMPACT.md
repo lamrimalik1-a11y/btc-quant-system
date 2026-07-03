@@ -2,6 +2,37 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_DYNAMIC_MECHANICS_SNAPSHOT_STAGE2_STABLE
+
+Stage 2 mapped Stage 1's research Dynamic Mechanics outputs into the Canonical
+Snapshot dynamic_mechanics section (research-only, no production behavior
+changed).
+- Mapped research Dynamic Mechanics into Canonical Snapshot dynamic_mechanics
+  section via the existing, unmodified DynamicMechanicsAdapter.build_patch().
+- Offline only; no production/Project 1/live/dashboard/B10/B11 changes.
+- Reused Stage 1 logic unmodified; committed LastCompletedVisit +
+  DynamicMechanics patches atomically into SnapshotStore (multi-adapter
+  pattern proven in Phase 0/1A).
+- SIMPLE_RESEARCH_SDR_V1 remains research-only; RESEARCH_ labels only.
+- NOT_AVAILABLE behavior validated.
+
+Results (deterministic across three runs): rows_processed=3000,
+zones_observed=7, completed_visits=159, dynamic_mechanics_commits=159,
+snapshot_revisions_total=159, revision_monotonicity=True, copy_on_write=True,
+global_zone_key_preserved=True, dynamic_section_updated=True,
+previous_state_chain_consistent=True, transitions_research_only=True,
+not_available_counts={first_derivative:7, second_derivative:14,
+dynamic_state:7, transition_name:14}, not_available_expected=True,
+deterministic_across_runs=True, errors=0, result=PASS.
+
+Validation: py_compile OK; run PASS; git diff --check clean.
+
+Next: Stage 3 Dynamic State transition analysis approval.
+
+---
+
+## Prior Stable Status (PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE)
+
 Current checkpoint: PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE
 
 First Phase 1B offline validation: Dynamic Mechanics research metrics computed

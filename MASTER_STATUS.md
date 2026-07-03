@@ -1,5 +1,59 @@
 # MASTER STATUS
 
+## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_SNAPSHOT_STAGE2_STABLE
+
+Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+Stage 2 mapped Stage 1's research Dynamic Mechanics outputs into the Canonical
+Snapshot dynamic_mechanics section.
+
+- **Stage 2 mapped research Dynamic Mechanics into Canonical Snapshot
+  dynamic_mechanics section** via the existing, unmodified
+  DynamicMechanicsAdapter.build_patch().
+- **Offline only.** No production changes. No Project 1 changes. No
+  live/dashboard/B10/B11 changes.
+- **Reused Stage 1 logic unmodified** — build_harnesses, generate_price,
+  update_mechanics, compute_dynamics imported directly from
+  experiments/psychological_levels_dynamic/dynamic_mechanics_test.py, no
+  duplication.
+- **Committed LastCompletedVisit + DynamicMechanics patches atomically** into
+  SnapshotStore, mirroring the exact multi-adapter commit pattern already
+  proven in Phase 0 / Phase 1A.
+- **SIMPLE_RESEARCH_SDR_V1 remains research-only.**
+- **RESEARCH_ labels only** — dynamic_state/previous_dynamic_state/
+  transition_name all trace to RESEARCH_-prefixed values, never production
+  B12.5 Dynamic State.
+- **NOT_AVAILABLE behavior validated** — fields Stage 1 never computed
+  (health_slope, omega_total, dynamic_state_reason, ...) map to NOT_AVAILABLE
+  automatically; first-visit-per-zone derivative/state fields also correctly
+  NOT_AVAILABLE (no prior visit to differentiate against yet).
+
+Results (deterministic across three independent runs):
+- rows_processed = 3000
+- zones_observed = 7
+- completed_visits = 159
+- dynamic_mechanics_commits = 159
+- snapshot_revisions_total = 159
+- revision_monotonicity = True
+- copy_on_write = True
+- global_zone_key_preserved = True
+- dynamic_section_updated = True
+- previous_state_chain_consistent = True
+- transitions_research_only = True
+- not_available_counts = {first_derivative: 7, second_derivative: 14,
+  dynamic_state: 7, transition_name: 14}
+- not_available_expected = True
+- deterministic_across_runs = True
+- errors = 0
+- result = PASS
+
+Validation (all pass): py_compile
+experiments/psychological_levels_dynamic/test_snapshot_dynamic_mechanics.py ->
+OK; run -> PASS (reproduced across three runs); git diff --check clean.
+
+Next: Stage 3 Dynamic State transition analysis approval.
+
+---
+
 ## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE
 
 Status: STABLE CHECKPOINT — research-only, no production behavior changed.

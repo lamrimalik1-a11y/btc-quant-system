@@ -1,5 +1,57 @@
 # MASTER STATUS
 
+## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE
+
+Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+First Phase 1B offline validation: Dynamic Mechanics research metrics computed
+from Project 2 Psychological Levels completed-visit sequences.
+
+- **Project 2 Psychological Levels used as offline research geometry** —
+  reuses experiments/psychological_levels/provider.py (Phase 1A, unmodified)
+  as the input laboratory; same triangular price-sweep shape for continuity.
+- **Real Interpreter -> Dispatcher -> Coordinator -> LastCompletedVisitAdapter
+  path reused**, unmodified — core.interaction_interpreter,
+  core.event_dispatcher, and core.last_completed_visit_adapter are the same,
+  unmodified components validated throughout Phase 0 / Phase 1A.
+- **No core/production modifications** — verified via git status: zero
+  core/, research/, or engines/ file touched by this task.
+- **Research-only deterministic proxy mechanics** — since the interpreter's
+  own VISIT_COMPLETED evidence carries only geometric/timing fields, not
+  mechanical values, a small deterministic per-row proxy tracks:
+  health_live, omega_accumulator, attacker_force_peak
+  clearly labeled as invented for this experiment only, not a Project 1
+  formula, feeding health_at_visit/omega_at_visit/attacker_force_at_visit
+  into the unmodified LastCompletedVisitAdapter at each visit completion.
+- **Production formulas not changed.**
+- **SIMPLE_RESEARCH_SDR_V1 is research-only** — `|delta omega| / health`, an
+  explicitly versioned, independent research ratio, NOT the production
+  Structural Dynamic Response formula used elsewhere in this codebase.
+- **RESEARCH_ labels only** (RESEARCH_ATTACKER_PRESSURE /
+  RESEARCH_RECOVERING / RESEARCH_STABLE), not production B12.5 Dynamic State.
+- **SnapshotStore deliberately not used in Stage 1** — only the derived
+  completed-visit series is needed; can be added in a later stage if
+  snapshot-level Dynamic Mechanics patches need testing.
+
+Results (deterministic, reproduced identically on a second run):
+- rows_processed = 3000
+- zones_observed = 7
+- completed_visits = 159
+- first_derivatives_generated = 152
+- integrals_generated = 159
+- second_derivatives_generated = 145
+- sdr_values_generated = 152
+- dynamic_labels_generated = 152
+- errors = 0
+- result = PASS
+
+Validation (all pass): py_compile
+experiments/psychological_levels_dynamic/dynamic_mechanics_test.py -> OK; run
+-> PASS (reproduced on a second run); git diff --check clean.
+
+Next: Stage 2 snapshot dynamic mechanics approval.
+
+---
+
 ## Active Checkpoint: RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
 
 Status: PHASE 0 CLOSED — PRODUCTION SAFE. This is the final Phase 0 checkpoint.

@@ -1,4 +1,38 @@
 ==================================================
+PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE
+==================================================
+
+STATUS: STABLE CHECKPOINT — research-only, no production behavior changed.
+First Phase 1B offline validation: Dynamic Mechanics research metrics computed
+from Project 2 Psychological Levels completed-visit sequences.
+
+- Project 2 Psychological Levels used as offline research geometry (reuses
+  experiments/psychological_levels/provider.py, Phase 1A, unmodified).
+- Real Interpreter -> Dispatcher -> Coordinator -> LastCompletedVisitAdapter
+  path reused, unmodified.
+- No core/production modifications (verified: zero core/research/engines file
+  touched).
+- Research-only deterministic proxy mechanics: health_live, omega_accumulator,
+  attacker_force_peak -- invented for this experiment only, not a Project 1
+  formula.
+- Production formulas not changed.
+- SIMPLE_RESEARCH_SDR_V1 is research-only (|delta omega| / health), NOT the
+  production Structural Dynamic Response formula.
+- RESEARCH_ labels only (RESEARCH_ATTACKER_PRESSURE / RESEARCH_RECOVERING /
+  RESEARCH_STABLE), not production B12.5 Dynamic State.
+- SnapshotStore deliberately not used in Stage 1.
+
+Results (deterministic, reproduced on a second run):
+rows_processed=3000, zones_observed=7, completed_visits=159,
+first_derivatives_generated=152, integrals_generated=159,
+second_derivatives_generated=145, sdr_values_generated=152,
+dynamic_labels_generated=152, errors=0, result=PASS.
+
+Validation: py_compile OK; run PASS (reproduced); git diff --check clean.
+
+Next: Stage 2 snapshot dynamic mechanics approval.
+
+==================================================
 RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
 ==================================================
 

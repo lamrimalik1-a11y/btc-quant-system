@@ -1,5 +1,56 @@
 # MASTER STATUS
 
+## Active Checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
+
+Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+Stage 3 analyzes transitions between research Dynamic States produced by
+Stage 1/2.
+
+- **Stage 3 analyzes research Dynamic State transitions** — current/previous
+  dynamic_state, transition_name, transition frequency, per-zone chains,
+  repeated transitions, stable vs unstable sequences, and a simple
+  research-only early-warning pattern.
+- **Uses Stage 1 Dynamic Mechanics unchanged** — build_harnesses,
+  generate_price, update_mechanics, compute_dynamics imported directly from
+  dynamic_mechanics_test.py, no duplication.
+- **Interpreter-driven completed visits reused** — only the Interaction
+  Interpreter and LastCompletedVisitAdapter are used to collect completed-visit
+  sequences; Dispatcher/Coordinator/Snapshot are not needed for this analysis
+  and are not used (Stage 2 already validated that path).
+- **No production changes. No Project 1 changes. No live integration. No
+  dashboard. No Snapshot modifications. No B10/B11 changes.**
+- **All labels remain RESEARCH_ prefixed** — every transition_name verified
+  RESEARCH_-prefixed on both sides.
+
+Results (deterministic across three independent runs):
+- zones_observed = 7
+- completed_visits = 159
+- transitions_generated = 145
+- unique_transition_types = 3
+
+Transition frequencies:
+- RESEARCH_STABLE_TO_RESEARCH_RECOVERING = 61
+- RESEARCH_RECOVERING_TO_RESEARCH_STABLE = 60
+- RESEARCH_STABLE_TO_RESEARCH_STABLE = 24
+
+- per_zone_transition_counts validated (sums exactly to transitions_generated)
+- repeated_transition_chains = 20
+- stable_state_sequences = 1
+- unstable_state_sequences = 6
+- research-only early_warning_transitions = 0
+- deterministic across three runs
+- errors = 0
+- result = PASS
+
+Validation (all pass): py_compile
+experiments/psychological_levels_dynamic/test_dynamic_state_transitions.py ->
+OK; run -> PASS (reproduced across three independent runs); git diff --check
+clean.
+
+Next: Phase 1B Stage 4 trajectory evolution research.
+
+---
+
 ## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_SNAPSHOT_STAGE2_STABLE
 
 Status: STABLE CHECKPOINT — research-only, no production behavior changed.

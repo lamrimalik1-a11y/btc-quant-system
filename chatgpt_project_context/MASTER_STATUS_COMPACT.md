@@ -1138,3 +1138,26 @@ or production behavior changes.
 
 Next:
 Await Stage 2 Interaction Interpreter validation.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_SNAPSHOT_INTEGRATION_STABLE
+
+Status: PROJECT 2 OFFLINE SNAPSHOT INTEGRATION VALIDATED
+
+Validated:
+- Psychological Levels configuration: spacing 200, half-width 25, window +/-3
+- Stage 1 Provider PASS
+- Stage 2 Interaction Interpreter PASS
+- Stage 3 Event Dispatcher PASS
+- Stage 4 Coordinator + Canonical Snapshot PASS
+- geometry_source remains PSYCHOLOGICAL_LEVELS_TEST
+- global_zone_key, copy-on-write, deterministic snapshots, and duplicate guards preserved
+- No Project 1 Formation, Active Core, or Density Band terminology injected
+
+Boundary:
+Experimental offline only. No Project 1, production, Worker, LIVE, dashboard,
+or formula changes.
+
+Next:
+Await Stage 5 stress-test approval.

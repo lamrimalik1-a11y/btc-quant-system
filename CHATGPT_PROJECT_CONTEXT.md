@@ -1851,3 +1851,50 @@ Validation:
 
 Next:
 Await Stage 2 Interaction Interpreter validation.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_SNAPSHOT_INTEGRATION_STABLE
+
+Status: PROJECT 2 OFFLINE SNAPSHOT INTEGRATION VALIDATED
+
+Configuration:
+- Psychological Levels experimental geometry
+- spacing = 200 USD
+- zone_half_width = 25 USD
+- active_window = +/-3 levels
+- geometry_source = PSYCHOLOGICAL_LEVELS_TEST
+
+Validated stages:
+- Stage 1 Psychological Levels Provider: PASS
+- Stage 2 Interaction Interpreter: PASS
+- Stage 3 Event Dispatcher and deterministic RefreshPlan: PASS
+- Stage 4 Mechanical Refresh Coordinator + Canonical Snapshot: PASS
+
+Architecture validation:
+- Project 2 geometry drives the existing shadow interaction pipeline
+- global_zone_key remains the canonical identity
+- Copy-on-write snapshot revisions preserved
+- Snapshot content deterministic across identical fresh runs
+- Duplicate and out-of-order input creates no new revision
+- Only requested dirty content sections are refreshed
+- Mandatory snapshot metadata provenance updates remain intact
+- Project 1 terminology remains absent
+- No Formation, Active Core, or Density Band fields injected
+
+Boundary:
+- Experimental and offline only
+- No Project 1 changes
+- No production RDM formulas or behavior changes
+- No Worker, LIVE, or dashboard integration
+
+Validation:
+- All psychological_levels modules py_compile: PASS
+- Provider test: PASS
+- Interaction Interpreter integration: PASS
+- Event Dispatcher integration: PASS
+- Coordinator/Snapshot integration: PASS
+- git diff --check: PASS
+
+Next:
+Await Stage 5 stress-test approval.

@@ -137,6 +137,11 @@ from tools.analyze_phase1b_episode_research import (
     prepare_rows,
     score_bucket,
 )
+from core.daily_session import (
+    SESSION_IDENTITY_FIELDNAMES,
+    ensure_identity_csv_schema,
+    inherit_session_identity,
+)
 from core.live_lifecycle import get_field_memory, get_zone_memory, live_zone_id
 from context_memory import MARKET_CONTEXT_MEMORY_SIZE
 
@@ -346,6 +351,13 @@ def build_completed_live_case_row(pending, merged_row, feature_window):
     case_row["episode_start_time_utc"] = merged_row.get("episode_start_timestamp_utc")
     case_row["episode_end_time_utc"] = merged_row.get("episode_end_timestamp_utc")
     case_row["source_status"] = "FOUND"
+    identity = _inherit_identity(
+        merged_row,
+        pending.snapshot_row,
+        episode_row,
+    )
+    for field in SESSION_IDENTITY_FIELDNAMES:
+        case_row[field] = identity[field]
 
     for field in _PEAK_FIELDS_FROM_EPISODE_ROW:
         if field not in case_row or case_row.get(field) in (None, ""):
@@ -369,6 +381,24 @@ def build_completed_live_case_row(pending, merged_row, feature_window):
 
     return case_row
 
+
+def _inherit_identity(*sources):
+    identity = {field: "" for field in SESSION_IDENTITY_FIELDNAMES}
+    for source in sources:
+        inherited = inherit_session_identity(source)
+        for field in SESSION_IDENTITY_FIELDNAMES:
+            if not identity[field] and inherited[field]:
+                identity[field] = inherited[field]
+    return identity
+
+
+def _inherit_identity_frame(frame, source):
+    if frame is None or frame.empty:
+        return frame
+    identity = _inherit_identity(source)
+    for field in SESSION_IDENTITY_FIELDNAMES:
+        frame[field] = identity[field]
+    return frame
 
 def _single_row_frame(case_row):
     return pd.DataFrame([case_row])
@@ -448,6 +478,11 @@ def _run_group_b(results_df, feature_window, run_utc):
     results_df = merge_true_lifecycle_into_results(results_df, true_lifecycle_df)
 
     results_df = add_rdm_v16_numeric_foundation(results_df)
+
+    if not results_df.empty:
+        result_row = results_df.iloc[0]
+        _inherit_identity_frame(live_evolution_df, result_row)
+        _inherit_identity_frame(attacker_df, result_row)
 
     return results_df, live_evolution_df, attacker_df, case_cache
 
@@ -571,8 +606,13 @@ def compute_live_rdm_for_case(
     extra = _run_memory_and_timeline_stages(results_df, live_evolution_df, attacker_df, run_utc)
 
     final_row = results_df.iloc[0].to_dict()
+    for value in extra.values():
+        if isinstance(value, pd.DataFrame):
+            _inherit_identity_frame(value, final_row)
+    identity = _inherit_identity(final_row)
 
     record = {
+        **identity,
         "case_id": case_id,
         "episode_id": episode_id,
         "analysis_run_utc": run_utc,
@@ -673,6 +713,8 @@ def append_post_return_tick(pending, feature_row):
         breach_memory=pending.inc_breach_memory,   # mutates in place
     )
     apply_live_rdm_guard(record, pending.inc_guard_state)  # mutates in place
+    for field in SESSION_IDENTITY_FIELDNAMES:
+        record[field] = cached["result_row"].get(field, "")
 
     # Append single-row DataFrame via existing path (mode="a", schema-identical)
     _append_evolution_csv(
@@ -759,13 +801,16 @@ def append_live_outcome_for_case(pending, merged_row, event_timestamp):
     state_row["analysis_run_utc"] = run_utc
     state_row["resolved_at_timestamp_utc"] = event_timestamp
     state_row["emit_status"] = "FINALIZED_OUTCOME"
+    identity = _inherit_identity(pending.snapshot_row, pending.episode_row)
+    for field in SESSION_IDENTITY_FIELDNAMES:
+        state_row[field] = identity[field]
 
     for field in _FINALIZED_OUTCOME_FIELDS:
         state_row[field] = merged_row.get(field, "")
 
-    _ensure_csv(LIVE_RDM_STATE_FILE, _STATE_FIELDNAMES)
+    fieldnames = _ensure_csv(LIVE_RDM_STATE_FILE, _STATE_FIELDNAMES)
     with LIVE_RDM_STATE_FILE.open(mode="a", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=_STATE_FIELDNAMES, extrasaction="ignore")
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writerow(state_row)
 
 
@@ -778,7 +823,7 @@ def _append_b12_validation_csv(record):
     """
     fieldnames = list(record.keys())
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    _ensure_csv(LIVE_B12_VALIDATION_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_B12_VALIDATION_FILE, fieldnames)
     with LIVE_B12_VALIDATION_FILE.open(mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writerow(record)
@@ -859,7 +904,7 @@ def _append_b10_trajectory_csv(trajectory_df, emit_status="PENDING_FINALIZATION"
     for row in rows:
         row["emit_status"] = emit_status
     fieldnames = list(rows[0].keys())
-    _ensure_csv(LIVE_B10_TRAJECTORY_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_B10_TRAJECTORY_FILE, fieldnames)
     with LIVE_B10_TRAJECTORY_FILE.open(mode="a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         for row in rows:
@@ -873,7 +918,7 @@ def _append_b11_prediction_csv(prediction_df, emit_status="PENDING_FINALIZATION"
     for row in rows:
         row["emit_status"] = emit_status
     fieldnames = list(rows[0].keys())
-    _ensure_csv(LIVE_B11_PREDICTION_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_B11_PREDICTION_FILE, fieldnames)
     with LIVE_B11_PREDICTION_FILE.open(mode="a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         for row in rows:
@@ -887,7 +932,7 @@ def _append_synthesis_csv(synthesis_df, emit_status="PENDING_FINALIZATION"):
     for row in rows:
         row["emit_status"] = emit_status
     fieldnames = list(rows[0].keys())
-    _ensure_csv(LIVE_SYNTHESIS_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_SYNTHESIS_FILE, fieldnames)
     with LIVE_SYNTHESIS_FILE.open(mode="a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         for row in rows:
@@ -906,15 +951,11 @@ def _persist_record(record):
 
 
 def _ensure_csv(path, fieldnames):
-    if not path.exists():
-        with path.open(mode="w", newline="", encoding="utf-8") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-
+    return ensure_identity_csv_schema(path, fieldnames)
 
 def _append_results_csv(result_row):
     fieldnames = list(result_row.keys())
-    _ensure_csv(LIVE_RDM_RESULTS_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_RDM_RESULTS_FILE, fieldnames)
     with LIVE_RDM_RESULTS_FILE.open(mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writerow(result_row)
@@ -926,7 +967,7 @@ def _append_evolution_csv(case_id, episode_id, live_evolution_df):
 
     rows = live_evolution_df.to_dict("records")
     fieldnames = list(rows[0].keys())
-    _ensure_csv(LIVE_RDM_EVOLUTION_FILE, fieldnames)
+    fieldnames = _ensure_csv(LIVE_RDM_EVOLUTION_FILE, fieldnames)
     with LIVE_RDM_EVOLUTION_FILE.open(mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         for row in rows:
@@ -936,6 +977,7 @@ def _append_evolution_csv(case_id, episode_id, live_evolution_df):
 _STATE_FIELDNAMES = [
     "case_id",
     "episode_id",
+    *SESSION_IDENTITY_FIELDNAMES,
     "analysis_run_utc",
     "resolved_at_timestamp_utc",
     "emit_status",
@@ -1008,7 +1050,7 @@ def _append_state_csv(record):
         if field not in state_row:
             state_row[field] = final_row.get(field, "")
 
-    _ensure_csv(LIVE_RDM_STATE_FILE, _STATE_FIELDNAMES)
+    fieldnames = _ensure_csv(LIVE_RDM_STATE_FILE, _STATE_FIELDNAMES)
     with LIVE_RDM_STATE_FILE.open(mode="a", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=_STATE_FIELDNAMES, extrasaction="ignore")
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writerow(state_row)

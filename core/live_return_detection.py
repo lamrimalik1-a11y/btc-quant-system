@@ -91,6 +91,10 @@ from tools.analyze_phase1b_episode_research import (
     to_int,
     truthy_value,
 )
+from core.daily_session import (
+    SESSION_IDENTITY_FIELDNAMES,
+    ensure_identity_csv_schema,
+)
 from core.live_lifecycle import (
     live_zone_id,
     record_live_return_field_lifecycle_events,
@@ -125,6 +129,7 @@ LIVE_RETURN_DETECTION_FIELDNAMES = [
     "reversal_type",
     "reversal_strength",
     "resolved_at_timestamp_utc",
+    *SESSION_IDENTITY_FIELDNAMES,
 ]
 
 FOUR_HOURS = timedelta(hours=4)
@@ -784,6 +789,10 @@ def _build_result_row(
         "reversal_type": reversal_context.get("reversal_type", ""),
         "reversal_strength": reversal_context.get("reversal_strength", ""),
         "resolved_at_timestamp_utc": event_timestamp,
+        **{
+            field: pending.snapshot_row.get(field, "")
+            for field in SESSION_IDENTITY_FIELDNAMES
+        },
     }
 
 
@@ -855,17 +864,15 @@ def _field_value(source, key, default=None):
 
 
 def _ensure_output_file():
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    if not LIVE_RETURN_DETECTION_FILE.exists():
-        with LIVE_RETURN_DETECTION_FILE.open(mode="w", newline="", encoding="utf-8") as file:
-            writer = csv.DictWriter(file, fieldnames=LIVE_RETURN_DETECTION_FIELDNAMES)
-            writer.writeheader()
-
+    return ensure_identity_csv_schema(
+        LIVE_RETURN_DETECTION_FILE,
+        LIVE_RETURN_DETECTION_FIELDNAMES,
+    )
 
 def _append_result_row(result_row):
-    _ensure_output_file()
+    fieldnames = _ensure_output_file()
     with LIVE_RETURN_DETECTION_FILE.open(mode="a", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=LIVE_RETURN_DETECTION_FIELDNAMES)
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writerow(
-            {field: result_row.get(field, "") for field in LIVE_RETURN_DETECTION_FIELDNAMES}
+            {field: result_row.get(field, "") for field in fieldnames}
         )

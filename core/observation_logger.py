@@ -11,6 +11,13 @@ from tools.analyze_phase1b_episode_research import (
     prepare_rows,
     public_preparation_fields,
 )
+from core.daily_session import (
+    SESSION_IDENTITY_FIELDNAMES,
+    build_session_identity,
+    ensure_identity_csv_schema,
+    get_current_session_manifest,
+    inherit_session_identity,
+)
 from core.live_lifecycle import (
     record_live_field_lifecycle_events,
     record_live_preparation_zone_created,
@@ -121,6 +128,7 @@ LIVE_PREPARATION_FIELDNAMES = [
     "prep_family_rule",
     "prep_delta_alignment",
     "prep_family_lean",
+    *SESSION_IDENTITY_FIELDNAMES,
 ]
 
 _live_preparation_row_buffer = deque(maxlen=LIVE_PREPARATION_BUFFER_MAXLEN)
@@ -194,6 +202,12 @@ V2_EPISODE_FIELDNAMES = [
     "peak_delta_zscore",
 ]
 
+# LIVE-only additive schema. Replay imports V2_EPISODE_FIELDNAMES unchanged.
+LIVE_V2_EPISODE_FIELDNAMES = [
+    *V2_EPISODE_FIELDNAMES,
+    *SESSION_IDENTITY_FIELDNAMES,
+]
+
 _previous_dashboard_state = None
 _last_event_row_by_type = {}
 _active_episode = None
@@ -202,7 +216,38 @@ _episode_counter = 0
 _previous_dashboard_v2_state = None
 _active_v2_episode = None
 _v2_episode_counter = 0
+_v2_episode_counter_session_id = None
 
+
+
+def _initialize_v2_episode_counter(timestamp_utc):
+    """Recover the current session counter without changing legacy IDs."""
+    global _v2_episode_counter
+    global _v2_episode_counter_session_id
+
+    manifest = get_current_session_manifest(timestamp_utc=timestamp_utc)
+    if _v2_episode_counter_session_id == manifest.session_id:
+        return
+
+    highest_episode_id = 0
+    if DASHBOARD_V2_EPISODES_FILE.exists():
+        try:
+            with DASHBOARD_V2_EPISODES_FILE.open(
+                mode="r", newline="", encoding="utf-8"
+            ) as file:
+                for record in csv.DictReader(file):
+                    if record.get("session_id") != manifest.session_id:
+                        continue
+                    try:
+                        episode_id = int(float(record.get("episode_id", 0)))
+                    except (TypeError, ValueError):
+                        continue
+                    highest_episode_id = max(highest_episode_id, episode_id)
+        except (OSError, csv.Error):
+            highest_episode_id = 0
+
+    _v2_episode_counter = highest_episode_id
+    _v2_episode_counter_session_id = manifest.session_id
 
 def log_observation_events(row, statistics, row_id):
     try:
@@ -225,7 +270,7 @@ def _log_observation_events(row, statistics, row_id):
     )
     _ensure_csv_file(
         DASHBOARD_V2_EPISODES_FILE,
-        V2_EPISODE_FIELDNAMES
+        LIVE_V2_EPISODE_FIELDNAMES
     )
     _ensure_csv_file(
         LIVE_PREPARATION_FILE,
@@ -234,6 +279,8 @@ def _log_observation_events(row, statistics, row_id):
 
     event_timestamp = datetime.now(timezone.utc).isoformat()
     market_timestamp = _get_market_timestamp(row)
+    identity_timestamp = market_timestamp or event_timestamp
+    _initialize_v2_episode_counter(identity_timestamp)
 
     _capture_preparation_row(row, row_id)
     process_live_return_detection_row(row, row_id, event_timestamp)
@@ -305,6 +352,7 @@ def _log_observation_events(row, statistics, row_id):
         previous_state=previous_v2_state,
         new_state=new_v2_state,
         snapshot=v2_snapshot,
+        identity_timestamp=identity_timestamp,
     )
 
     _previous_dashboard_v2_state = new_v2_state
@@ -617,6 +665,7 @@ def _freeze_live_preparation_snapshot(episode_row, row_id, event_timestamp):
             "end_row_id": row_id,
             "frozen_at_row_id": row_id,
             "frozen_at_timestamp_utc": event_timestamp,
+            **inherit_session_identity(episode_row),
         }
         for field in LIVE_PREPARATION_FIELDNAMES:
             if field not in snapshot_row:
@@ -651,6 +700,7 @@ def _update_dashboard_v2_episode(
     previous_state,
     new_state,
     snapshot,
+    identity_timestamp,
 ):
     global _active_v2_episode
     global _v2_episode_counter
@@ -674,6 +724,11 @@ def _update_dashboard_v2_episode(
             "peak_rvi": _to_number(_get(row, "rvi")),
             "peak_velocity": _to_number(_get(row, "velocity")),
             "peak_delta_zscore": _to_number(_get(row, "delta_zscore")),
+            **build_session_identity(
+                _v2_episode_counter,
+                case_id=f"LIVE_PREP_ZONE_{_v2_episode_counter}",
+                timestamp_utc=identity_timestamp,
+            ),
         }
 
     if _active_v2_episode is None:
@@ -692,7 +747,7 @@ def _update_dashboard_v2_episode(
         )
         _append_rows(
             DASHBOARD_V2_EPISODES_FILE,
-            V2_EPISODE_FIELDNAMES,
+            LIVE_V2_EPISODE_FIELDNAMES,
             [episode_row]
         )
         _freeze_live_preparation_snapshot(
@@ -768,96 +823,43 @@ def _build_v2_episode_row(row, row_id, event_timestamp):
         "peak_rvi": _active_v2_episode.get("peak_rvi"),
         "peak_velocity": _active_v2_episode.get("peak_velocity"),
         "peak_delta_zscore": _active_v2_episode.get("peak_delta_zscore"),
+        **{
+            field: _active_v2_episode.get(field, "")
+            for field in SESSION_IDENTITY_FIELDNAMES
+        },
     }
 
 
 def _ensure_csv_file(path, fieldnames):
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    if not path.exists():
-        _write_header(
-            path,
-            fieldnames
-        )
-        return
-
-    with path.open(
-        mode="r",
-        newline=""
-    ) as file:
-        reader = csv.reader(file)
-        current_header = next(reader, [])
-
-    if current_header == fieldnames:
-        return
-
-    _migrate_csv_header(
-        path,
-        current_header,
-        fieldnames
-    )
+    return ensure_identity_csv_schema(path, fieldnames)
 
 
 def _migrate_csv_header(path, current_header, fieldnames):
-    if not current_header:
-        _write_header(
-            path,
-            fieldnames
-        )
-        return
-
-    with path.open(
-        mode="r",
-        newline=""
-    ) as file:
-        reader = csv.DictReader(file)
-        rows = list(reader)
-
-    with path.open(
-        mode="w",
-        newline=""
-    ) as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=fieldnames
-        )
-        writer.writeheader()
-
-        for row in rows:
-            writer.writerow(
-                {
-                    field: row.get(field, "")
-                    for field in fieldnames
-                }
-            )
+    del current_header
+    return ensure_identity_csv_schema(path, fieldnames)
 
 
 def _write_header(path, fieldnames):
-    with path.open(
-        mode="w",
-        newline=""
-    ) as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=fieldnames
-        )
-        writer.writeheader()
+    return ensure_identity_csv_schema(path, fieldnames)
 
 
 def _append_rows(path, fieldnames, rows):
+    effective_fieldnames = ensure_identity_csv_schema(path, fieldnames)
     with path.open(
-        mode="a",
-        newline=""
+        mode="a", newline="", encoding="utf-8"
     ) as file:
         writer = csv.DictWriter(
             file,
-            fieldnames=fieldnames
+            fieldnames=effective_fieldnames,
+            extrasaction="ignore",
         )
-        writer.writerows(rows)
-
+        writer.writerows(
+            {
+                field: row.get(field, "")
+                for field in effective_fieldnames
+            }
+            for row in rows
+        )
 
 def _build_event_row(
     row,

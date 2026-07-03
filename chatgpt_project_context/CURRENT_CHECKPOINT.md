@@ -1397,3 +1397,43 @@ infrastructure redesign.
 
 Next:
 Await Dynamic Mechanics design.
+---
+
+## Active Checkpoint: DAILY_SESSION_IDENTITY_STABLE
+
+Status: STABLE - READY FOR PHASE 1B
+
+Identity guarantees:
+- Stale manifests rebuild safely.
+- Malformed manifests recover safely without crashing live processing.
+- Algeria session boundaries use exchange timestamps.
+- Identity is created once and inherited through preparation -> return -> RDM
+  -> evolution -> dynamic outputs.
+- Same-session restart counters recover from existing episode records.
+- Live dynamic joins use global_case_id.
+- Legacy rows are isolated and never mixed with session-identified rows.
+
+Propagated fields:
+- session_id
+- market_date
+- session_episode_id
+- global_episode_key
+- global_case_id
+
+CSV safety:
+- Schema migrations use atomic temporary-file replacement.
+- Migrations preserve the union of existing and new columns.
+
+Boundary:
+- No Project 1 formulas changed.
+- No Phase 1A files changed.
+- No dashboard, Snapshot, Worker, Queue, Bootstrap, Project 2, or B10/B11
+  changes.
+
+Validation:
+- Scoped py_compile: PASS
+- Focused identity validation: PASS
+- git diff --check: PASS
+
+Next:
+Begin Phase 1B Dynamic Mechanics design.

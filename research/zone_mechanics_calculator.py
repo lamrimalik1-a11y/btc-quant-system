@@ -4199,7 +4199,13 @@ def _compute_dynamic_layers(df: pd.DataFrame) -> pd.DataFrame:
     if out.empty or "case_id" not in out.columns or "visit_index" not in out.columns:
         return out
 
-    for _, grp in out.groupby("case_id"):
+    group_column = (
+        "global_case_id"
+        if "global_case_id" in out.columns
+        and out["global_case_id"].fillna("").astype(str).str.len().gt(0).all()
+        else "case_id"
+    )
+    for _, grp in out.groupby(group_column):
         g = grp.sort_values("visit_index")
         idx = g.index.to_numpy()
         h = pd.to_numeric(g.get("health_at_visit"), errors="coerce").to_numpy(dtype=float)
@@ -8451,13 +8457,97 @@ def run_zone_visit_timeline_dynamic_live() -> None:
     evolution_df           = read_csv(_live_evolution_file)
     pre_return_timeline_df = read_csv(_train_timeline_file)
 
-    results_df = results_df.sort_values("analysis_run_utc").drop_duplicates(
-        subset=["case_id"], keep="last"
+    identity_columns = [
+        "session_id",
+        "market_date",
+        "session_episode_id",
+        "global_episode_key",
+        "global_case_id",
+    ]
+    has_global_identity = (
+        "global_case_id" in results_df.columns
+        and "global_case_id" in evolution_df.columns
+        and results_df["global_case_id"].fillna("").astype(str).str.len().gt(0).any()
     )
 
-    dynamic_df = build_zone_visit_timeline_dynamic(
-        results_df, evolution_df, pre_return_timeline_df, run_utc
-    )
+    if has_global_identity:
+        identified_results = results_df[
+            results_df["global_case_id"].fillna("").astype(str).str.len() > 0
+        ].copy()
+        identified_results = (
+            identified_results.sort_values("analysis_run_utc")
+            .drop_duplicates("global_case_id", keep="last")
+        )
+        dynamic_parts = []
+        for _, result_row in identified_results.iterrows():
+            global_case_id = str(result_row["global_case_id"])
+            case_id = result_row.get("case_id")
+            case_evolution = evolution_df[
+                evolution_df["global_case_id"].astype(str) == global_case_id
+            ].copy()
+            if "global_case_id" in pre_return_timeline_df.columns:
+                case_pre_return = pre_return_timeline_df[
+                    pre_return_timeline_df["global_case_id"].astype(str)
+                    == global_case_id
+                ].copy()
+            elif "case_id" in pre_return_timeline_df.columns:
+                case_pre_return = pre_return_timeline_df[
+                    pre_return_timeline_df["case_id"].astype(str) == str(case_id)
+                ].copy()
+            else:
+                case_pre_return = pd.DataFrame()
+            part = build_zone_visit_timeline_dynamic(
+                pd.DataFrame([result_row]),
+                case_evolution,
+                case_pre_return,
+                run_utc,
+            )
+            if part.empty:
+                continue
+            for column in identity_columns:
+                part[column] = result_row.get(column, "")
+            dynamic_parts.append(part)
+
+        # Rows written before session identity was introduced remain readable.
+        # They cannot be globally disambiguated, so keep their legacy join
+        # isolated from all identified rows.
+        legacy_results = results_df[
+            results_df["global_case_id"].fillna("").astype(str).str.len() == 0
+        ].copy()
+        if not legacy_results.empty:
+            legacy_results = (
+                legacy_results.sort_values("analysis_run_utc")
+                .drop_duplicates("case_id", keep="last")
+            )
+            legacy_evolution = evolution_df[
+                evolution_df["global_case_id"]
+                .fillna("")
+                .astype(str)
+                .str.len() == 0
+            ].copy()
+            legacy_dynamic = build_zone_visit_timeline_dynamic(
+                legacy_results,
+                legacy_evolution,
+                pre_return_timeline_df,
+                run_utc,
+            )
+            if not legacy_dynamic.empty:
+                dynamic_parts.append(legacy_dynamic)
+
+        dynamic_df = (
+            pd.concat(dynamic_parts, ignore_index=True)
+            if dynamic_parts
+            else pd.DataFrame()
+        )
+    else:
+        # Legacy compatibility only: old files have no session identity and
+        # cannot be disambiguated beyond their historical case_id contract.
+        results_df = results_df.sort_values("analysis_run_utc").drop_duplicates(
+            subset=["case_id"], keep="last"
+        )
+        dynamic_df = build_zone_visit_timeline_dynamic(
+            results_df, evolution_df, pre_return_timeline_df, run_utc
+        )
 
     tmp_path = _live_dynamic_file.with_suffix(".tmp.csv")
     tmp_path.parent.mkdir(parents=True, exist_ok=True)

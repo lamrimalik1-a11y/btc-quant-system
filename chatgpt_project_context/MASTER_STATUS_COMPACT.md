@@ -1211,3 +1211,23 @@ infrastructure redesign.
 
 Next:
 Await Dynamic Mechanics design.
+---
+
+## Active Checkpoint: DAILY_SESSION_IDENTITY_STABLE
+
+Status: STABLE - READY FOR PHASE 1B
+
+- Stale and malformed manifests recover safely.
+- Algeria boundaries use exchange timestamps.
+- One identity propagates preparation -> return -> RDM -> evolution -> dynamic.
+- Same-session restart counters recover from existing episode records.
+- Live dynamic joins use global_case_id; legacy rows remain isolated.
+- Five fields propagate: session_id, market_date, session_episode_id,
+  global_episode_key, global_case_id.
+- CSV migrations use atomic replacement and preserve union schemas.
+- No Project 1 formulas, Phase 1A, dashboard, Snapshot, Worker, Queue,
+  Bootstrap, Project 2, or B10/B11 changes.
+- Scoped compile, focused identity validation, and diff checks: PASS.
+
+Next:
+Begin Phase 1B Dynamic Mechanics design.

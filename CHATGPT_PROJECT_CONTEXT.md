@@ -1898,3 +1898,47 @@ Validation:
 
 Next:
 Await Stage 5 stress-test approval.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_STRESS_TEST_STABLE
+
+Status: STAGE 5 OFFLINE STRESS VALIDATION PASS
+
+Stress results:
+- 10,000 deterministic synthetic rows
+- 5,823 mechanical events
+- 4,240 RefreshPlans
+- 4,240 Canonical Snapshot revisions
+- 7 distinct psychological zones
+- Maximum simultaneously active zones = 1
+- Processing time = 10.86 seconds
+- Peak traced memory = 3,189,856 bytes
+- Revisions per zone = 600, 600, 608, 608, 608, 608, 608
+
+Validated properties:
+- Deterministic output: PASS
+- Copy-on-write integrity: PASS
+- global_zone_key identity integrity: PASS
+- Revision monotonicity: PASS
+- Duplicate row protection: PASS
+- Out-of-order row protection: PASS
+- Snapshot consistency: PASS
+- RefreshPlan count equals snapshot revision count: PASS
+- No corruption or unexpected exceptions: PASS
+
+Boundary:
+- Psychological Levels Project 2 experiment remains offline
+- No Project 1 changes
+- No production formulas, Worker, Queue, Bootstrap, Dynamic Mechanics,
+  Prediction, Dashboard, LIVE, or Replay changes
+- Production behavior unchanged
+
+Validation:
+- All psychological_levels modules py_compile: PASS
+- Stage 1-4 regression tests: PASS
+- Stage 5 stress_test.py: PASS
+- git diff --check: PASS
+
+Next:
+Await Phase 1B Dynamic Mechanics offline validation approval.

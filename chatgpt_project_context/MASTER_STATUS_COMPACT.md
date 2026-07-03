@@ -1161,3 +1161,23 @@ or formula changes.
 
 Next:
 Await Stage 5 stress-test approval.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_STRESS_TEST_STABLE
+
+Status: STAGE 5 OFFLINE STRESS VALIDATION PASS
+
+Results:
+- 10,000 rows; 5,823 events; 4,240 plans and snapshot revisions
+- 7 zones; maximum active zones 1
+- 10.86s processing; 3,189,856-byte peak traced memory
+- Revisions: 600, 600, 608, 608, 608, 608, 608
+- Determinism, copy-on-write, identity, revision monotonicity,
+  duplicate/out-of-order protection, and snapshot consistency: PASS
+
+Boundary:
+Offline Project 2 experiment only. No Project 1 or production behavior changes.
+
+Next:
+Await Phase 1B Dynamic Mechanics offline validation approval.

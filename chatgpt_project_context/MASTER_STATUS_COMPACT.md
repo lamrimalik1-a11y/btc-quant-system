@@ -1181,3 +1181,33 @@ Offline Project 2 experiment only. No Project 1 or production behavior changes.
 
 Next:
 Await Phase 1B Dynamic Mechanics offline validation approval.
+
+---
+
+## Active Checkpoint: PHASE1B_AUTHORIZED
+
+Status: READY FOR PHASE 1B
+
+Gate result:
+- Independent architectural review PASS
+- Phase 0 PRODUCTION_SAFE / FROZEN
+- Phase 1A STABLE / COMPLETE
+- Shared RDM architecture confirmed geometry-agnostic
+- Identity, copy-on-write, revision monotonicity, and snapshot contracts preserved
+- No redesign required
+
+Phase 1B research order:
+Dynamic Mechanics -> Dynamic State -> SDR -> B10 -> B11 -> Offline Validation
+-> Statistical Analysis.
+
+Frozen:
+Geometry Provider, Interaction Interpreter, Event Dispatcher, Refresh
+Coordinator, Canonical Snapshot, Identity Model, Revision Model, copy-on-write.
+Changes require a documented architectural reason.
+
+Boundary:
+Offline mechanical-intelligence research only. No production integration or
+infrastructure redesign.
+
+Next:
+Await Dynamic Mechanics design.

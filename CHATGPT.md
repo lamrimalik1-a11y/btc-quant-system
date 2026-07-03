@@ -1823,3 +1823,65 @@ Validation:
 
 Next:
 Await Phase 1B Dynamic Mechanics offline validation approval.
+
+---
+
+## Active Checkpoint: PHASE1B_AUTHORIZED
+
+Status: READY FOR PHASE 1B
+
+Architectural gate result:
+- Independent architectural review: PASS
+- Shared RDM Engine confirmed geometry-agnostic
+- No hidden Project 1 / Project 2 coupling
+- Interaction Interpreter, Event Dispatcher, and Refresh Coordinator remain generic
+- Canonical Snapshot remains geometry-independent
+- Snapshot Identity Contract preserved
+- Copy-on-write and revision monotonicity preserved
+- Dynamic Mechanics and Prediction adapters integrate naturally
+- No infrastructure redesign required
+
+Project status:
+- Phase 0: PRODUCTION_SAFE and FROZEN
+- Phase 1A: STABLE and COMPLETE
+- Geometry Provider: PASS
+- Interaction Interpreter: PASS
+- Event Dispatcher: PASS
+- Refresh Coordinator: PASS
+- Canonical Snapshot: PASS
+- Stress Test: PASS
+
+Phase 1B objective:
+Validate mechanical intelligence through offline research using the existing
+stable architecture. Phase 1B is not an infrastructure or production
+integration phase.
+
+Research order:
+1. Dynamic Mechanics: Derivative, Integral, Second Derivative
+2. Dynamic State
+3. SDR
+4. Trajectory Evolution (B10)
+5. Prediction Evolution (B11)
+6. Offline Validation
+7. Statistical Analysis
+
+Frozen components:
+- Geometry Provider
+- Interaction Interpreter
+- Event Dispatcher
+- Refresh Coordinator
+- Canonical Snapshot
+- Identity Model
+- Snapshot Revision Model
+- Copy-on-write
+
+Any change to a frozen component requires a documented architectural reason.
+
+Boundary:
+- Offline research only
+- No infrastructure redesign
+- No production integration
+- No production behavior change
+
+Next:
+Await Dynamic Mechanics design.

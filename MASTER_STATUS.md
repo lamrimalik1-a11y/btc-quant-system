@@ -4475,3 +4475,49 @@ Validation:
 
 Next:
 Await next production integration decision.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_PROVIDER_STAGE1_STABLE
+
+Status: EXPERIMENTAL PROJECT 2 PROVIDER VALIDATED
+
+Scope:
+- Experimental Project 2 provider only
+- Located under experiments/psychological_levels/
+- No promotion into core yet
+- No RDM, Snapshot, Worker, LIVE, dashboard, or Project 1 connection
+
+Configuration:
+- spacing = 200 USD
+- zone_half_width = 25 USD
+- active_window = +/-3 levels
+- Decimal arithmetic for geometry and identity
+- Immutable PsychologicalLevelGeometry records
+
+Stable identity:
+- zone_id = PSY_BTCUSDT_<level>
+- case_id = PSY_CASE_BTCUSDT_<level>
+- global_zone_key = session_id::zone_id
+
+Validated example:
+- reference price = 60341
+- generated centers = 59800, 60000, 60200, 60400, 60600, 60800, 61000
+- level 60000 geometry = 59975 -> 60025, width 50
+- Stable repeated IDs and session-scoped global keys: PASS
+- Deterministic ordering and invalid configuration guards: PASS
+- Decimal/canonical identity stability: PASS
+
+Boundary:
+- Offline only
+- No formulas changed
+- No production code path consumes the provider
+- Production behavior unchanged
+
+Validation:
+- provider/test py_compile: PASS
+- test_provider.py: PASS
+- git diff --check: PASS
+
+Next:
+Await Stage 2 Interaction Interpreter validation.

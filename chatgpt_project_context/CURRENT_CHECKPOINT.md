@@ -1303,3 +1303,24 @@ recomputation, or prediction generation changes. Shadow remains diagnostic.
 
 Next:
 Await next production integration decision.
+
+---
+
+## Active Checkpoint: PHASE1A_PSYCHOLOGICAL_LEVELS_PROVIDER_STAGE1_STABLE
+
+Status: EXPERIMENTAL PROJECT 2 PROVIDER VALIDATED
+
+Validated:
+- experiments/psychological_levels/ only; no core promotion
+- spacing 200, half-width 25, active window +/-3
+- Decimal arithmetic and immutable PsychologicalLevelGeometry
+- Stable zone_id, case_id, and session-scoped global_zone_key
+- Price 60341 generated 59800 through 61000 in deterministic 200 increments
+- All provider tests PASS
+
+Boundary:
+Offline only. No RDM, Snapshot, Worker, LIVE, dashboard, Project 1, formula,
+or production behavior changes.
+
+Next:
+Await Stage 2 Interaction Interpreter validation.

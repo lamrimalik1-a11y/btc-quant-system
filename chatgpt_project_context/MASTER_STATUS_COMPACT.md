@@ -2,6 +2,43 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_TRANSITION_GRAPH_STAGE4_STABLE
+
+Stage 4 builds a research-only Transition Graph over unchanged Stage 3
+Psychological Levels Dynamic State sequences.
+
+Implemented: transition probabilities, residence runs, persistence, simple
+cycles, critical transitions, absorbing-like states, and early-warning paths.
+
+Deterministic results across three runs:
+- zones=7; completed_visits=159; transitions=145; transition_types=3
+- STABLE->RECOVERING=61; RECOVERING->STABLE=60; STABLE->STABLE=24
+- P(RECOVERING->STABLE)=1.0
+- P(STABLE->RECOVERING)=0.7176470588235294
+- P(STABLE->STABLE)=0.2823529411764706
+- residence RECOVERING: mean=1.0, min=1, max=1, runs=61
+- residence STABLE: mean=1.3582089552238805, min=1, max=22, runs=67
+- persistence RECOVERING=0.0; STABLE=0.2823529411764706
+- STABLE->RECOVERING->STABLE cycles=60 across 6 zones
+- critical transitions=0; absorbing states=[]; early-warning paths=0
+- probability rows valid; RESEARCH_ prefix valid; errors=[]; result=PASS
+
+Validation:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_transition_graph.py
+- python experiments/psychological_levels_dynamic/test_transition_graph.py
+- git diff --check
+
+Boundary: offline Project 2 graph analysis only. No prediction, Dynamic State,
+Project 1, production, dashboard, live pipeline, Snapshot, RDM formula,
+B10/B11, Worker, Queue, or Bootstrap changes. Production behavior unchanged.
+
+Next: await the next Phase 1B research-stage approval.
+
+---
+
+## Prior Stable Status (PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE)
+
 Current checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
 
 Stage 3 analyzes transitions between research Dynamic States produced by

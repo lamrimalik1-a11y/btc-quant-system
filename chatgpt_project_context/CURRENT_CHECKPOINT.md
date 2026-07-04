@@ -1,5 +1,74 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1B_TRANSITION_GRAPH_STAGE4_STABLE
+
+Status: STABLE CHECKPOINT - research-only, offline-only, Project 2 only.
+Stage 4 builds a Transition Graph over the unchanged Stage 3 Dynamic State
+visit sequences.
+
+Implemented:
+- Transition probability matrix with outgoing and destination counts.
+- Per-zone and per-state residence run lengths with mean, min, max, and total
+  runs.
+- State self-transition persistence probabilities.
+- Simple cycle detection for
+  RESEARCH_STABLE -> RESEARCH_RECOVERING -> RESEARCH_STABLE.
+- Research-only critical transitions into RESEARCH_ATTACKER_PRESSURE.
+- Absorbing-like state detection.
+- Multi-step early-warning paths ending in RESEARCH_ATTACKER_PRESSURE.
+- Three-run deterministic validation.
+
+Files:
+- Created:
+  experiments/psychological_levels_dynamic/test_transition_graph.py
+- Updated:
+  chatgpt_project_context/CURRENT_CHECKPOINT.md
+  chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+Exact deterministic results:
+- zones_observed = 7
+- completed_visits = 159
+- transitions_generated = 145
+- unique_states = RESEARCH_RECOVERING, RESEARCH_STABLE
+- unique_transition_types = 3
+- RESEARCH_STABLE_TO_RESEARCH_RECOVERING = 61
+- RESEARCH_RECOVERING_TO_RESEARCH_STABLE = 60
+- RESEARCH_STABLE_TO_RESEARCH_STABLE = 24
+- P(RECOVERING -> STABLE) = 1.0
+- P(STABLE -> RECOVERING) = 0.7176470588235294
+- P(STABLE -> STABLE) = 0.2823529411764706
+- RECOVERING residence: mean=1.0, min=1, max=1, total_runs=61
+- STABLE residence: mean=1.3582089552238805, min=1, max=22,
+  total_runs=67
+- RECOVERING persistence = 0.0 (0 / 60)
+- STABLE persistence = 0.2823529411764706 (24 / 85)
+- STABLE -> RECOVERING -> STABLE cycle count = 60 across 6 zones
+- critical_transition_count = 0
+- absorbing_states = []
+- early_warning_paths_count = 0
+- probability rows sum to 1.0 within tolerance
+- all labels remain RESEARCH_ prefixed
+- deterministic_across_runs = True
+- errors = []
+- result = PASS
+
+Exact validation commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_transition_graph.py
+- python experiments/psychological_levels_dynamic/test_transition_graph.py
+- git diff --check
+
+Boundary:
+- Graph analysis only; no prediction generation or Dynamic State changes.
+- No Project 1, production, dashboard, live pipeline, Worker, Queue,
+  Bootstrap, Snapshot architecture, RDM formula, B10, or B11 changes.
+- No production behavior changed.
+
+Next:
+Await the next Phase 1B research-stage approval.
+
+---
+
 ## Active Checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
 
 Status: STABLE CHECKPOINT — research-only, no production behavior changed.

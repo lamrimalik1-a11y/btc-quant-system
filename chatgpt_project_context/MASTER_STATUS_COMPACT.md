@@ -2,6 +2,60 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter II Phase 1 adds only the deterministic Scenario Generator
+foundation:
+- deeply immutable ScenarioSpecification
+- immutable price-only PriceObservation
+- runtime-checkable ScenarioProvider Protocol
+- explicit registry with duplicate protection and self-contained imports
+- canonical SHA-256 specification fingerprint
+- canonical immutable parameter-type restrictions
+- pure Decimal triangular, trend, bounded-range, and step primitives
+- no scanning, plugins, reflection, dynamic imports, random, or PRNG
+
+Validation:
+- scenario_contract=PASS
+- registry=PASS
+- primitives=PASS
+- determinism=PASS
+- price_only_output=PASS
+- research_only=PASS
+- errors=[]; result=PASS
+- repeated generation identical
+- equivalent specifications fingerprint identically; changed specs differ
+- isolated self-contained registry import=PASS
+- triangle fixture=100,110,120,110,100,110,120,110
+- primitive paths distinct
+
+Files: scenario_contract.py, scenario_registry.py, scenario_primitives.py,
+test_scenario_foundation.py, plus the two checkpoint documents.
+
+Commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/scenario_contract.py
+  experiments/psychological_levels_dynamic/scenario_registry.py
+  experiments/psychological_levels_dynamic/scenario_primitives.py
+  experiments/psychological_levels_dynamic/test_scenario_foundation.py
+- python
+  experiments/psychological_levels_dynamic/test_scenario_foundation.py
+- git diff --check
+- git status
+
+Boundary: foundation only. No runner, Stage 1-6 execution or modification,
+Project 1, production, dashboard, live pipeline, Snapshot, RDM, production
+B10/B11, Worker, Queue, Bootstrap, trading, execution, or Phase 2 changes.
+Production behavior unchanged.
+
+Next: await Chapter II Phase 1 review; do not commit yet.
+
+---
+
+## Prior Stable Status (PHASE1B_PREDICTION_EVOLUTION_STAGE6_STABLE)
+
 Current checkpoint: PHASE1B_PREDICTION_EVOLUTION_STAGE6_STABLE
 
 Status: revised and validated; awaiting review before commit.

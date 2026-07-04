@@ -1,5 +1,82 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE
+
+Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.
+Research-only, offline-only, Project 2 Chapter II foundation.
+
+Implemented:
+- Frozen ScenarioSpecification with deeply immutable parameter,
+  geometry-parameter, and validation-metadata mappings.
+- Frozen PriceObservation containing row_index and price only.
+- Runtime-checkable ScenarioProvider Protocol exposing metadata(),
+  validate_spec(), and generate().
+- Explicit ScenarioRegistry with duplicate protection, no scanning,
+  reflection, plugin loading, or dynamic imports.
+- Registry import is self-contained through the established local-directory
+  bootstrap and does not rely on caller sys.path preparation.
+- Canonical SHA-256 specification fingerprint for provenance and drift
+  detection.
+- Parameters are restricted to deterministic canonical immutable scalar and
+  container types; floats, sets, and arbitrary custom objects are rejected.
+- Pure Decimal mathematical primitives:
+  triangular_wave(), linear_trend(), bounded_range(), step_pattern().
+- Foundation-only local test provider; no scenario runner and no connection
+  to the Stage 1-6 chain.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_contract.py
+- experiments/psychological_levels_dynamic/scenario_registry.py
+- experiments/psychological_levels_dynamic/scenario_primitives.py
+- experiments/psychological_levels_dynamic/test_scenario_foundation.py
+
+Files updated:
+- chatgpt_project_context/CURRENT_CHECKPOINT.md
+- chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+Deterministic foundation results:
+- scenario_contract = PASS
+- registry = PASS
+- primitives = PASS
+- determinism = PASS
+- price_only_output = PASS
+- research_only = PASS
+- errors = []
+- result = PASS
+- repeated provider generation is identical
+- equivalent reordered specifications have identical fingerprints
+- changed specifications have different fingerprints
+- isolated self-contained registry import = PASS
+- triangle path = 100, 110, 120, 110, 100, 110, 120, 110
+- linear, bounded-range, step, and triangular paths are distinct
+- generated observations contain only row_index and Decimal price
+- random and seeded PRNG generation are not used
+
+Exact validation commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/scenario_contract.py
+  experiments/psychological_levels_dynamic/scenario_registry.py
+  experiments/psychological_levels_dynamic/scenario_primitives.py
+  experiments/psychological_levels_dynamic/test_scenario_foundation.py
+- python
+  experiments/psychological_levels_dynamic/test_scenario_foundation.py
+- git diff --check
+- git status
+
+Boundary:
+- Foundation only; no Scenario Runner.
+- No scenario is executed through Dynamic Mechanics.
+- No Stage 1-6 files changed or imported by the foundation.
+- No Project 1, production, dashboard, live pipeline, Snapshot architecture,
+  Worker, Queue, Bootstrap, RDM, or production B10/B11 changes.
+- No trading, execution, or Phase 2.
+- No production behavior changed.
+
+Next:
+Await Chapter II Phase 1 review. Do not commit yet.
+
+---
+
 ## Active Checkpoint: PHASE1B_PREDICTION_EVOLUTION_STAGE6_STABLE
 
 Status: REVISED AND VALIDATED - awaiting review before commit.

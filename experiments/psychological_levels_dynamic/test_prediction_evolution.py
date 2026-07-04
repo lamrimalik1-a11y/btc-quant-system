@@ -270,6 +270,8 @@ def _mutation_invariance(
     checks = 0
     for zone in sorted(visits_by_zone):
         visits = visits_by_zone[zone]
+        if not visits:
+            continue
         representative = sorted(
             {min(5, len(visits) - 1), len(visits) // 2, len(visits) - 2}
         )
@@ -507,10 +509,28 @@ def analyze(visits_by_zone: dict[str, list[dict]]) -> dict[str, Any]:
         for record in validated
         if record["input_research_state"] != NOT_AVAILABLE
     }
+    eligible_zones = {
+        record["global_zone_key"]
+        for record in validated
+        if record["hypothesis_status"] in ELIGIBLE_STATUSES
+    }
+    per_zone_sample_status = {
+        zone: (
+            "NO_VISITS"
+            if not visits
+            else (
+                "SUFFICIENT_SAMPLE"
+                if zone in eligible_zones
+                else "INSUFFICIENT_SAMPLE"
+            )
+        )
+        for zone, visits in sorted(visits_by_zone.items())
+    }
     total_visits = sum(len(visits) for visits in visits_by_zone.values())
     return {
         "zones_observed": len(visits_by_zone),
         "completed_visits": total_visits,
+        "per_zone_sample_status": per_zone_sample_status,
         "hypotheses_generated": hypotheses_generated,
         "eligible_hypotheses": eligible_hypotheses,
         "insufficient_sample_count": insufficient_sample_count,
@@ -583,6 +603,21 @@ def main() -> None:
         _deterministic_payload(report) == _deterministic_payload(first)
         for report in reports[1:]
     )
+    baseline_visits, baseline_errors = collect_completed_visits()
+    empty_zone_key = "STAGE6_REGRESSION::EMPTY_ZONE"
+    baseline_report = analyze(baseline_visits)
+    empty_zone_report = analyze({**baseline_visits, empty_zone_key: []})
+    empty_zone_regression = (
+        not baseline_errors
+        and empty_zone_report["per_zone_sample_status"][empty_zone_key]
+        == "NO_VISITS"
+        and empty_zone_report["hypothesis_records_count"]
+        == baseline_report["hypothesis_records_count"]
+        and empty_zone_report["hypotheses_generated"]
+        == baseline_report["hypotheses_generated"]
+        and empty_zone_report["future_mutation_invariance"]
+        and not empty_zone_report["leakage_violation_details"]
+    )
     checks = [
         not first["errors"],
         first["completed_visits"] == EXPECTED_COMPLETED_VISITS,
@@ -597,6 +632,7 @@ def main() -> None:
         not first["attacker_pressure_observed"],
         not first["predictions_generated"],
         deterministic,
+        empty_zone_regression,
     ]
     result = "PASS" if all(checks) else "FAIL"
 
@@ -604,6 +640,7 @@ def main() -> None:
     for field in (
         "zones_observed",
         "completed_visits",
+        "per_zone_sample_status",
         "hypotheses_generated",
         "eligible_hypotheses",
         "insufficient_sample_count",
@@ -627,6 +664,7 @@ def main() -> None:
     ):
         print(f"{field} = {json.dumps(first[field], sort_keys=True)}")
     print(f"deterministic_across_runs = {deterministic}")
+    print(f"empty_zone_regression = {empty_zone_regression}")
     print(f"errors = {json.dumps(first['errors'])}")
     print(f"result = {result}")
     print("DESCRIPTIVE_CONFIRMATION_RATE_IS_TRADING_ACCURACY = FALSE")

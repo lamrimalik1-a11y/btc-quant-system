@@ -1,3 +1,30 @@
+## Active Checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
+
+Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`
+
+Chapter I is COMPLETE / STABLE through Stage 6 Prediction Evolution Research.
+
+Project 2 Chapter II Phase 1C:
+- Scenario Generator Foundation: STABLE
+  (`ca71902f74ba42ce54b217f3488c10da24a2d0f4`)
+- Scenario Runner: STABLE
+  (`34641e3c1cda4a19972a48752446785132e7ccbd`)
+- Scenario Catalog Foundation: STABLE
+  (`5a2d4a718f0072f86556e2b2347eedbeaf8ae061`)
+- Scenario Catalog Provenance Fix: STABLE
+  (`a2c52feb5b7472450b543f6de3b46a6562520d5a`)
+- Scenario Execution: PASS after Stage 6 empty-zone robustness fix
+  (`add1fcfe37f68d41437594d4b424f1eddd08214d`)
+
+Stage 6 reporting distinguishes `NO_VISITS`, `INSUFFICIENT_SAMPLE`, and
+`SUFFICIENT_SAMPLE`. Phase 4 results: baseline PASS (159 visits), adversarial
+PASS (2), regime change PASS (52), repeated attacks PASS (6), determinism
+PASS.
+
+No Scenario Runner or Scenario Catalog implementation, Project 1, or
+production behavior changed.
+
+---
 ==================================================
 AUTOMATIC HISTORICAL ARCHIVE SYSTEM
 ===================================

@@ -1,6 +1,45 @@
 # MASTER STATUS
 
-## Active Checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
+## Active Checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
+
+Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`
+
+Status: STABLE AND VALIDATED.
+
+Chapter I is COMPLETE / STABLE:
+- Stage 1 Dynamic Mechanics
+- Stage 2 Snapshot Dynamic Mechanics
+- Stage 3 Dynamic State Transitions
+- Stage 4 Transition Graph
+- Stage 5 Trajectory Evolution
+- Stage 6 Prediction Evolution Research
+
+Project 2 Chapter II Phase 1C is stable through Phase 4:
+- Scenario Generator Foundation:
+  `ca71902f74ba42ce54b217f3488c10da24a2d0f4`
+- Scenario Runner:
+  `34641e3c1cda4a19972a48752446785132e7ccbd`
+- Scenario Catalog Foundation:
+  `5a2d4a718f0072f86556e2b2347eedbeaf8ae061`
+- Scenario Catalog Provenance Fix:
+  `a2c52feb5b7472450b543f6de3b46a6562520d5a`
+- Scenario Execution / Stage 6 Empty-Zone Fix:
+  `add1fcfe37f68d41437594d4b424f1eddd08214d`
+
+Stage 6 distinguishes:
+- `NO_VISITS`: zone exists with zero completed visits.
+- `INSUFFICIENT_SAMPLE`: visits exist but no eligible hypothesis exists.
+- `SUFFICIENT_SAMPLE`: at least one eligible hypothesis exists.
+
+Phase 4 execution: baseline PASS (159 visits), adversarial PASS (2), regime
+change PASS (52), repeated attacks PASS (6), determinism PASS.
+
+No Scenario Runner or Scenario Catalog implementation, Project 1, or
+production behavior changed.
+
+---
+
+## Prior Active Checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
 
 Status: STABLE CHECKPOINT — research-only, no production behavior changed.
 Stage 3 analyzes transitions between research Dynamic States produced by

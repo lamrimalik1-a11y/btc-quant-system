@@ -1,6 +1,55 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX
+## Active Checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
+
+Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`
+
+Status: STABLE AND VALIDATED.
+
+Chapter I is complete and stable:
+- Stage 1 Dynamic Mechanics
+- Stage 2 Snapshot Dynamic Mechanics
+- Stage 3 Dynamic State Transitions
+- Stage 4 Transition Graph
+- Stage 5 Trajectory Evolution
+- Stage 6 Prediction Evolution Research
+
+Project 2 Chapter II Phase 1C:
+- Phase 1 Scenario Generator Foundation: STABLE
+- Phase 2 Scenario Runner: STABLE
+- Phase 3 Scenario Catalog Foundation: STABLE
+- Phase 4 Scenario Execution: PASS after the Stage 6 empty-zone robustness fix
+
+Stable checkpoint chain:
+- `PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE`
+  (`ca71902f74ba42ce54b217f3488c10da24a2d0f4`)
+- `PHASE1C_SCENARIO_RUNNER_STABLE`
+  (`34641e3c1cda4a19972a48752446785132e7ccbd`)
+- `PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE`
+  (`5a2d4a718f0072f86556e2b2347eedbeaf8ae061`)
+- `PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX`
+  (`a2c52feb5b7472450b543f6de3b46a6562520d5a`)
+- `PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX`
+  (`add1fcfe37f68d41437594d4b424f1eddd08214d`)
+
+Stage 6 now handles empty zones explicitly:
+- `NO_VISITS`: zone exists with zero completed visits.
+- `INSUFFICIENT_SAMPLE`: zone has visits but no eligible hypothesis.
+- `SUFFICIENT_SAMPLE`: zone produced at least one eligible hypothesis.
+
+Phase 4 deterministic execution:
+- Baseline: PASS, 159 visits
+- Adversarial: PASS, 2 visits
+- Regime change: PASS, 52 visits
+- Repeated attacks: PASS, 6 visits
+- Determinism: PASS
+
+No Scenario Runner or Scenario Catalog implementation changed. No Project 1
+or production behavior changed.
+
+---
+
+## Prior Stable Checkpoint: PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX
 
 Status: IMPLEMENTED AND VALIDATED.
 

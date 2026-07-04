@@ -3,8 +3,9 @@
 Concatenates a quiet, mildly-oscillating regime (repeated shallow in/out
 touches of one zone, via the existing bounded_range() primitive) with the
 same shallow-probe-then-deep-penetration shape used by the
-adversarial_attacker_pressure family (via step_pattern()), targeting a
-different zone.
+adversarial_attacker_pressure family (via step_pattern()), targeting the
+same zone. This preserves continuous per-zone trajectory history so later
+Stage 6 per-zone hypothesis evaluation remains mechanically meaningful.
 
 The purpose is descriptive, not predictive: a later phase may observe
 whether a walk-forward hypothesis formed from the quiet-regime prefix is

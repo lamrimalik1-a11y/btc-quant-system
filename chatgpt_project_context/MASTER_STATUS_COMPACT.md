@@ -2,7 +2,27 @@
 
 ## Current Stable Status
 
-Current checkpoint: PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE
+Current checkpoint: PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX
+
+Status: implemented and validated.
+
+Scientific provenance correction only. No architecture, scenario parameters,
+generated price paths, provider behavior, or production behavior changed.
+REPEATED_ATTACKS_PARTIAL_RECOVERY_V1 now identifies its actual experiment as
+DENOMINATOR_DEGRADATION_PARTIAL_RECOVERY with no predeclared downstream state;
+it is not documented as a direct RESEARCH_ATTACKER_PRESSURE target.
+REGIME_CHANGE_INTO_PRESSURE documentation now consistently states that its
+quiet and pressure phases act on the same zone, preserving per-zone trajectory
+history for later Stage 6 evaluation. Specification fingerprint changes are
+limited to the corrected immutable metadata/documentation.
+
+Validation: all catalog files compile; test_scenario_catalog.py PASS; generated
+observation sequences are unchanged from commit 5a2d4a7; git diff --check PASS.
+No Stage 1-6, Scenario Runner, Project 1, or production file changed.
+
+---
+
+## Prior Stable Status (PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE)
 
 Status: implemented and validated; awaiting review before commit.
 

@@ -233,13 +233,17 @@ REPEATED_ATTACKS_PARTIAL_RECOVERY_V1 = ScenarioSpecification(
         "phase -- not required or validated here; delta_omega is zero by "
         "construction in this specification, so the demonstration is of the "
         "denominator (health) shrinking under incomplete recovery, not of "
-        "an SDR threshold crossing.",
+        "an SDR threshold crossing. This scenario is not expected to force "
+        "RESEARCH_ATTACKER_PRESSURE by itself; it tests whether repeated "
+        "equal-depth attacks with incomplete recovery degrade health over "
+        "repeated visits.",
     ),
     validation_metadata={
         "chapter": 2,
         "phase": 3,
         "mechanism": "repeated_penetration_partial_recovery",
-        "targets_downstream_state": "RESEARCH_ATTACKER_PRESSURE",
+        "mechanism_under_test": "DENOMINATOR_DEGRADATION_PARTIAL_RECOVERY",
+        "expected_downstream_state": "NOT_PREDECLARED",
         "outcome_required": False,
     },
     seed_metadata="UNUSED_NO_PRNG",

@@ -1,6 +1,41 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE
+## Active Checkpoint: PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX
+
+Status: IMPLEMENTED AND VALIDATED.
+
+Scientific provenance correction only:
+- No architecture changed.
+- No scenario parameters changed.
+- No generated price paths changed; specification fingerprints changed only
+  where corrected metadata/documentation is part of the immutable
+  specification.
+- REPEATED_ATTACKS_PARTIAL_RECOVERY_V1 is documented as a denominator-
+  degradation / partial-recovery experiment, not a direct
+  RESEARCH_ATTACKER_PRESSURE target. Its downstream state is not
+  predeclared.
+- REGIME_CHANGE_INTO_PRESSURE is consistently documented as a same-zone
+  quiet-to-pressure transition, preserving per-zone trajectory history for
+  later Stage 6 evaluation.
+- No Stage 1-6, Scenario Runner, Project 1, or production behavior changed.
+
+Files updated:
+- experiments/psychological_levels_dynamic/scenario_catalog/specifications.py
+- experiments/psychological_levels_dynamic/scenario_catalog/families/regime_change_into_pressure.py
+- chatgpt_project_context/CURRENT_CHECKPOINT.md
+- chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+Validation:
+- `python -m py_compile` on catalog.py, specifications.py, all four family
+  providers, and test_scenario_catalog.py
+- `python experiments/psychological_levels_dynamic/scenario_catalog/test_scenario_catalog.py`
+- Generated observation sequences compared with commit 5a2d4a7: unchanged
+- `git diff --check`
+- `git status`
+
+---
+
+## Prior Stable Checkpoint: PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE
 
 Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.
 Research-only, offline-only, Project 2 Chapter II Phase 3.

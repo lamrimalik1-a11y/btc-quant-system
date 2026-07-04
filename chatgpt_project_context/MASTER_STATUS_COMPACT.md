@@ -2,6 +2,80 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter II Phase 3 adds a small, explicit Scenario Catalog: exactly
+four families (BASELINE, ADVERSARIAL_ATTACKER_PRESSURE,
+REGIME_CHANGE_INTO_PRESSURE, REPEATED_ATTACKS), one provider each, one
+specification each -- no batch execution, no cross-scenario comparison, no
+sensitivity analysis, no learning, no new analytical layer. Each provider
+composes only the existing, unchanged scenario_primitives functions
+(triangular_wave/step_pattern/bounded_range). Mechanism-derived design:
+ADVERSARIAL_ATTACKER_PRESSURE targets the SDR formula's numerator (shallow
+probe then much deeper sustained penetration into the same zone, spiking
+delta_omega relative to health); REPEATED_ATTACKS targets the same formula's
+denominator instead (six equal-depth touches with incomplete-recovery
+gaps, shrinking health cumulatively) -- kept as a separate, non-conflated
+family; REGIME_CHANGE_INTO_PRESSURE concatenates a quiet oscillating regime
+with the same escalating shape targeting the same zone.
+
+Structurally verified, not just documented: expected_behavior_notes and
+validation_metadata are never read by any provider's generate() (each spec
+rebuilt with different notes/metadata reproduces byte-identical
+observations); zero Stage 1-6 imports, zero scenario_runner references, zero
+core./engines./research. imports anywhere in the catalog (automated source
+scan across every catalog file, not a declared claim).
+
+Post-audit revision (parameter-only; providers/catalog/registry/contract/
+runner untouched): an audit diagnostic found REPEATED_ATTACKS' original
+touch depth (60395/10 rows) floored health on visit 1 and stayed flat for
+all 6 visits, and REGIME_CHANGE's original quiet phase touched a different
+zone (60200) than the pressure phase (60400) -- unreachable by Stage 6's
+strictly per-zone hypothesis logic -- while also collapsing into one
+continuous 200-row visit instead of several small ones. Both specifications'
+`parameters` (and matching expected_behavior_notes/validation_metadata text)
+were revised and re-verified: REPEATED_ATTACKS now shows a monotonic decline
+92.2->89.2->86.2->83.2->80.2->77.2 across 6 visits (omega constant at 15.0,
+no floor); REGIME_CHANGE's quiet phase now produces 50 separate visits, all
+in the same zone the pressure phase later escalates into, health declining
+smoothly 98.2->10.0 with no premature floor. Full catalog test suite re-run
+after the fix: unchanged PASS across every check.
+
+Deterministic results:
+- families_registered=4; specifications_registered=4
+- providers_registered=PASS (all price_only=True, research_only=True)
+- unique_scenario_ids=PASS; fingerprints_stable=PASS
+- price_only_generation=PASS; determinism=PASS; distinct_path_shapes=PASS
+- notes_not_required_for_generation=PASS
+- no_stage_imports=PASS; no_runner_execution=PASS (no optional smoke check
+  used); errors=[]; result=PASS
+- Identical results confirmed running from the repo root and from the
+  catalog's own directory (self-contained sys.path bootstrap per file).
+
+Validation:
+- python -m py_compile on catalog.py, specifications.py, all four
+  families/*.py, and test_scenario_catalog.py
+- python experiments/psychological_levels_dynamic/scenario_catalog/test_scenario_catalog.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary: catalog defines experimental inputs only. Does not run Stage 1-6,
+does not execute the Scenario Runner, does not compare scenario outputs,
+does not validate or require RESEARCH_ATTACKER_PRESSURE or any other
+downstream Dynamic State. No Stage 1-6 or Scenario Runner file modified. No
+Project 1/production/dashboard/live pipeline/Snapshot/RDM formula/Worker/
+Queue/Bootstrap changes, no Phase 2 trading/execution/BUY-SELL/HOLD-FAIL/
+live signals. Production behavior unchanged.
+
+Next: await Scenario Catalog Foundation review and commit approval.
+
+---
+
+## Prior Stable Status (PHASE1C_SCENARIO_RUNNER_STABLE)
+
 Current checkpoint: PHASE1C_SCENARIO_RUNNER_STABLE
 
 Status: implemented and validated; awaiting review before commit.

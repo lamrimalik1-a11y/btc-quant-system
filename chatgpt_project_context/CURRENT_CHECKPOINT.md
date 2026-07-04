@@ -1,5 +1,142 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE
+
+Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.
+Research-only, offline-only, Project 2 Chapter II Phase 3.
+
+Implemented:
+- Small, explicit Scenario Catalog with exactly four highest-priority
+  families: BASELINE, ADVERSARIAL_ATTACKER_PRESSURE,
+  REGIME_CHANGE_INTO_PRESSURE, REPEATED_ATTACKS. No batch execution, no
+  cross-scenario comparison, no sensitivity analysis, no learning, no
+  storage, no new analytical layer.
+- Each family is one provider (families/*.py) implementing the existing
+  ScenarioProvider Protocol unchanged, composing only the existing, unchanged
+  scenario_primitives functions (triangular_wave, step_pattern,
+  bounded_range) -- no new mechanics introduced.
+- Mechanism-derived, not vocabulary-derived: ADVERSARIAL_ATTACKER_PRESSURE
+  constructs a shallow probe then a much deeper sustained penetration into
+  the same zone (targets the SDR formula's numerator via a large delta_omega
+  relative to health); REPEATED_ATTACKS constructs six equal-depth
+  penetrations separated by short, incomplete-recovery withdrawal gaps
+  (targets the same formula's denominator via cumulative health decline) --
+  a deliberately distinct, non-conflated mechanism from
+  ADVERSARIAL_ATTACKER_PRESSURE; REGIME_CHANGE_INTO_PRESSURE concatenates a
+  quiet, mildly-oscillating regime with the same escalating-penetration
+  shape, targeting the same zone.
+- One specification per family (four total) in specifications.py, each with
+  a semantic, versioned scenario_id, and expected_behavior_notes /
+  validation_metadata written as preregistered, formula-derived hypotheses
+  (not required outcomes) before any downstream execution.
+- Catalog does not run Stage 1-6 and does not execute the Scenario Runner --
+  confirmed both declaratively and via an automated source-import scan
+  across every catalog file for the six Stage 1-6 module names,
+  "scenario_runner", and any "core."/"engines."/"research." import prefix.
+- Structurally verified (not merely by convention) that
+  expected_behavior_notes and validation_metadata are never read by any
+  provider's generate(): each specification is rebuilt with different notes/
+  metadata and confirmed to produce byte-identical observations.
+- Structural price-only validation identical in spirit to Phase 2's:
+  contiguous row ordering, finite Decimal prices, row count matches
+  specification, and a dataclass-field check confirming PriceObservation
+  carries only row_index/price.
+- Distinct path shapes verified via a (length, unique price count, min,
+  max) signature compared across all four specifications.
+
+Post-audit revision (parameter-only, providers/catalog/registry/contract/
+runner untouched):
+- REPEATED_ATTACKS_PARTIAL_RECOVERY_V1: touch depth/duration reduced
+  (60395 for 10 rows -> 60378 for 5 rows) and withdrawal lengthened (8 rows
+  -> 15 rows, cycle length 18 -> 20, row_count 108 -> 120) after an audit
+  diagnostic showed the original parameters floored health on visit 1 and
+  stayed flat for all 6 visits, contradicting the "gradual decline" the
+  specification described. Empirically re-verified: health_at_visit now
+  declines monotonically 92.2 -> 89.2 -> 86.2 -> 83.2 -> 80.2 -> 77.2 across
+  the six visits, omega_at_visit constant at 15.0 (no floor reached).
+- REGIME_QUIET_TO_PRESSURE_V1: quiet phase's bounded_range center/amplitude
+  changed (center=60200, amplitude=40 -> center=60450, amplitude=70) after
+  an audit diagnostic showed the original parameters (a) touched a
+  different zone (60200) than the pressure phase (60400), which Stage 6's
+  strictly per-zone hypothesis logic can never connect, and (b) collapsed
+  into one continuous 200-row visit instead of several small ones. The new
+  values position bounded_range's fixed 4-cycle so only one of its four
+  values falls inside the same zone the pressure phase later escalates
+  into, with the other three clearly outside -- empirically re-verified:
+  50 separate completed visits across the 200-row quiet phase, all in the
+  same zone as the pressure phase, health declining smoothly 98.2 -> 10.0
+  with no premature floor.
+- Both fixes are confined to the `parameters` field (and the accompanying
+  expected_behavior_notes/validation_metadata text, corrected to match) in
+  specifications.py. No provider, no catalog.py, no registry, no contract,
+  no Scenario Runner, and no Stage 1-6 file was touched.
+- Full catalog test suite re-run after the fix: all checks PASS, identical
+  in structure to the pre-fix run.
+
+Files:
+- Created:
+  experiments/psychological_levels_dynamic/scenario_catalog/__init__.py
+  experiments/psychological_levels_dynamic/scenario_catalog/catalog.py
+  experiments/psychological_levels_dynamic/scenario_catalog/specifications.py
+  experiments/psychological_levels_dynamic/scenario_catalog/families/__init__.py
+  experiments/psychological_levels_dynamic/scenario_catalog/families/baseline.py
+  experiments/psychological_levels_dynamic/scenario_catalog/families/adversarial_attacker_pressure.py
+  experiments/psychological_levels_dynamic/scenario_catalog/families/regime_change_into_pressure.py
+  experiments/psychological_levels_dynamic/scenario_catalog/families/repeated_attacks.py
+  experiments/psychological_levels_dynamic/scenario_catalog/test_scenario_catalog.py
+- Updated:
+  chatgpt_project_context/CURRENT_CHECKPOINT.md
+  chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+No optional Scenario Runner smoke check was used, to keep this phase
+strictly to catalog construction -- reported as
+"no_runner_execution = PASS" (no smoke check used).
+
+Exact deterministic results:
+- families_registered = 4 (BASELINE, ADVERSARIAL_ATTACKER_PRESSURE,
+  REGIME_CHANGE_INTO_PRESSURE, REPEATED_ATTACKS)
+- specifications_registered = 4 (BASELINE_TRIANGULAR_REFERENCE_V1,
+  ADVERSARIAL_ESCALATING_PENETRATION_V1, REGIME_QUIET_TO_PRESSURE_V1,
+  REPEATED_ATTACKS_PARTIAL_RECOVERY_V1)
+- providers_registered = PASS (all price_only=True, research_only=True)
+- specifications_registered = PASS
+- unique_scenario_ids = PASS
+- fingerprints_stable = PASS
+- price_only_generation = PASS
+- determinism = PASS
+- distinct_path_shapes = PASS
+- notes_not_required_for_generation = PASS
+- no_stage_imports = PASS
+- no_runner_execution = PASS
+- errors = []
+- result = PASS
+- Confirmed identical when run from the repo root and from the catalog's
+  own directory (self-contained sys.path bootstrap on every file).
+
+Exact validation commands:
+- python -m py_compile on catalog.py, specifications.py, all four
+  families/*.py, and test_scenario_catalog.py
+- python experiments/psychological_levels_dynamic/scenario_catalog/test_scenario_catalog.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary:
+- Catalog only; defines experimental inputs only. Does not run Stage 1-6,
+  does not execute the Scenario Runner, does not compare scenario outputs,
+  does not validate or require RESEARCH_ATTACKER_PRESSURE or any other
+  downstream Dynamic State.
+- No Stage 1-6 file modified. No Scenario Runner logic modified.
+- No Project 1, production, dashboard, live pipeline, Snapshot architecture,
+  Worker, Queue, Bootstrap, or RDM formula changes.
+- No Phase 2 trading, execution, BUY/SELL, HOLD/FAIL, or live signals.
+- No production behavior changed.
+
+Next:
+Await Scenario Catalog Foundation review and commit approval.
+
+---
+
 ## Active Checkpoint: PHASE1C_SCENARIO_RUNNER_STABLE
 
 Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.

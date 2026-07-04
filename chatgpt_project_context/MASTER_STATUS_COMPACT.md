@@ -2,6 +2,47 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_TRAJECTORY_EVOLUTION_STAGE5_STABLE
+
+Stage 5 reconstructs ordered visit-by-visit Project 2 trajectories from
+unchanged Stage 3 completed visits and Stage 1 Dynamic Mechanics.
+
+Implemented: 159 canonical visit records; per-zone trajectories and
+signatures; state and transition mechanics; local transition windows;
+cross-zone comparison; sample guards; explicit NOT_AVAILABLE and unobserved
+state handling.
+
+Deterministic results across three runs:
+- zones=7; records=159; completed_visits=159; transitions=145
+- visits by zone=23,23,23,23,23,22,22
+- transitions by zone=21,21,21,21,21,20,20
+- observed states: RECOVERING=61, STABLE=91
+- ATTACKER_PRESSURE unobserved; attacker_pressure_observed=False
+- unsupported states=0; initial NOT_AVAILABLE state records=7
+- STABLE->RECOVERING=61; RECOVERING->STABLE=60; STABLE->STABLE=24
+- high-oscillation zones=6; single-state zones=1; no-transition zones=0
+- insufficient sample flags=1 (unobserved ATTACKER_PRESSURE)
+- RESEARCH_ labels valid; NOT_AVAILABLE valid; errors=[]; result=PASS
+
+Validation:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_trajectory_evolution.py
+- python
+  experiments/psychological_levels_dynamic/test_trajectory_evolution.py
+- git diff --check
+- git status
+
+Boundary: descriptive offline Project 2 research only. No prediction,
+production B10/B11, external engines, Project 1, production, dashboard, live
+pipeline, Snapshot, RDM formula, Worker, Queue, or Bootstrap changes.
+Production behavior unchanged.
+
+Next: await Stage 5 review and the next Phase 1B research approval.
+
+---
+
+## Prior Stable Status (PHASE1B_TRANSITION_GRAPH_STAGE4_STABLE)
+
 Current checkpoint: PHASE1B_TRANSITION_GRAPH_STAGE4_STABLE
 
 Stage 4 builds a research-only Transition Graph over unchanged Stage 3

@@ -1,5 +1,80 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1B_TRAJECTORY_EVOLUTION_STAGE5_STABLE
+
+Status: STABLE CHECKPOINT - research-only, offline-only, Project 2 only.
+Stage 5 reconstructs visit-by-visit trajectory evolution from unchanged
+Stage 3 completed visits and Stage 1 Dynamic Mechanics.
+
+Implemented:
+- One canonical ordered research record per completed zone visit.
+- Per-zone visit, state, and transition trajectory reconstruction.
+- Descriptive mechanical evolution by research state.
+- Descriptive mechanical deltas around each observed transition.
+- Previous/transition/next local transition windows.
+- Per-zone trajectory signatures and cross-zone comparison.
+- Research sample-sufficiency guards.
+- Explicit unobserved-state and NOT_AVAILABLE reporting.
+- Three-run deterministic validation.
+
+Files:
+- Created:
+  experiments/psychological_levels_dynamic/test_trajectory_evolution.py
+- Updated:
+  chatgpt_project_context/CURRENT_CHECKPOINT.md
+  chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+Exact deterministic results:
+- zones_observed = 7
+- trajectory_records_generated = 159
+- completed_visits = 159
+- transitions_generated = 145
+- per-zone visit counts = 23, 23, 23, 23, 23, 22, 22
+- per-zone transition counts = 21, 21, 21, 21, 21, 20, 20
+- observed_states = RESEARCH_RECOVERING, RESEARCH_STABLE
+- state samples: RECOVERING=61, STABLE=91
+- unobserved_states = RESEARCH_ATTACKER_PRESSURE
+- attacker_pressure_observed = False
+- unsupported_state_count = 0
+- initial NOT_AVAILABLE state records = 7
+- RESEARCH_STABLE_TO_RESEARCH_RECOVERING = 61
+- RESEARCH_RECOVERING_TO_RESEARCH_STABLE = 60
+- RESEARCH_STABLE_TO_RESEARCH_STABLE = 24
+- transition-window complete next visits = 60, 55, 23 respectively
+- high_oscillation_zones = 6
+- single_state_zones = 1 (PSY_BTCUSDT_60400)
+- zones_with_no_transitions = 0
+- zones_with_unsupported_states = 0
+- insufficient_sample_flags = 1
+- RESEARCH_ATTACKER_PRESSURE sample status = INSUFFICIENT_SAMPLE
+- all observed states and transitions remain RESEARCH_ prefixed
+- NOT_AVAILABLE behavior validated
+- deterministic_across_runs = True
+- errors = []
+- result = PASS
+
+Exact validation commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_trajectory_evolution.py
+- python
+  experiments/psychological_levels_dynamic/test_trajectory_evolution.py
+- git diff --check
+- git status
+
+Boundary:
+- Descriptive trajectory research only; no prediction or causal claims.
+- No production B10/B11 or Dynamic State changes.
+- No Project 1, production, dashboard, live pipeline, Snapshot architecture,
+  Worker, Queue, Bootstrap, or RDM formula changes.
+- No Entropy, Footprint, Structure, Statistics, Gaussian, Context, Decision,
+  or Execution engine introduced.
+- No production behavior changed.
+
+Next:
+Await Stage 5 review and the next Phase 1B research approval.
+
+---
+
 ## Active Checkpoint: PHASE1B_TRANSITION_GRAPH_STAGE4_STABLE
 
 Status: STABLE CHECKPOINT - research-only, offline-only, Project 2 only.

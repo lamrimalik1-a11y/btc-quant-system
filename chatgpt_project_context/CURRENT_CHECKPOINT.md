@@ -1,5 +1,121 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1C_SCENARIO_RUNNER_STABLE
+
+Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.
+Research-only, offline-only, Project 2 Chapter II Phase 2.
+
+Implemented:
+- Thin, additive Scenario Runner executing exactly one ScenarioSpecification
+  at a time. No batch execution, no cross-scenario comparison, no
+  sensitivity analysis, no learning, no storage by default.
+- Reuses ZoneHarness / update_mechanics() / compute_dynamics() from Stage 1
+  unchanged; InteractionInterpreter / EventDispatcher / ORDER_ACCEPTED /
+  LastCompletedVisitAdapter unchanged; PsychologicalLevelsProvider
+  unchanged, parameterized from scenario geometry_parameters instead of
+  Stage 1's hardcoded constants.
+- The only duplicated structure is a thin per-row driving loop mirroring
+  Stage 3's completed-visit collection pattern (Interpreter +
+  LastCompletedVisitAdapter only -- no Dispatcher/Coordinator/Snapshot).
+- The per-scenario analytical path is explicitly Stage 1 mechanics and
+  completed-visit collection plus Stage 3 transition analysis, Stage 4
+  graph analysis, Stage 5 trajectory analysis, and Stage 6 hypothesis
+  evaluation. Stage 2 Snapshot compatibility remains prevalidated and is
+  intentionally not rerun per scenario.
+- Does not call Stage 1 generate_price()/build_harnesses()/run() or Stage 3
+  collect_completed_visits() -- each is tied to the fixed triangular corpus
+  with no scenario injection point.
+- Calls Stage 3 analyze(), Stage 4 analyze_transition_graph(), Stage 5
+  analyze(), Stage 6 analyze() directly and unchanged via qualified module
+  imports (stage3/stage4/stage5/stage6 aliases) -- no star imports, since
+  Stage 4/5/6 each define a function named analyze. Wraps each stage's
+  existing output verbatim; invents no new analytical metric.
+- Structural price-only validation: contiguous row ordering, finite Decimal
+  prices, row count matches specification, and a dataclass-field check
+  confirming PriceObservation carries only row_index/price (no label,
+  mechanics, transition, or hypothesis field exists to smuggle one into).
+- Immutable ScenarioRunResult with full provenance: scenario_id,
+  scenario_family, specification_fingerprint, provider_version,
+  scenario_schema_version, chain_version, run_id, row_count,
+  observation_checksum -- run_id and observation_checksum computed via the
+  same canonical-JSON + SHA-256 helper (_canonical_value) already built in
+  Phase 1, reused unchanged rather than re-implemented.
+- Per-run internal determinism self-check (observations generated twice and
+  compared) plus a separate three-run, cross-run canonical-JSON equality
+  check in the test file.
+- Self-contained frozen-file provenance and drift guard: line endings are
+  normalized before hashing, making checks stable across CRLF/LF
+  environments. The normalized hashes also form chain_fingerprint, which
+  is recorded in ScenarioRunResult and included in run_id.
+
+Files:
+- Created:
+  experiments/psychological_levels_dynamic/scenario_runner.py
+  experiments/psychological_levels_dynamic/test_scenario_runner.py
+- Updated:
+  chatgpt_project_context/CURRENT_CHECKPOINT.md
+  chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+No separate scenario_chain_adapter.py was created -- the harness-
+construction, driving loop, and orchestration are cohesive enough to keep in
+one file at this scale; reported as
+"chain_adapter = NOT_SEPARATED (integrated into scenario_runner.py)".
+
+Exact deterministic results (cross-checked against already-verified
+Chapter I ground truth, reproduced by feeding the identical triangular price
+shape through the Scenario Runner instead of Stage 1's hardcoded generator):
+- zones_observed = 7
+- completed_visits = 159
+- observation_count = 3000
+- row_count = 3000
+- chain_version = PHASE1B_STAGE1_AND_STAGE3_TO_STAGE6_STABLE
+- chain_fingerprint is normalized-source SHA-256 provenance
+- stage3: transitions_generated = 145, all_research_prefixed = True,
+  counts_consistent = True
+- stage4: transitions_generated = 145, transition_counts matches
+  {RECOVERING_TO_STABLE: 60, STABLE_TO_RECOVERING: 61, STABLE_TO_STABLE: 24},
+  critical_transition_count = 0, absorbing_states = []
+- stage5: trajectory_records_generated = 159, unobserved_states =
+  [RESEARCH_ATTACKER_PRESSURE], attacker_pressure_observed = False,
+  predictions_generated = False
+- stage6: hypotheses_generated = 152, eligible_hypotheses = 110,
+  confirmed_count = 103, invalidated_count = 0, pending_count = 7,
+  forced_hypothesis_under_weak_evidence = False,
+  predictions_generated = False
+- contiguous_row_ordering = True, finite_price_validation = True,
+  price_only_contract_validation = True, deterministic_generation = True
+- run_id and observation_checksum identical across 3 independent runs and
+  across 2 separate process invocations
+- second parameterized 600-row case = PASS and deterministic across 2 runs
+- variant fingerprint, checksum, and run_id differ from baseline
+- errors = []
+- result = PASS
+
+Exact validation commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/scenario_runner.py
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_scenario_runner.py
+- python experiments/psychological_levels_dynamic/test_scenario_runner.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary:
+- Runner only; no new analytical layer, no batch execution, no
+  cross-scenario comparison, no sensitivity analysis, no learning.
+- No Chapter I Stage 1-6 file modified (confirmed via git diff and the
+  normalized frozen-file provenance/drift guard).
+- No Project 1, production, dashboard, live pipeline, Snapshot architecture,
+  Worker, Queue, Bootstrap, or RDM formula changes.
+- No Phase 2 trading, execution, BUY/SELL, HOLD/FAIL, or live signals.
+- No production behavior changed.
+
+Next:
+Await Scenario Runner review and commit approval.
+
+---
+
 ## Active Checkpoint: PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE
 
 Status: IMPLEMENTED AND VALIDATED - awaiting review before commit.

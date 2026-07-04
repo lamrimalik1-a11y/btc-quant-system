@@ -2,6 +2,78 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1C_SCENARIO_RUNNER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter II Phase 2 adds only a thin, additive Scenario Runner:
+reuses Stage 1 ZoneHarness/update_mechanics()/compute_dynamics() and the
+shared Interpreter/EventDispatcher/LastCompletedVisitAdapter plumbing
+unchanged; parameterizes PsychologicalLevelsProvider from scenario
+geometry_parameters instead of Stage 1's hardcoded constants; the only
+duplicated structure is a thin per-row driving loop (Stage 3's pattern, no
+Dispatcher/Coordinator/Snapshot). The executed analytical path is Stage 1
+mechanics/visit collection plus Stages 3-6; Stage 2 Snapshot compatibility
+remains prevalidated and is intentionally not rerun per scenario. Calls
+Stage 3/4/5/6's own analyze()/analyze_transition_graph()
+functions directly via qualified module imports (no star imports, no
+main()/printed-report parsing); wraps their output verbatim, invents no new
+metric; produces one immutable ScenarioRunResult with full provenance
+(fingerprint, provider_version, chain_version, normalized chain_fingerprint,
+run_id, observation_checksum,
+all via the canonical-JSON + SHA-256 helper reused unchanged from Phase 1).
+
+Deterministic results, cross-checked against already-verified Chapter I
+ground truth (identical triangular price shape fed through the runner
+instead of Stage 1's hardcoded generator):
+- zones=7; completed_visits=159; observation_count=3000; row_count=3000
+- stage3: transitions=145; all_research_prefixed=True; counts_consistent=True
+- stage4: transitions=145; transition_counts matches Chapter I exactly
+  (RECOVERING->STABLE=60, STABLE->RECOVERING=61, STABLE->STABLE=24);
+  critical_transition_count=0; absorbing_states=[]
+- stage5: trajectory_records=159; unobserved_states=[ATTACKER_PRESSURE];
+  attacker_pressure_observed=False; predictions_generated=False
+- stage6: hypotheses_generated=152; eligible=110; confirmed=103;
+  invalidated=0; pending=7; forced_hypothesis_under_weak_evidence=False
+- contiguous_row_ordering=True; finite_price_validation=True;
+  price_only_contract_validation=True; deterministic_generation=True
+- run_id and observation_checksum identical across 3 in-process runs and 2
+  separate process invocations
+- second 600-row parameter variant deterministic across 2 runs and has a
+  distinct specification fingerprint, checksum, and run_id
+- errors=[]; result=PASS
+
+No separate scenario_chain_adapter.py file was created (judged unnecessary
+at this scale); reported as
+"chain_adapter = NOT_SEPARATED (integrated into scenario_runner.py)".
+
+Frozen-file provenance/drift guard normalizes CRLF/LF before SHA-256.
+Normalized component hashes form chain_fingerprint, recorded in each run
+and included in run_id; accidental frozen-file drift still fails the test.
+
+Validation:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/scenario_runner.py
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_scenario_runner.py
+- python experiments/psychological_levels_dynamic/test_scenario_runner.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary: runner only, no new analytical layer, no batch execution, no
+cross-scenario comparison, no sensitivity analysis, no learning, no
+Project 1/production/dashboard/live pipeline/Snapshot/RDM formula/Worker/
+Queue/Bootstrap changes, no Phase 2 trading/execution/BUY-SELL/HOLD-FAIL/
+live signals. No Stage 1-6 file modified (confirmed via git diff and the
+frozen-file SHA-256 guard). Production behavior unchanged.
+
+Next: await Scenario Runner review and commit approval.
+
+---
+
+## Prior Stable Status (PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE)
+
 Current checkpoint: PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE
 
 Status: implemented and validated; awaiting review before commit.

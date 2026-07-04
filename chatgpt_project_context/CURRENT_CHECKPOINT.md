@@ -1,5 +1,114 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1B_PREDICTION_EVOLUTION_STAGE6_STABLE
+
+Status: REVISED AND VALIDATED - awaiting review before commit.
+Research-only, offline-only, Project 2 only.
+
+Architecture:
+- Hypothesis generation and validation are structurally separate.
+- generate_hypothesis() receives only Stage 5 prefix records through visit N
+  and the current visit N record.
+- validate_hypothesis() receives only an already-created hypothesis and visit
+  N+1 when available.
+- The generator has no outcome, next-visit, full-label, or future-visit input.
+- Stage 4's full-corpus probability matrix is not imported or used.
+- Evidence is per-zone only; no cross-zone pooling.
+
+Weak-evidence guards:
+- MIN_TRANSITION_SAMPLES = 3
+- MIN_DOMINANT_MARGIN = 0.15
+- MIN_HYPOTHESIS_CONFIDENCE = 0.35
+- Ties, low margins, low confidence, unsupported states, and absent outgoing
+  evidence abstain instead of forcing an expected state.
+- Abstention uses expected_next_research_state=NOT_AVAILABLE and
+  trajectory_continuation_hypothesis=RESEARCH_UNCERTAIN.
+- Abstained hypotheses are never graded confirmed or invalidated.
+
+Leakage validation:
+- Independent prefix recomputation checks every generated hypothesis.
+- 21 representative future-mutation checks aggressively alter all visits
+  after N; hypothesis N remains dict-equivalent.
+- Validation targets exactly visit N+1.
+- Generation records contain no validation/outcome fields.
+- All leakage violation lists are empty.
+
+Negative controls:
+- Tied destination history abstains.
+- Low-margin history abstains.
+- Deliberately wrong next state becomes RESEARCH_INVALIDATED.
+- Unsupported current state abstains without guessing.
+- Eligible final visit remains RESEARCH_PENDING.
+- First unavailable visit remains NOT_AVAILABLE.
+- negative_controls_pass = True
+
+Files:
+- Created/revised:
+  experiments/psychological_levels_dynamic/test_prediction_evolution.py
+- Updated:
+  chatgpt_project_context/CURRENT_CHECKPOINT.md
+  chatgpt_project_context/MASTER_STATUS_COMPACT.md
+
+Exact revised deterministic results:
+- zones_observed = 7
+- completed_visits = 159
+- hypotheses_generated = 152
+- eligible_hypotheses = 110
+- insufficient_sample_count = 39
+- insufficient_evidence_count = 3
+- abstention_count = 42
+- uncertain_count = 42
+- confirmed_count = 103
+- invalidated_count = 0
+- pending_count = 7
+- coverage = 0.6776315789473685
+- descriptive_confirmation_rate = 1.0
+- unsupported_states = RESEARCH_ATTACKER_PRESSURE
+- attacker_pressure_observed = False
+- generation_validation_separated = True
+- future_mutation_invariance = True
+- future_mutation_checks = 21
+- negative_controls_pass = True
+- forced_hypothesis_under_weak_evidence = False
+- leakage_violation_details = []
+- negative_control_failures = []
+- deterministic_across_runs = True
+- errors = []
+- result = PASS
+
+Result changes after abstention:
+- eligible_hypotheses: 113 -> 110
+- insufficient_evidence_count: 0 -> 3
+- abstention_count: 39 -> 42
+- confirmed_count: 106 -> 103
+- coverage: 0.6973684210526315 -> 0.6776315789473685
+
+The descriptive confirmation rate is not trading accuracy and is not
+production validation. It is only a research metric on this deterministic
+synthetic corpus.
+
+Exact validation commands:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_prediction_evolution.py
+- python
+  experiments/psychological_levels_dynamic/test_prediction_evolution.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary:
+- No Project 1, production, dashboard, live pipeline, Snapshot architecture,
+  Worker, Queue, Bootstrap, RDM formula, or production B10/B11 changes.
+- No Entropy, Footprint, Structure, Statistics, Gaussian, Context, Decision,
+  or Execution engine introduced.
+- No trading, execution, BUY/SELL, HOLD/FAIL, entries/exits, or live signals.
+- No production behavior changed.
+
+Next:
+Await revised Stage 6 review. Do not commit yet.
+
+---
+
 ## Active Checkpoint: PHASE1B_TRAJECTORY_EVOLUTION_STAGE5_STABLE
 
 Status: STABLE CHECKPOINT - research-only, offline-only, Project 2 only.

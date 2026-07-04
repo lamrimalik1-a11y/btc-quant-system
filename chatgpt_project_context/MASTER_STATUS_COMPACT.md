@@ -2,6 +2,59 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1B_PREDICTION_EVOLUTION_STAGE6_STABLE
+
+Status: revised and validated; awaiting review before commit.
+
+Stage 6 now structurally separates prefix-only hypothesis generation from
+next-visit validation. The generator cannot receive future visits, outcomes,
+or validation targets. Weak evidence abstains under sample, tie, margin
+(0.15), and confidence (0.35) guards.
+
+Validation includes 21 adversarial future-mutation checks and six synthetic
+negative controls. All pass; no weak-evidence hypothesis is forced.
+
+Revised deterministic results across three runs:
+- zones=7; completed_visits=159; hypotheses_generated=152
+- eligible=110; insufficient_sample=39; insufficient_evidence=3
+- abstentions=42; uncertain=42
+- confirmed=103; invalidated=0; pending=7
+- coverage=0.6776315789473685
+- descriptive_confirmation_rate=1.0
+- generation_validation_separated=True
+- future_mutation_invariance=True (21 checks)
+- negative_controls_pass=True
+- forced_hypothesis_under_weak_evidence=False
+- leakage_violation_details=[]; negative_control_failures=[]
+- ATTACKER_PRESSURE unobserved; deterministic=True; errors=[]; result=PASS
+
+Changed by abstention: eligible 113->110, confirmed 106->103,
+abstentions 39->42, coverage 0.6973684210526315->0.6776315789473685.
+
+The descriptive confirmation rate is neither trading accuracy nor production
+validation.
+
+Validation:
+- python -m py_compile
+  experiments/psychological_levels_dynamic/test_prediction_evolution.py
+- python
+  experiments/psychological_levels_dynamic/test_prediction_evolution.py
+- git diff --check
+- git status
+- git diff --name-only -- core/ research/ engines/
+
+Boundary: offline Project 2 research only. No production, Project 1,
+dashboard, live pipeline, Snapshot, RDM formula, production B10/B11, external
+engines, trading, or execution changes. Production behavior unchanged.
+
+Next: await revised Stage 6 review; do not commit yet.
+
+---
+
+## Prior Stable Status (PHASE1B_TRAJECTORY_EVOLUTION_STAGE5_STABLE)
+
+
+
 Current checkpoint: PHASE1B_TRAJECTORY_EVOLUTION_STAGE5_STABLE
 
 Stage 5 reconstructs ordered visit-by-visit Project 2 trajectories from

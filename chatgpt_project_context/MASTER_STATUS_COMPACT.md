@@ -2,7 +2,29 @@
 
 ## Current Stable Status
 
-Current checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
+Current checkpoint: PHASE1D_GRAMMAR_FOUNDATION_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III Phase 1 adds only the Mechanical Scenario Language
+foundation: versioned behavioral dimensions, authoring-only mechanical event
+definitions, frozen canonical grammar AST contracts, deterministic program
+fingerprints, constructor-only grammar phrases, and structural isolation
+tests. Mutable/custom parameter values are rejected.
+
+Validation is PASS across dimensions, events, AST, phrases, immutability,
+determinism, and research isolation. Reference fingerprint:
+`sha256:ccd7ed1dbe8656b2d77e8dedd4cedafbdfc84bcf63c8d2ec5ef3d6f9177b00bc`.
+Changed-program fingerprint:
+`sha256:7f7393da44f7f270e9a2f8cd9f55a84a3892e7be84a55b08bf1556791c0e40c9`.
+
+No compiler, generated scenarios, manifest, provider, Runner integration,
+Stage execution, randomness, learning, optimization, Project 1, or production
+change is present.
+
+---
+
+## Prior Stable Status (PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE)
 
 Commit: `b381ce99b0199856242e104c06a8fe139a8def63`
 

@@ -1,6 +1,50 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
+## Active Checkpoint: PHASE1D_GRAMMAR_FOUNDATION_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III Phase 1 establishes the research-only Mechanical
+Scenario Language foundation:
+- Versioned active and deferred behavioral-dimension taxonomies.
+- Mechanical event vocabulary with geometry-relative authoring definitions.
+- Frozen GrammarParameter, GrammarPhrase, and GrammarProgram AST contracts.
+- Canonical immutable parameter values and deterministic SHA-256 program
+  fingerprints.
+- Constructor-only phrase library covering hold, ramp, oscillation, zone
+  approach/entry/penetration/withdrawal, recovery, break authoring, retest,
+  reclaim, compression, expansion, and zone transfer.
+- Structural tests for immutability, deterministic identity, unique enums,
+  canonical values, constructor coverage, and research isolation.
+
+Boundary:
+- No compiler yet.
+- No PriceObservation generation.
+- No generated scenario specifications or manifest.
+- No Scenario Runner or Catalog execution integration.
+- No Stage 1-6, Project 1, or production changes.
+- No randomness, learning, optimization, comparison, or execution.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/__init__.py
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/dimensions.py
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/events.py
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/ast.py
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/phrases.py
+- experiments/psychological_levels_dynamic/scenario_catalog/grammar/test_grammar_foundation.py
+
+Validation:
+- All five requested `python -m py_compile` commands: PASS.
+- `test_grammar_foundation.py`: PASS for grammar foundation, dimensions,
+  events, AST, phrases, immutability, determinism, and research isolation.
+- Reference fingerprint:
+  `sha256:ccd7ed1dbe8656b2d77e8dedd4cedafbdfc84bcf63c8d2ec5ef3d6f9177b00bc`
+- Changed-program fingerprint:
+  `sha256:7f7393da44f7f270e9a2f8cd9f55a84a3892e7be84a55b08bf1556791c0e40c9`
+
+---
+
+## Prior Stable Checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
 
 Commit: `b381ce99b0199856242e104c06a8fe139a8def63`
 

@@ -2,6 +2,37 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III implements the deterministic Macro Expansion engine
+(GrammarProgram -> ExpansionResult, structural decomposition only): a
+9-entry atomic passthrough table (identity for 7 phrase types;
+APPROACH_ZONE->APPROACH, ENTER_ZONE->ENTER, RECOVERY_GAP->RAMP); a 5-entry
+V1 macro rule table (ACCEPTED_BREAK/RECLAIM/TRANSFER_TO_ZONE fixed arity,
+COMPRESS/EXPAND variable arity via len(amplitude_schedule)); an
+integer-only AllocationPolicy V1 (divmod-based equal division, remainder
+to the first N primitives); an internally computed expansion_fingerprint
+(canonical JSON + SHA-256, never caller-supplied); and 9 distinct FATAL
+diagnostic codes covering every requested validation case. BREAK_CANDIDATE
+and RETEST_BOUNDARY are intentionally unregistered in V1 (FATAL
+MISSING_EXPANSION_RULE). Any FATAL diagnostic forces success=False and
+expanded_instructions=(). Instruction order strictly preserves
+GrammarProgram phrase order (never sorted); diagnostics are sorted by
+deterministic_key. Per-primitive parameters=() in V1 -- no semantic
+parameter derivation; lineage preserved via source_phrase_index,
+macro_origin, target_zone only.
+
+No scheduling, timeline, geometry resolution, price generation,
+ScenarioSpecification assembly, or Runner integration. No grammar, frozen
+compiler contract, frozen expansion contract, Catalog execution, Stage 1-6,
+Project 1, or production change is present.
+
+---
+
+## Prior Stable Status (PHASE1D_EXPANSION_CONTRACTS_STABLE)
+
 Current checkpoint: PHASE1D_EXPANSION_CONTRACTS_STABLE
 
 Status: implemented and validated; awaiting review before commit.

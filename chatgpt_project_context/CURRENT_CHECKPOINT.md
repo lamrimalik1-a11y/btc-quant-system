@@ -1,6 +1,56 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1D_EXPANSION_CONTRACTS_STABLE
+## Active Checkpoint: PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III implements the deterministic Macro Expansion engine:
+GrammarProgram -> ExpansionResult, structural decomposition only.
+- 9-entry atomic passthrough table (identity for 7 phrase types;
+  APPROACH_ZONE->APPROACH, ENTER_ZONE->ENTER, RECOVERY_GAP->RAMP).
+- 5-entry V1 macro rule table: ACCEPTED_BREAK, RECLAIM, TRANSFER_TO_ZONE
+  (fixed arity); COMPRESS, EXPAND (variable arity, count =
+  len(amplitude_schedule)).
+- Integer-only AllocationPolicy V1 (EQUAL_DIVISION_REMAINDER_TO_FIRST):
+  base, remainder = divmod(row_budget, primitive_count); remainder
+  distributed one row each to the first N primitives.
+- expansion_fingerprint computed internally (canonical JSON + SHA-256 over
+  expanded_instructions, grammar_fingerprint, compiler_version,
+  diagnostics) -- never caller-supplied.
+- BREAK_CANDIDATE and RETEST_BOUNDARY intentionally unregistered in V1:
+  produce FATAL MISSING_EXPANSION_RULE.
+- 9 distinct FATAL diagnostic codes, one per requested validation case:
+  MISSING_EXPANSION_RULE, MISSING_REQUIRED_GRAMMAR_PARAMETER,
+  BUDGET_MISMATCH, ALLOCATION_MISMATCH, NEGATIVE_BUDGET,
+  INSTRUCTION_INDEX_DUPLICATION, ALLOCATION_POLICY_VERSION_MISMATCH,
+  EXPANSION_RULE_VERSION_MISMATCH, UNKNOWN_ALLOCATION_POLICY.
+- Any FATAL diagnostic forces success=False and expanded_instructions=()
+  for the whole result.
+- expanded_instructions strictly preserve GrammarProgram phrase order
+  (never sorted); diagnostics sorted by CompilerDiagnostic.deterministic_key.
+- Per-primitive parameters=() in V1 -- no semantic parameter derivation (no
+  clearance/depth/side mapping); lineage preserved via source_phrase_index,
+  macro_origin, target_zone only.
+
+Boundary: no scheduling, no timeline, no geometry resolution, no price
+generation, no ScenarioSpecification assembly, no Runner integration. No
+grammar, frozen compiler contract, frozen expansion contract, Catalog
+execution, Stage 1-6, Project 1, or production changes.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/macro_expansion.py
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_macro_expansion.py
+
+Validation: py_compile PASS; macro expansion test PASS
+(atomic_passthrough, macro_expansion, budget_conservation,
+instruction_ordering, diagnostics_ordering, fingerprint_determinism,
+fatal_diagnostics, research_isolation all PASS); cross-process determinism
+confirmed (byte-identical output across two independent process
+invocations); git diff --check PASS.
+
+---
+
+## Prior Stable Checkpoint: PHASE1D_EXPANSION_CONTRACTS_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
 

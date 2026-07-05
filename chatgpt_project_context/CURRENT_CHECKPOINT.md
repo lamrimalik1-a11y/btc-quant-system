@@ -1,5 +1,85 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
+
+Commit: `b381ce99b0199856242e104c06a8fe139a8def63`
+
+Status: STABLE AND VALIDATED.
+
+Chapter I is complete and stable:
+- Stage 1 Dynamic Mechanics
+- Stage 2 Snapshot Dynamic Mechanics
+- Stage 3 Dynamic State Transitions
+- Stage 4 Transition Graph
+- Stage 5 Trajectory Evolution
+- Stage 6 Prediction Evolution Research
+
+Project 2 Chapter II, stable through Phase 6:
+- Phase 1 Scenario Generator Foundation: STABLE
+- Phase 2 Scenario Runner: STABLE
+- Phase 3 Scenario Catalog Foundation: STABLE
+- Phase 4 Scenario Execution: PASS after the Stage 6 empty-zone robustness fix
+- Phase 5 Cross-Scenario Descriptive Comparison: STABLE
+- Phase 6 Scientific Hypothesis Audit: STABLE
+
+Stable checkpoint chain:
+- `PHASE1C_SCENARIO_GENERATOR_FOUNDATION_STABLE`
+  (`ca71902f74ba42ce54b217f3488c10da24a2d0f4`)
+- `PHASE1C_SCENARIO_RUNNER_STABLE`
+  (`34641e3c1cda4a19972a48752446785132e7ccbd`)
+- `PHASE1C_SCENARIO_CATALOG_FOUNDATION_STABLE`
+  (`5a2d4a718f0072f86556e2b2347eedbeaf8ae061`)
+- `PHASE1C_SCENARIO_CATALOG_PROVENANCE_FIX`
+  (`a2c52feb5b7472450b543f6de3b46a6562520d5a`)
+- `PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX`
+  (`add1fcfe37f68d41437594d4b424f1eddd08214d`)
+- `PHASE1C_CROSS_SCENARIO_COMPARISON_STABLE`
+  (`660f459ea9a5a34d6aa95a2a395f1ea93302ea57`)
+- `PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE`
+  (`b381ce99b0199856242e104c06a8fe139a8def63`)
+
+Summary:
+- Phase 6 implemented as a preregistered scientific hypothesis audit.
+- Decisions are derived from explicit evidence-based decision rules.
+- Exact Phase 3 hypothesis traceability verified.
+- Phase 5 remains the sole source of observed evidence.
+- Caveats precede evaluations.
+- Null and contradictory evidence preserved.
+- Automated banned-language scan added.
+- Deterministic scientific audit verified.
+- No Scenario Runner changes.
+- No Scenario Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No Production changes.
+
+Independent verification performed before this checkpoint was documented:
+- Each hypothesis evaluation carries `decision_rule_id` and
+  `decision_rule_trace` (e.g. adversarial's rule reads
+  `completed_visits=2, attacker_pressure_observed=True,
+  eligible_hypotheses=0` and derives `PARTIALLY_CONSISTENT`) -- decisions
+  are computed, not hardcoded, confirmed by tracing the rule logic against
+  independently-known evidence values.
+- `all_hypotheses_ex_ante = True`, `no_hypotheses_outside_phase3 = True`,
+  `all_phase3_sources_exact = True` -- all four hypotheses trace exactly to
+  Phase 3's committed `expected_behavior_notes`/`description` text, no
+  rewritten or invented hypotheses.
+- `banned_language_scan.passed = True` against an expanded pattern list
+  (proven, validated, falsified, generalize/generalization, suggests,
+  confirms, proves, stronger, weaker, improved, degraded, effect, impact,
+  lift, gain, accuracy, performance, and more), scoped only to Phase 6's own
+  authored prose -- never the quoted Phase 3 preregistered text.
+- Imports confirmed limited to `scenario_contract`, `specifications`, and
+  `test_cross_scenario_comparison` (Phase 5, reused unchanged) -- no
+  Scenario Runner, Stage 1-6, `core.`/`engines.`/`research.` imports.
+- Deterministic across two independent process invocations (byte-identical
+  output).
+- `git diff 660f459..b381ce9` touches exactly one file; zero modification
+  to Scenario Runner, Scenario Catalog, Stage 1-6, Project 1, or production
+  code.
+
+---
+
 ## Active Checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
 
 Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`

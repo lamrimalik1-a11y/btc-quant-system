@@ -2,7 +2,62 @@
 
 ## Current Stable Status
 
-Current checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
+Current checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
+
+Commit: `b381ce99b0199856242e104c06a8fe139a8def63`
+
+Chapter I is COMPLETE / STABLE across Dynamic Mechanics, Snapshot Dynamic
+Mechanics, Dynamic State Transitions, Transition Graph, Trajectory Evolution,
+and Prediction Evolution Research.
+
+Project 2 Chapter II, stable through Phase 6:
+- Scenario Generator Foundation: STABLE
+- Scenario Runner: STABLE
+- Scenario Catalog Foundation: STABLE
+- Scenario Execution: PASS
+- Cross-Scenario Descriptive Comparison: STABLE
+- Scientific Hypothesis Audit: STABLE
+
+Checkpoint chain:
+- Generator Foundation: `ca71902f74ba42ce54b217f3488c10da24a2d0f4`
+- Scenario Runner: `34641e3c1cda4a19972a48752446785132e7ccbd`
+- Catalog Foundation: `5a2d4a718f0072f86556e2b2347eedbeaf8ae061`
+- Catalog Provenance Fix: `a2c52feb5b7472450b543f6de3b46a6562520d5a`
+- Scenario Execution / Stage 6 Empty-Zone Fix:
+  `add1fcfe37f68d41437594d4b424f1eddd08214d`
+- Cross-Scenario Descriptive Comparison:
+  `660f459ea9a5a34d6aa95a2a395f1ea93302ea57`
+- Scientific Hypothesis Audit:
+  `b381ce99b0199856242e104c06a8fe139a8def63`
+
+Summary:
+- Phase 6 implemented as a preregistered scientific hypothesis audit.
+- Decisions are derived from explicit evidence-based decision rules.
+- Exact Phase 3 hypothesis traceability verified.
+- Phase 5 remains the sole source of observed evidence.
+- Caveats precede evaluations.
+- Null and contradictory evidence preserved.
+- Automated banned-language scan added.
+- Deterministic scientific audit verified.
+- No Scenario Runner changes.
+- No Scenario Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No Production changes.
+
+Independently re-verified before documenting: decision_rule_id/
+decision_rule_trace confirm decisions are computed from cited evidence, not
+hardcoded; all_hypotheses_ex_ante/no_hypotheses_outside_phase3/
+all_phase3_sources_exact all True; banned-language scan passes an expanded
+pattern list scoped only to Phase 6's own authored prose; imports limited to
+scenario_contract/specifications/test_cross_scenario_comparison (no Runner,
+Stage 1-6, core./engines./research. imports); byte-identical output across
+two independent process runs; git diff touches exactly one file relative to
+the prior commit.
+
+---
+
+## Prior Stable Status (PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX)
 
 Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`
 
@@ -15,14 +70,6 @@ Project 2 Chapter II Phase 1C:
 - Scenario Runner: STABLE
 - Scenario Catalog Foundation: STABLE
 - Scenario Execution: PASS
-
-Checkpoint chain:
-- Generator Foundation: `ca71902f74ba42ce54b217f3488c10da24a2d0f4`
-- Scenario Runner: `34641e3c1cda4a19972a48752446785132e7ccbd`
-- Catalog Foundation: `5a2d4a718f0072f86556e2b2347eedbeaf8ae061`
-- Catalog Provenance Fix: `a2c52feb5b7472450b543f6de3b46a6562520d5a`
-- Scenario Execution / Stage 6 Empty-Zone Fix:
-  `add1fcfe37f68d41437594d4b424f1eddd08214d`
 
 Stage 6 empty-zone reporting:
 - `NO_VISITS`: existing zone, zero completed visits.

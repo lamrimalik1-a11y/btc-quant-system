@@ -1,10 +1,10 @@
-## Active Checkpoint: PHASE1C_SCENARIO_EXECUTION_STAGE6_EMPTY_ZONE_FIX
+## Active Checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
 
-Commit: `add1fcfe37f68d41437594d4b424f1eddd08214d`
+Commit: `b381ce99b0199856242e104c06a8fe139a8def63`
 
 Chapter I is COMPLETE / STABLE through Stage 6 Prediction Evolution Research.
 
-Project 2 Chapter II Phase 1C:
+Project 2 Chapter II, stable through Phase 6:
 - Scenario Generator Foundation: STABLE
   (`ca71902f74ba42ce54b217f3488c10da24a2d0f4`)
 - Scenario Runner: STABLE
@@ -15,14 +15,38 @@ Project 2 Chapter II Phase 1C:
   (`a2c52feb5b7472450b543f6de3b46a6562520d5a`)
 - Scenario Execution: PASS after Stage 6 empty-zone robustness fix
   (`add1fcfe37f68d41437594d4b424f1eddd08214d`)
+- Cross-Scenario Descriptive Comparison: STABLE
+  (`660f459ea9a5a34d6aa95a2a395f1ea93302ea57`)
+- Scientific Hypothesis Audit: STABLE
+  (`b381ce99b0199856242e104c06a8fe139a8def63`)
 
-Stage 6 reporting distinguishes `NO_VISITS`, `INSUFFICIENT_SAMPLE`, and
-`SUFFICIENT_SAMPLE`. Phase 4 results: baseline PASS (159 visits), adversarial
-PASS (2), regime change PASS (52), repeated attacks PASS (6), determinism
-PASS.
+Summary:
+- Phase 6 implemented as a preregistered scientific hypothesis audit.
+- Decisions are derived from explicit evidence-based decision rules.
+- Exact Phase 3 hypothesis traceability verified.
+- Phase 5 remains the sole source of observed evidence.
+- Caveats precede evaluations.
+- Null and contradictory evidence preserved.
+- Automated banned-language scan added.
+- Deterministic scientific audit verified.
+- No Scenario Runner changes.
+- No Scenario Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No Production changes.
 
-No Scenario Runner or Scenario Catalog implementation, Project 1, or
-production behavior changed.
+Independently re-verified before documenting: each hypothesis evaluation now
+carries a `decision_rule_id` and a `decision_rule_trace` showing the exact
+evidence values the decision was computed from (not asserted); the
+banned-language scan's pattern list was independently confirmed to cover
+proven/validated/falsified/generalize/generalization/suggests/confirms/
+proves/stronger/weaker/improved/degraded/effect/impact/lift/gain/accuracy/
+performance, scoped only to Phase 6's own authored text; two independent
+process runs produced byte-identical output; `git diff` against the prior
+commit touches exactly one file.
+
+No Scenario Runner, Scenario Catalog implementation, Stage 1-6, Project 1,
+or production behavior changed.
 
 ---
 ==================================================

@@ -1,6 +1,33 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+## Active Checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III adds deterministic timeline scheduling from
+ExpansionResult to SchedulingResult and MechanicalTimeline.
+
+Validated guarantees:
+- Authored PathSmoothness is preserved when explicitly present.
+- PathSmoothness.STEP is used only as the versioned V1 fallback when absent.
+- Instruction indices must appear in exact contiguous order from zero.
+- Failed expansion diagnostics are preserved alongside the scheduler failure.
+- Canonical diagnostics participate in timeline_fingerprint computation.
+- Every expanded instruction maps to exactly one sequential, gap-free segment.
+- Fatal failures produce no partial timeline.
+
+Boundary: no geometry resolution, price generation, materialization, Runner,
+Catalog, Stage 1-6, Project 1, or production changes.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/timeline_scheduler.py
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_timeline_scheduler.py
+
+Validation: py_compile PASS; timeline scheduler test PASS; git diff --check PASS.
+
+---
+
+## Prior Stable Checkpoint: PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
 

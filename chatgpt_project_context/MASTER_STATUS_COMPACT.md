@@ -2,6 +2,23 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III adds deterministic ExpansionResult-to-MechanicalTimeline
+scheduling. Authored smoothness is preserved; STEP is fallback-only. Exact
+instruction order is enforced, upstream diagnostics survive scheduler failure,
+and canonical diagnostics are included in timeline fingerprints. Scheduling is
+sequential, gap-free, deterministic, and rollback-safe.
+
+No geometry resolution, price generation, materialization, Runner, Catalog,
+Stage 1-6, Project 1, or production change is present.
+
+---
+
+## Prior Stable Status (PHASE1D_MACRO_EXPANSION_LOGIC_STABLE)
+
 Current checkpoint: PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
 
 Status: implemented and validated; awaiting review before commit.

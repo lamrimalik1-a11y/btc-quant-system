@@ -1,6 +1,29 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1D_COMPILER_CONTRACTS_STABLE
+## Active Checkpoint: PHASE1D_EXPANSION_CONTRACTS_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III introduces immutable expansion-layer contracts:
+- ExpandedInstruction owns expansion-only row_budget metadata while preserving frozen PrimitiveInstruction unchanged.
+- ExpansionResult carries instructions, diagnostics, and deterministic provenance fields.
+- ExpansionRule declares a non-recursive macro-to-primitive sequence.
+- AllocationPolicy declares future allocation policy identity only.
+
+Boundary: no Macro Expansion, allocation, scheduling, timeline construction,
+materialization, price generation, geometry, observations, Runner integration,
+or ScenarioSpecification assembly. No grammar, frozen compiler contract,
+Catalog execution, Stage 1-6, Project 1, or production changes.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/expansion.py
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_expansion_contracts.py
+
+Validation: py_compile PASS; expansion contract test PASS; git diff --check PASS.
+
+---
+
+## Prior Stable Checkpoint: PHASE1D_COMPILER_CONTRACTS_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; independently audited; pre-commit
 corrections applied; awaiting commit.

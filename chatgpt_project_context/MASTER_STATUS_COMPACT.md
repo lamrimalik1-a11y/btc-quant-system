@@ -2,6 +2,24 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_EXPANSION_CONTRACTS_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III adds immutable expansion-layer contracts only:
+ExpandedInstruction, ExpansionResult, ExpansionRule, and AllocationPolicy.
+Expansion-only row budgets belong to ExpandedInstruction; frozen
+PrimitiveInstruction remains unchanged.
+
+No Macro Expansion implementation, allocation logic, scheduling, timeline,
+materialization, price generation, Runner integration, ScenarioSpecification
+assembly, grammar, frozen compiler contract, Catalog execution, Stage 1-6,
+Project 1, or production change is present.
+
+---
+
+## Prior Stable Status (PHASE1D_COMPILER_CONTRACTS_STABLE)
+
 Current checkpoint: PHASE1D_COMPILER_CONTRACTS_STABLE
 
 Status: implemented and validated; independently audited; pre-commit

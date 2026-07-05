@@ -1,8 +1,52 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1D_GRAMMAR_FOUNDATION_STABLE
+## Active Checkpoint: PHASE1D_COMPILER_CONTRACTS_STABLE
 
-Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+Status: IMPLEMENTED AND VALIDATED; independently audited; pre-commit
+corrections applied; awaiting commit.
+
+Project 2 Chapter III Phase 2 adds immutable Geometry, Primitive Instruction,
+Mechanical Timeline, Compiler Diagnostic, CompilationRequest, and
+CompilationResult contracts only. Geometry is externally supplied and carries
+a deterministic SHA-256 fingerprint.
+
+Boundary: no compiler logic, scheduling, macro expansion, materialization,
+price generation, Runner integration, or ScenarioSpecification assembly. No
+grammar, Catalog execution, Stage 1-6, Project 1, or production changes.
+
+Independent architectural audit performed (verdict: APPROVE WITH MINOR
+RECOMMENDATIONS): every contract independently re-verified -- compiled,
+executed, cross-process determinism confirmed, and a direct grep (not just
+the test's own self-check) confirmed zero references to PriceObservation,
+scenario_runner, scenario_contract, scenario_primitives, RESEARCH_ labels,
+or any Stage 1-6 module anywhere in the compiler package.
+
+Pre-commit corrections applied following the audit:
+- Removed the wildcard `import *` in `test_compiler_contracts.py`; replaced
+  with explicit named imports.
+- Added an explicit `__all__` tuple to `compiler/__init__.py` (ten names:
+  CompilationRequest, CompilationResult, CompilerDiagnostic,
+  DiagnosticSeverity, GeometryContext, GeometryReference,
+  PrimitiveInstruction, PrimitiveType, MechanicalTimeline, TimelineSegment),
+  matching the pattern already established in `grammar/__init__.py`.
+- Retyped `TimelineSegment.interpolation_policy` from a bare `str` to the
+  existing `PathSmoothness` enum (reused from `grammar.dimensions`,
+  unchanged), with validation now checking `isinstance(..., PathSmoothness)`
+  instead of non-empty-string.
+- Reformatted all six compiler files to the project's standard one-
+  statement-per-line style (previously semicolon-dense); no logic changed.
+
+No behavioral change: all pre-patch checks (compiler_contracts, geometry,
+timeline, diagnostics, contracts, immutability, determinism,
+research_isolation) still pass post-patch; geometry fingerprint computation
+verified byte-identical (same canonical-JSON + SHA-256 formula, untouched);
+cross-process determinism reconfirmed after patching. `git diff --check`
+clean; no grammar, Runner, Catalog execution, Stage 1-6, Project 1, or
+production file touched by the patch.
+
+---
+
+## Prior Stable Checkpoint: PHASE1D_GRAMMAR_FOUNDATION_STABLEStatus: IMPLEMENTED AND VALIDATED; awaiting review before commit.
 
 Project 2 Chapter III Phase 1 establishes the research-only Mechanical
 Scenario Language foundation:
@@ -793,24 +837,24 @@ Await the next Phase 1B research-stage approval.
 
 ## Active Checkpoint: PHASE1B_DYNAMIC_STATE_TRANSITION_STAGE3_STABLE
 
-Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” research-only, no production behavior changed.
 Stage 3 analyzes transitions between research Dynamic States produced by
 Stage 1/2.
 
-- **Stage 3 analyzes research Dynamic State transitions** — current/previous
+- **Stage 3 analyzes research Dynamic State transitions** â€” current/previous
   dynamic_state, transition_name, transition frequency, per-zone chains,
   repeated transitions, stable vs unstable sequences, and a simple
   research-only early-warning pattern.
-- **Uses Stage 1 Dynamic Mechanics unchanged** — build_harnesses,
+- **Uses Stage 1 Dynamic Mechanics unchanged** â€” build_harnesses,
   generate_price, update_mechanics, compute_dynamics imported directly from
   dynamic_mechanics_test.py, no duplication.
-- **Interpreter-driven completed visits reused** — only the Interaction
+- **Interpreter-driven completed visits reused** â€” only the Interaction
   Interpreter and LastCompletedVisitAdapter are used to collect completed-visit
   sequences; Dispatcher/Coordinator/Snapshot are not needed for this analysis
   and are not used (Stage 2 already validated that path).
 - **No production changes. No Project 1 changes. No live integration. No
   dashboard. No Snapshot modifications. No B10/B11 changes.**
-- **All labels remain RESEARCH_ prefixed** — every transition_name verified
+- **All labels remain RESEARCH_ prefixed** â€” every transition_name verified
   RESEARCH_-prefixed on both sides.
 
 Results (deterministic across three independent runs):
@@ -846,7 +890,7 @@ Next: Phase 1B Stage 4 trajectory evolution research.
 
 ## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_SNAPSHOT_STAGE2_STABLE
 
-Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” research-only, no production behavior changed.
 Stage 2 mapped Stage 1's research Dynamic Mechanics outputs into the Canonical
 Snapshot dynamic_mechanics section.
 
@@ -855,7 +899,7 @@ Snapshot dynamic_mechanics section.
   DynamicMechanicsAdapter.build_patch().
 - **Offline only.** No production changes. No Project 1 changes. No
   live/dashboard/B10/B11 changes.
-- **Reused Stage 1 logic unmodified** — build_harnesses, generate_price,
+- **Reused Stage 1 logic unmodified** â€” build_harnesses, generate_price,
   update_mechanics, compute_dynamics imported directly from
   experiments/psychological_levels_dynamic/dynamic_mechanics_test.py, no
   duplication.
@@ -863,10 +907,10 @@ Snapshot dynamic_mechanics section.
   SnapshotStore, mirroring the exact multi-adapter commit pattern already
   proven in Phase 0 / Phase 1A.
 - **SIMPLE_RESEARCH_SDR_V1 remains research-only.**
-- **RESEARCH_ labels only** — dynamic_state/previous_dynamic_state/
+- **RESEARCH_ labels only** â€” dynamic_state/previous_dynamic_state/
   transition_name all trace to RESEARCH_-prefixed values, never production
   B12.5 Dynamic State.
-- **NOT_AVAILABLE behavior validated** — fields Stage 1 never computed
+- **NOT_AVAILABLE behavior validated** â€” fields Stage 1 never computed
   (health_slope, omega_total, dynamic_state_reason, ...) map to NOT_AVAILABLE
   automatically; first-visit-per-zone derivative/state fields also correctly
   NOT_AVAILABLE (no prior visit to differentiate against yet).
@@ -903,20 +947,20 @@ Next: Stage 3 Dynamic State transition analysis approval.
 
 ## Active Checkpoint: PHASE1B_DYNAMIC_MECHANICS_STAGE1_OFFLINE_STABLE
 
-Status: STABLE CHECKPOINT — research-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” research-only, no production behavior changed.
 First Phase 1B offline validation: Dynamic Mechanics research metrics computed
 from Project 2 Psychological Levels completed-visit sequences.
 
-- **Project 2 Psychological Levels used as offline research geometry** —
+- **Project 2 Psychological Levels used as offline research geometry** â€”
   reuses experiments/psychological_levels/provider.py (Phase 1A, unmodified)
   as the input laboratory; same triangular price-sweep shape for continuity.
 - **Real Interpreter -> Dispatcher -> Coordinator -> LastCompletedVisitAdapter
-  path reused**, unmodified — core.interaction_interpreter,
+  path reused**, unmodified â€” core.interaction_interpreter,
   core.event_dispatcher, and core.last_completed_visit_adapter are the same,
   unmodified components validated throughout Phase 0 / Phase 1A.
-- **No core/production modifications** — verified via git status: zero
+- **No core/production modifications** â€” verified via git status: zero
   core/, research/, or engines/ file touched by this task.
-- **Research-only deterministic proxy mechanics** — since the interpreter's
+- **Research-only deterministic proxy mechanics** â€” since the interpreter's
   own VISIT_COMPLETED evidence carries only geometric/timing fields, not
   mechanical values, a small deterministic per-row proxy tracks:
   health_live, omega_accumulator, attacker_force_peak
@@ -924,12 +968,12 @@ from Project 2 Psychological Levels completed-visit sequences.
   formula, feeding health_at_visit/omega_at_visit/attacker_force_at_visit
   into the unmodified LastCompletedVisitAdapter at each visit completion.
 - **Production formulas not changed.**
-- **SIMPLE_RESEARCH_SDR_V1 is research-only** — `|delta omega| / health`, an
+- **SIMPLE_RESEARCH_SDR_V1 is research-only** â€” `|delta omega| / health`, an
   explicitly versioned, independent research ratio, NOT the production
   Structural Dynamic Response formula used elsewhere in this codebase.
 - **RESEARCH_ labels only** (RESEARCH_ATTACKER_PRESSURE /
   RESEARCH_RECOVERING / RESEARCH_STABLE), not production B12.5 Dynamic State.
-- **SnapshotStore deliberately not used in Stage 1** — only the derived
+- **SnapshotStore deliberately not used in Stage 1** â€” only the derived
   completed-visit series is needed; can be added in a later stage if
   snapshot-level Dynamic Mechanics patches need testing.
 
@@ -955,7 +999,7 @@ Next: Stage 2 snapshot dynamic mechanics approval.
 
 ## Active Checkpoint: RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
 
-Status: PHASE 0 CLOSED — PRODUCTION SAFE. This is the final Phase 0 checkpoint.
+Status: PHASE 0 CLOSED â€” PRODUCTION SAFE. This is the final Phase 0 checkpoint.
 Note the deliberate distinction from "PRODUCTION VALIDATED": the shadow
 pipeline's end-to-end correctness under load is proven by the Replay Soak;
 what the two LIVE soaks add is proof that the passive shadow is SAFE to run
@@ -967,11 +1011,11 @@ Integrity Fix -> Replay Soak PASS -> Controlled LIVE Soak PASS -> Extended
 LIVE Soak INCONCLUSIVE (market_event_scarcity, shadow pipeline not at fault).
 
 Soak history:
-- **Replay soak: PASS** — full shadow runtime validated end-to-end against
+- **Replay soak: PASS** â€” full shadow runtime validated end-to-end against
   research replay data (identity, ordering, atomic revisions, adapters).
-- **Controlled LIVE soak: PASS** — first real-production run of the passive
+- **Controlled LIVE soak: PASS** â€” first real-production run of the passive
   tap; payloads received/processed/parity all clean.
-- **Extended LIVE soak: INCONCLUSIVE due to MARKET_EVENT_SCARCITY** — 60
+- **Extended LIVE soak: INCONCLUSIVE due to MARKET_EVENT_SCARCITY** â€” 60
   minutes at the hard cap, zero failures of any kind (failed=0, dropped=0,
   desynchronized=0, breaker never tripped, zero production exceptions, memory
   flat ~99-101MB, revision monotonicity / copy-on-write / identity integrity
@@ -1017,7 +1061,7 @@ Next: Phase 1 -- System Intelligence.
 
 ## Active Checkpoint: RDM_V2_FIRST_CONTROLLED_LIVE_PASSIVE_SHADOW_SOAK_PASS
 
-Status: SOAK PASS — shadow-only, no production behavior changed. First
+Status: SOAK PASS â€” shadow-only, no production behavior changed. First
 controlled LIVE passive shadow soak (SHADOW_RUNTIME_ENABLED=1, SHADOW_DRY_RUN=1,
 SHADOW_SAMPLE_RATE=0.05, kill switch disabled) run against the real production
 stream_manager.
@@ -1043,7 +1087,7 @@ Findings:
 - **No production errors. No drops. No desynchronization. No worker failures.**
 - **No production output replacement. No dashboard changes. No formulas
   changed. No Stage 2C. No Dynamic State recomputation.**
-- One payload difference observed: received=10, processed=9 — likely one
+- One payload difference observed: received=10, processed=9 â€” likely one
   payload still in-flight at the forced stop. NOT treated as a failure, since
   failed/dropped/desynchronized all remained zero (no lost or corrupted work,
   only an in-flight payload at shutdown).
@@ -1057,27 +1101,27 @@ Next: extended live soak decision.
 
 ## Active Checkpoint: RDM_V2_LIVE_ACTIVATION_WIRING_STABLE
 
-Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Status: STABLE CHECKPOINT â€” no production behavior change with the flag OFF.
 Resolves the blocker from the Final Architectural Review: the committed tree had
 the live tap, emitter, worker, and runtime, but nothing in the committed tree
 ever STARTED the passive worker for a live process.
 
 Fix: committed the isolated startup/shutdown hook in engines/stream_manager.py
-main() — the only hunk in that file (verified via `git diff`, single @@ block):
-- **Start before start_stream()** — a local import of
+main() â€” the only hunk in that file (verified via `git diff`, single @@ block):
+- **Start before start_stream()** â€” a local import of
   core/passive_shadow_bootstrap.{start_passive_shadow,stop_passive_shadow}
   followed by start_passive_shadow(), BEFORE `await start_stream()`.
-- **Stop in finally** — `await start_stream()` wrapped in try/finally; the
+- **Stop in finally** â€” `await start_stream()` wrapped in try/finally; the
   finally calls `shadow_stop(drain_timeout_seconds=2.0)`.
-- **Fail-safe try/except** — both the import+start block and the stop call are
+- **Fail-safe try/except** â€” both the import+start block and the stop call are
   wrapped in try/except Exception: pass; a shadow failure can never prevent or
   interrupt start_stream().
-- **Flag default OFF** — start_passive_shadow() delegates to
+- **Flag default OFF** â€” start_passive_shadow() delegates to
   PassiveShadowBootstrap, whose FeatureFlags default OFF; SHADOW_RUNTIME_ENABLED
   unset or "0" -> status DISABLED, bootstrap.running False, bootstrap.worker None.
-- **No behavior change when disabled** — verified directly against the exact
+- **No behavior change when disabled** â€” verified directly against the exact
   entry points main() calls.
-- **No unrelated stream_manager changes mixed in** — the diff for
+- **No unrelated stream_manager changes mixed in** â€” the diff for
   engines/stream_manager.py contains exactly one hunk (the main() hook); nothing
   else in that file was staged or touched.
 
@@ -1095,22 +1139,22 @@ Next: first live payload contract validation.
 
 ## Active Checkpoint: RDM_V2_PASSIVE_SHADOW_BOOTSTRAP_REPOSITORY_FIX
 
-Status: REPOSITORY INTEGRITY FIX — shadow-only, no production behavior changed.
+Status: REPOSITORY INTEGRITY FIX â€” shadow-only, no production behavior changed.
 
 Problem: the committed replay soak tool (tools/passive_shadow_replay_soak.py)
 imported core/passive_shadow_bootstrap.py, which had been implemented and run
-locally (Phase 0F) but never committed — so a fresh clone could not execute the
+locally (Phase 0F) but never committed â€” so a fresh clone could not execute the
 committed soak (committed code depended on untracked code).
 
 Fix: committed the two missing Phase 0F bootstrap files as their own isolated
 checkpoint:
-- **core/passive_shadow_bootstrap.py** — fail-safe lifecycle owner
+- **core/passive_shadow_bootstrap.py** â€” fail-safe lifecycle owner
   (PassiveShadowBootstrap.start/stop; get_default_bootstrap;
   start_passive_shadow/stop_passive_shadow). Flag-gated default OFF, kill-switch
   protected, try/except BaseException boundaries (never raises to its caller);
   imports only already-committed core modules (worker, shadow_parity_runtime,
   shadow_runtime_emitter, shadow_safety.*).
-- **experiments/passive_shadow_worker/bootstrap_test.py** — Phase 0F lifecycle test.
+- **experiments/passive_shadow_worker/bootstrap_test.py** â€” Phase 0F lifecycle test.
 
 Scope: this commit adds ONLY the two bootstrap files (+ these docs). NOT staged:
 core/daily_session.py, live_rdm.py pre-existing hunks, live_return_detection.py,
@@ -1140,24 +1184,24 @@ Next: Final Architectural Review.
 
 ## Active Checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
 
-Status: STABLE CHECKPOINT — no production behavior change with the flag OFF.
+Status: STABLE CHECKPOINT â€” no production behavior change with the flag OFF.
 Phase 0D: the first (and minimal) production wiring of the Passive Shadow Runtime
-— a single flag-gated, isolated tap.
+â€” a single flag-gated, isolated tap.
 
 The tap:
 - **one minimal flag-gated tap in compute_live_rdm_for_case** (core/live_rdm.py)
-  — a single ~13-line hunk; the only production line is `_shadow_emit(record)`.
-- **after _persist_record / B12.5 hook, before return record** — placed where
+  â€” a single ~13-line hunk; the only production line is `_shadow_emit(record)`.
+- **after _persist_record / B12.5 hook, before return record** â€” placed where
   geometry, row mechanics, visit, and B10/B11 are finalized (Phase 0B tap point).
-- **local import** — `from core.shadow_runtime_emitter import emit as
+- **local import** â€” `from core.shadow_runtime_emitter import emit as
   _shadow_emit` inside the hook, so the module's load-time import graph is
   unchanged.
-- **try/except isolated** — wrapped in try/except Exception; the shadow path can
+- **try/except isolated** â€” wrapped in try/except Exception; the shadow path can
   never block the LIVE pipeline, mutate record, or alter any output.
-- **default OFF; no-op with flag OFF** — the emitter no-ops unless
+- **default OFF; no-op with flag OFF** â€” the emitter no-ops unless
   SHADOW_RUNTIME_ENABLED is explicitly set (verified: status DISABLED, zero queue
   activity), so there is **no production behavior change with the flag OFF**.
-- **unrelated live_rdm hunks excluded** — only the Phase 0D tap hunk was staged
+- **unrelated live_rdm hunks excluded** â€” only the Phase 0D tap hunk was staged
   (patch-staging via git apply --cached); the 5 pre-existing, unrelated working-
   tree hunks (imports, build_completed_live_case_row, _run_group_b,
   append_post_return_tick, _ensure_csv) were left unstaged and unmodified.
@@ -1175,37 +1219,37 @@ Next: passive shadow runtime worker approval.
 
 ## Active Checkpoint: RDM_V2_PHASE0C_SHADOW_EMITTER_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. Phase 0C
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed. Phase 0C
 of the production-integration migration: the standalone shadow emitter that will
 LATER receive the finalized record from compute_live_rdm_for_case, built and
 validated BEFORE the LIVE tap exists.
 
 New module core/shadow_runtime_emitter.py (standalone; imports only Phase 0A
 core/shadow_safety):
-- **standalone shadow_runtime_emitter** — ShadowRuntimeEmitter.emit(record) +
+- **standalone shadow_runtime_emitter** â€” ShadowRuntimeEmitter.emit(record) +
   ShadowPayload / EmitResult + module-level emit() / get_default_emitter().
-- **flags default OFF** — disabled -> no-op, queue untouched (status DISABLED);
+- **flags default OFF** â€” disabled -> no-op, queue untouched (status DISABLED);
   the default emitter reads flags from env, so emit() is inert until enabled.
-- **kill switch blocks emit** — kill_switch.allows() False (breaker latched or
+- **kill switch blocks emit** â€” kill_switch.allows() False (breaker latched or
   manual env/file kill) -> no-op, status KILLED.
-- **bounded queue non-blocking** — BoundedDropQueue.offer(); full -> DROPPED,
+- **bounded queue non-blocking** â€” BoundedDropQueue.offer(); full -> DROPPED,
   never blocks / never raises.
-- **deep-copied immutable payload** — every field copy.deepcopy-ed then frozen
+- **deep-copied immutable payload** â€” every field copy.deepcopy-ed then frozen
   (MappingProxyType / tuples) inside a frozen ShadowPayload; source mutation
   after emit cannot affect the enqueued payload.
-- **global_zone_key = session_id::zone_id** — derived from candidate session /
+- **global_zone_key = session_id::zone_id** â€” derived from candidate session /
   zone keys in the record or its result_row (session falls back to
   UNKNOWN_SESSION; zone keys the snapshot).
-- **geometry_version synthesized from pinned geometry** — deterministic SHA1
+- **geometry_version synthesized from pinned geometry** â€” deterministic SHA1
   (GEOMv1:<hex>) over the formation / active-core / density edges; GEOMv1:NA when
   no edges.
-- **bad record never raises** — whole emit body wrapped (try/except BaseException,
+- **bad record never raises** â€” whole emit body wrapped (try/except BaseException,
   re-raising only KeyboardInterrupt/SystemExit); malformed record -> status ERROR.
 
 Strictly: **no live tap** (live_rdm.py untouched); **no production imports**
 (nothing in core/research/tools/engines imports shadow_runtime_emitter except the
 module itself); **no production behavior changed** (no dashboard, formulas, Stage
-2C, or CSV writes — the emitter only enqueues into the in-memory bounded queue).
+2C, or CSV writes â€” the emitter only enqueues into the in-memory bounded queue).
 
 Validation (all pass):
 - py_compile core/shadow_runtime_emitter.py +
@@ -1221,29 +1265,29 @@ Next: Phase 0D live tap approval.
 
 ## Active Checkpoint: RDM_V2_PHASE0A_SHADOW_SAFETY_MODULES_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed. First
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed. First
 step of the production-integration migration: the standalone Phase 0 safety
 scaffolding (Phase 0A), built and validated BEFORE any LIVE tap exists.
 
 New package core/shadow_safety/ (standalone, fail-closed building blocks for the
 not-yet-wired Passive Shadow Runtime):
-- **feature flags default OFF** (core/shadow_safety/feature_flag.py) — reads
+- **feature flags default OFF** (core/shadow_safety/feature_flag.py) â€” reads
   SHADOW_RUNTIME_ENABLED / SHADOW_DRY_RUN / SHADOW_SAMPLE_RATE; absent / garbage /
   unreadable -> OFF; explicit truthy opt-in only; should_run() + should_sample().
-- **kill switch / circuit breaker** (core/shadow_safety/kill_switch.py) —
+- **kill switch / circuit breaker** (core/shadow_safety/kill_switch.py) â€”
   CircuitBreaker latches KILLED on trip() or N consecutive failures and never
   self-revives (only reset()); KillSwitch adds manual env (SHADOW_KILL) +
   on-disk flag-file kill; fail-closed (unreadable -> KILLED).
-- **bounded non-blocking queue** (core/shadow_safety/bounded_queue.py) —
+- **bounded non-blocking queue** (core/shadow_safety/bounded_queue.py) â€”
   BoundedDropQueue.offer() uses put_nowait; full -> drop + count, never blocks /
   never raises; poll() non-blocking.
-- **isolated worker wrapper** (core/shadow_safety/isolated_worker.py) —
+- **isolated worker wrapper** (core/shadow_safety/isolated_worker.py) â€”
   IsolatedWorker.process() runs the handler behind a try/except BaseException
   boundary (re-raises only KeyboardInterrupt/SystemExit); failures swallowed,
   counted, fed to the breaker; a latched breaker short-circuits without calling
   the handler.
 - **parity log writer confined to research/shadow_parity/**
-  (core/shadow_safety/parity_log.py) — ParityLogWriter appends timestamped JSONL
+  (core/shadow_safety/parity_log.py) â€” ParityLogWriter appends timestamped JSONL
   only inside research/shadow_parity/; escaping paths rejected at construction.
 
 Strictly: **no live tap** (live_rdm.py untouched, no tap line); **no production
@@ -1264,7 +1308,7 @@ Next: Phase 0B tap point review.
 
 ## Active Checkpoint: RDM_V2_FULL_SHADOW_RUNTIME_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed.
 Consolidation checkpoint for the entire RDM V2 shadow architecture phase.
 
 ### 1. Event-Driven Backbone (complete)
@@ -1328,7 +1372,7 @@ Next: production integration strategy.
 
 ## Active Checkpoint: RDM_V2_PREDICTION_SNAPSHOT_INTEGRATION_SHADOW_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed.
 
 Prediction Adapter integrated into the coordinator snapshot integration test
 (experiments/coordinator_snapshot_integration/shadow_test.py). This completes the
@@ -1337,17 +1381,17 @@ all data sections.
 
 - **Prediction Adapter integrated** into the multi-adapter atomic
   `apply_refresh_adapters` orchestrator.
-- **Gate = ALL(trajectory_dirty, prediction_dirty)** — encodes the B10 trajectory
+- **Gate = ALL(trajectory_dirty, prediction_dirty)** â€” encodes the B10 trajectory
   -> B11 prediction dependency; a real VISIT_COMPLETED sets both flags.
 - **Prediction runs logically after Dynamic Mechanics** (last patch built before
   the single atomic store publication).
-- **Missing prediction input produces PENDING / NOT_AVAILABLE** — B11 is
+- **Missing prediction input produces PENDING / NOT_AVAILABLE** â€” B11 is
   asynchronous to its VISIT_COMPLETED trigger, so a missing input maps a
   `{"prediction_status": "PENDING"}` section (other fields NOT_AVAILABLE) instead
   of aborting.
-- **Pending prediction does not block completed_visit or dynamic_mechanics** —
+- **Pending prediction does not block completed_visit or dynamic_mechanics** â€”
   the ready sections still commit in the same atomic revision.
-- **Unexpected prediction adapter failure prevents partial commit** — an adapter
+- **Unexpected prediction adapter failure prevents partial commit** â€” an adapter
   that raises propagates and blocks the whole revision (all patches are built
   before one store call); the prior revision is untouched.
 - **One atomic revision per merged commit**; revision monotonic.
@@ -1368,32 +1412,32 @@ Next: full shadow runtime consolidation approval.
 
 ## Active Checkpoint: RDM_V2_CANONICAL_SNAPSHOT_ADAPTERS_COMPLETE
 
-Status: MILESTONE CHECKPOINT — shadow-only, no production behavior changed.
+Status: MILESTONE CHECKPOINT â€” shadow-only, no production behavior changed.
 
 All six Canonical Snapshot adapters are now shadow-ready. Each maps already-
 existing values into one snapshot section; none calculates, infers, or rebuilds.
 
 The six adapters (one per snapshot section):
-- **geometry** — GeometrySnapshotAdapter -> `geometry`
-- **current row mechanics** — RowMechanicsAdapter -> `current_row_mechanics`
-- **open visit** — OpenVisitAdapter -> `open_visit`
-- **last completed visit** — LastCompletedVisitAdapter -> `last_completed_visit`
-- **dynamic mechanics** — DynamicMechanicsAdapter -> `dynamic_mechanics`
-- **prediction** — PredictionAdapter -> `prediction`
+- **geometry** â€” GeometrySnapshotAdapter -> `geometry`
+- **current row mechanics** â€” RowMechanicsAdapter -> `current_row_mechanics`
+- **open visit** â€” OpenVisitAdapter -> `open_visit`
+- **last completed visit** â€” LastCompletedVisitAdapter -> `last_completed_visit`
+- **dynamic mechanics** â€” DynamicMechanicsAdapter -> `dynamic_mechanics`
+- **prediction** â€” PredictionAdapter -> `prediction`
 
 Shared, enforced properties across all six:
-- **Pure mapping only** — value pass-through via ordered source aliases; first
+- **Pure mapping only** â€” value pass-through via ordered source aliases; first
   present/available alias wins, primary names first.
-- **No calculations** — no Dynamic State recompute, derivatives, integrals, SDR,
+- **No calculations** â€” no Dynamic State recompute, derivatives, integrals, SDR,
   classifier, thresholds, B10/B11 execution, Stage 2C, dashboard, CSV writes, or
   persistence.
-- **NOT_AVAILABLE handling** — any target whose aliases are all absent, or present
+- **NOT_AVAILABLE handling** â€” any target whose aliases are all absent, or present
   but None / empty-string / NaN, becomes NOT_AVAILABLE in both the value and its
   source_fields provenance entry. No defaulting.
-- **Snapshot compatibility** — every adapter emits a RefreshResult-style patch
+- **Snapshot compatibility** â€” every adapter emits a RefreshResult-style patch
   that builds cleanly into a CanonicalZoneSnapshot section; the six together
   consolidate into one immutable copy-on-write snapshot (consolidation test).
-- **No production behavior changed** — nothing in core/research/tools imports any
+- **No production behavior changed** â€” nothing in core/research/tools imports any
   adapter except the shadow tests.
 
 Most recent additive work folded into this milestone: DynamicMechanicsAdapter
@@ -1411,14 +1455,14 @@ Next: first real mechanical integration decision.
 
 ## Active Checkpoint: RDM_V2_LAST_COMPLETED_VISIT_ADAPTER_SHADOW_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed.
 
 Last Completed Visit Adapter Stage 1 (shadow-only):
 - **Extended the existing adapter additively** (core/last_completed_visit_adapter.py,
-  originally committed aefec1c) — existing target field names and behavior are
+  originally committed aefec1c) â€” existing target field names and behavior are
   untouched, so the dependent consolidation test stays green.
 - **Maps already-existing completed-visit fields into the Canonical Snapshot
-  "last_completed_visit" section** — projection only, no rebuild, no inference.
+  "last_completed_visit" section** â€” projection only, no rebuild, no inference.
 - **Adds `max_penetration_ratio` and `defender_state`** (plus `visit_start_price`
   and `visit_end_price`) as new mapped target fields this stage.
 - **Supports aliases** (first present/available alias wins, primary names first):
@@ -1428,14 +1472,14 @@ Last Completed Visit Adapter Stage 1 (shadow-only):
   visit_defender_state->defender_state, visit_health/rigidity/capacity/fatigue/
   recovery->*_at_visit (pre-existing aliases retained: visit_start_time,
   visit_end_time, visit_duration_rows, max_penetration_at_visit).
-- **NOT_AVAILABLE behavior** — any target whose aliases are all absent, or present
+- **NOT_AVAILABLE behavior** â€” any target whose aliases are all absent, or present
   but None / empty-string / NaN, becomes NOT_AVAILABLE in both the value and its
   source_fields provenance entry. No defaulting.
-- **No calculations** — no Dynamic State, derivatives, integrals, SDR, Stage 2C,
+- **No calculations** â€” no Dynamic State, derivatives, integrals, SDR, Stage 2C,
   B10, B11, dashboard, CSV writes, or persistence. Opaque pass-through preserved.
-- **Snapshot compatibility** — the patch builds a CanonicalZoneSnapshot
+- **Snapshot compatibility** â€” the patch builds a CanonicalZoneSnapshot
   last_completed_visit section cleanly.
-- **No production behavior changed** — nothing in core/research/tools imports the
+- **No production behavior changed** â€” nothing in core/research/tools imports the
   adapter except the shadow tests.
 
 Validation (all pass):
@@ -1455,7 +1499,7 @@ Next: Dynamic Mechanics Adapter approval.
 
 ## Active Checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
 
-Status: ACCEPTED CONTRACT — architecture decision only. NO code implemented,
+Status: ACCEPTED CONTRACT â€” architecture decision only. NO code implemented,
 no production code changed. Records the restart/durability design the shadow
 backbone must follow before any production integration.
 
@@ -1467,7 +1511,7 @@ Restart / Durability Contract:
 - **Rebuild-from-history is the primary recovery mechanism.** Restart = replay
   the durable rows forward through interpret_in_order; rebuild InteractionState
   and the SnapshotStore rather than trusting them.
-- **The snapshot is a cache / projection only — never the source of truth.**
+- **The snapshot is a cache / projection only â€” never the source of truth.**
   Copy-on-write CanonicalZoneSnapshot is derived from plan+patches; if used as a
   file cache it is tagged (global_zone_key, revision, watermark_row_index) and
   never loaded when its watermark is ahead of the durable row log.
@@ -1475,7 +1519,7 @@ Restart / Durability Contract:
   anchor (same single source of truth as the Row Ordering Contract). After
   rebuild it must equal the last durable row; only greater row_index is accepted.
 - **Geometry-in-effect must be pinned** (geometry_version + bounds). If geometry
-  is recomputed differently on restart, replay diverges — parity requires the
+  is recomputed differently on restart, replay diverges â€” parity requires the
   same geometry inputs.
 - **Checkpoints are an optimization, not correctness.** A periodic
   InteractionState checkpoint (carrying cumulative counters: revision,
@@ -1489,7 +1533,7 @@ rebuildable from history.
 
 Most order-sensitive: the open-visit accumulator (visit_start_row/timestamp/
 price, active_visit_id/index, visit_row_count, visit_max_penetration(_ratio),
-inactive_row_count) must never be lost — guaranteed by persist-before-process.
+inactive_row_count) must never be lost â€” guaranteed by persist-before-process.
 
 No production code changed (documentation/design only).
 
@@ -1499,7 +1543,7 @@ Next: Restart / Durability implementation decision.
 
 ## Active Checkpoint: RDM_V2_ROW_ORDERING_CONTRACT_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed.
 
 Row Ordering Contract in the Interaction Interpreter (shadow-only):
 - New entry point **`interpret_in_order()`** enforces row ordering BEFORE any
@@ -1509,7 +1553,7 @@ Row Ordering Contract in the Interaction Interpreter (shadow-only):
 - Statuses: **ORDER_ACCEPTED**, **ROW_DUPLICATE**, **ROW_OUT_OF_ORDER**.
 - **InteractionState remains the single ordering watermark** (via
   `previous_row_index`). **No dispatcher watermark. No coordinator watermark.**
-- **row_index is authoritative; timestamp is informational only** — equal
+- **row_index is authoritative; timestamp is informational only** â€” equal
   timestamps with an increasing row_index remain valid.
 - **No events are emitted for duplicate / out-of-order rows** (audit code only);
   on rejection the unchanged input state is returned (identity-preserved).
@@ -1541,7 +1585,7 @@ watermark across restarts so the ordering guard survives process restart).
 
 ## Active Checkpoint: RDM_V2_SNAPSHOT_IDENTITY_CONTRACT_STABLE
 
-Status: STABLE CHECKPOINT — shadow-only, no production behavior changed.
+Status: STABLE CHECKPOINT â€” shadow-only, no production behavior changed.
 
 Canonical Snapshot identity contract fix:
 - Canonical Snapshot identity is now **global_zone_key**.
@@ -1552,12 +1596,12 @@ Canonical Snapshot identity contract fix:
 - Copy-on-write behavior unchanged.
 - Snapshot sections unchanged.
 - Production behavior unchanged (core/canonical_snapshot.py is shadow-only;
-  only experiment shadow tests import it — no live/dashboard consumer).
+  only experiment shadow tests import it â€” no live/dashboard consumer).
 
 Why: the Event Dispatcher namespaces identity by session_id (+ global_zone_key),
 but the snapshot store keyed by bare zone_id. Because zone_id is legitimately
 reused across daily sessions, the snapshot layer could collide ("Snapshot
-already exists for zone …") or overwrite the wrong session. Fixed by keying the
+already exists for zone â€¦") or overwrite the wrong session. Fixed by keying the
 store and CanonicalZoneSnapshot identity on global_zone_key; zone_id retained as
 metadata; global_zone_key added to protected metadata and validated (non-empty +
 revision continuity).
@@ -1565,7 +1609,7 @@ revision continuity).
 Validation (all pass):
 - python -m py_compile core/canonical_snapshot.py -> OK
 - All 8 Canonical Snapshot / adapter shadow tests PASS
-- New identity-collision shadow test PASS — same zone_id reused across two
+- New identity-collision shadow test PASS â€” same zone_id reused across two
   sessions yields two INDEPENDENT snapshots, no collision, no overwrite:
     Session A = BTCUSDT_2026-06-28_230000Z::SNAPSHOT_ZONE_1
     Session B = BTCUSDT_2026-06-29_230000Z::SNAPSHOT_ZONE_1
@@ -1593,7 +1637,7 @@ What this checkpoint adds:
   calendar-day selector: Today / Yesterday / Last 3 days
   (default: Today, Algeria midnight as boundary)
 - Auto-refresh tightened: cache TTL 10s, fragment run_every 15s
-  (was 30s/60s) — new zones appear on dashboard within 15s with
+  (was 30s/60s) â€” new zones appear on dashboard within 15s with
   zero manual action
 - Diagnostic command if auto-trigger silently fails:
     python -c "from research.zone_mechanics_calculator import
@@ -1629,7 +1673,7 @@ Next steps:
 
 What this checkpoint added:
 - B12.5 wired into LIVE pipeline (run_zone_visit_timeline_dynamic_live,
-  add_dynamic_layers_to_timeline_live) — uses fixed REPLAY-calibrated
+  add_dynamic_layers_to_timeline_live) â€” uses fixed REPLAY-calibrated
   thresholds for LIVE/REPLAY comparability
 - New file: research/live_zone_visit_timeline_dynamic.csv
 - New standalone dashboard: dashboard_live_zones.py (port 8502)
@@ -1659,27 +1703,27 @@ What this checkpoint added:
 - B12.5 Full Post-Return Visit Timeline Engine (3 stages)
 - zone_visit_timeline_dynamic.csv: 14,512 rows, 2,980 returning zones
 - Dynamic state classification: SDR-led rules, 86.6% accuracy
-- Physics confirmed: SDR >= 1 → 99.6% FAIL (deterministic)
-- Gold tier: STRONG_HOLD → 100% HOLD (743 cases)
-- ATTACKER_DOMINANT → 99.6% FAIL (528 cases)
+- Physics confirmed: SDR >= 1 â†’ 99.6% FAIL (deterministic)
+- Gold tier: STRONG_HOLD â†’ 100% HOLD (743 cases)
+- ATTACKER_DOMINANT â†’ 99.6% FAIL (528 cases)
 
 B12.5 Three stages:
   Stage 1: Extended live_row_window by 500 post-return rows (hard cap)
-           zone_live_rdm_evolution: 1.8M → 3.3M rows
+           zone_live_rdm_evolution: 1.8M â†’ 3.3M rows
   Stage 2: Built zone_visit_timeline_dynamic.csv
            14,512 post-return visits across 2,980 zones
   Stage 3: Added derivative + integral + SDR + dynamic_state
            Calibrated percentile-based thresholds from pre-return data
 
 Dynamic state accuracy (vs B12v2 outcomes, n=2,430):
-  STRONG_HOLD       → 100.0% HOLD  (n=743)
-  ATTACKER_DOMINANT → 99.6%  FAIL  (n=528)
-  STABLE            → 91.6%  HOLD  (n=383)
-  PEAK_WARNING      → 100.0% FAIL  (n=40)
-  RECOVERING        → 100.0% FAIL  (n=26)
-  CRITICAL          → 100.0% FAIL  (n=8)
-  DEGRADING         → 88.1%  FAIL  (n=42)
-  PROBABLE_HOLD     → 56.5%  FAIL  (n=657) <- needs refinement
+  STRONG_HOLD       â†’ 100.0% HOLD  (n=743)
+  ATTACKER_DOMINANT â†’ 99.6%  FAIL  (n=528)
+  STABLE            â†’ 91.6%  HOLD  (n=383)
+  PEAK_WARNING      â†’ 100.0% FAIL  (n=40)
+  RECOVERING        â†’ 100.0% FAIL  (n=26)
+  CRITICAL          â†’ 100.0% FAIL  (n=8)
+  DEGRADING         â†’ 88.1%  FAIL  (n=42)
+  PROBABLE_HOLD     â†’ 56.5%  FAIL  (n=657) <- needs refinement
   Overall accuracy: 86.6% (was 74.4% before calibration)
 
 Mathematical layers per visit:

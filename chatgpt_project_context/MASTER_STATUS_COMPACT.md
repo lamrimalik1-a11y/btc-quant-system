@@ -2,26 +2,30 @@
 
 ## Current Stable Status
 
-Current checkpoint: PHASE1D_GRAMMAR_FOUNDATION_STABLE
+Current checkpoint: PHASE1D_COMPILER_CONTRACTS_STABLE
 
-Status: implemented and validated; awaiting review before commit.
+Status: implemented and validated; independently audited; pre-commit
+corrections applied; awaiting commit.
 
-Project 2 Chapter III Phase 1 adds only the Mechanical Scenario Language
-foundation: versioned behavioral dimensions, authoring-only mechanical event
-definitions, frozen canonical grammar AST contracts, deterministic program
-fingerprints, constructor-only grammar phrases, and structural isolation
-tests. Mutable/custom parameter values are rejected.
+Project 2 Chapter III Phase 2 adds immutable compiler boundary contracts only:
+external geometry with deterministic fingerprint, primitive instructions,
+mechanical timeline, deterministic diagnostics, and compilation request/result.
 
-Validation is PASS across dimensions, events, AST, phrases, immutability,
-determinism, and research isolation. Reference fingerprint:
-`sha256:ccd7ed1dbe8656b2d77e8dedd4cedafbdfc84bcf63c8d2ec5ef3d6f9177b00bc`.
-Changed-program fingerprint:
-`sha256:7f7393da44f7f270e9a2f8cd9f55a84a3892e7be84a55b08bf1556791c0e40c9`.
+No compiler logic, scheduling, macro expansion, materialization, price
+generation, Runner integration, ScenarioSpecification assembly, grammar,
+Catalog execution, Stage 1-6, Project 1, or production change is present.
 
-No compiler, generated scenarios, manifest, provider, Runner integration,
-Stage execution, randomness, learning, optimization, Project 1, or production
-change is present.
-
+Independent audit verdict: APPROVE WITH MINOR RECOMMENDATIONS. Applied
+pre-commit: removed wildcard `import *` in test_compiler_contracts.py
+(explicit imports only); added `__all__` to compiler/__init__.py (matching
+grammar/__init__.py's established pattern); retyped
+TimelineSegment.interpolation_policy from bare str to the existing
+PathSmoothness enum; reformatted all six files to standard one-statement-
+per-line style. No behavior changed -- all checks (contracts, geometry,
+timeline, diagnostics, immutability, determinism, research_isolation) still
+pass identically post-patch; geometry fingerprint formula untouched;
+cross-process determinism reconfirmed. No grammar, Runner, Catalog
+execution, Stage 1-6, Project 1, or production file touched.
 ---
 
 ## Prior Stable Status (PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE)
@@ -550,8 +554,8 @@ Next: Stage 2 snapshot dynamic mechanics approval.
 
 Current checkpoint: RDM_V2_PHASE0_PASSIVE_SHADOW_PRODUCTION_SAFE
 
-PHASE 0 CLOSED — PRODUCTION SAFE (final Phase 0 checkpoint; deliberately
-distinct from "PRODUCTION VALIDATED" — correctness under load is proven by the
+PHASE 0 CLOSED â€” PRODUCTION SAFE (final Phase 0 checkpoint; deliberately
+distinct from "PRODUCTION VALIDATED" â€” correctness under load is proven by the
 Replay Soak; the LIVE soaks prove safety alongside real production).
 
 Journey: Safety Modules -> Runtime Emitter -> Live Tap -> Passive Worker ->
@@ -602,7 +606,7 @@ CPU=1.41s, memory=101.3MB, result=PASS.
 - No production errors, drops, desynchronization, or worker failures.
 - No production output replacement, dashboard changes, formula changes, Stage
   2C, or Dynamic State recomputation.
-- One payload difference (received=10, processed=9) — likely one in-flight
+- One payload difference (received=10, processed=9) â€” likely one in-flight
   payload at forced stop; not a failure since failed/dropped/desync stayed zero.
 
 Validation: git diff --check clean; only the 5 checkpoint docs staged.
@@ -640,7 +644,7 @@ Repository integrity fix (shadow-only, no production behavior changed):
   core/passive_shadow_bootstrap.py, which was implemented/run locally (Phase 0F)
   but never committed -> fresh clone could not run the committed soak.
 - Fix: committed the 2 missing Phase 0F bootstrap files as an isolated checkpoint
-  (core/passive_shadow_bootstrap.py — fail-safe, flag-gated default OFF,
+  (core/passive_shadow_bootstrap.py â€” fail-safe, flag-gated default OFF,
   kill-switch protected, imports only committed core modules; and
   experiments/passive_shadow_worker/bootstrap_test.py).
 - Scope: ONLY the 2 files (+ docs); daily_session.py, live_rdm pre-existing hunks,
@@ -660,7 +664,7 @@ Next: Final Architectural Review.
 
 Current checkpoint: RDM_V2_PHASE0D_MINIMAL_LIVE_TAP_STABLE
 
-Phase 0D: first (minimal) production wiring of the Passive Shadow Runtime — one
+Phase 0D: first (minimal) production wiring of the Passive Shadow Runtime â€” one
 flag-gated, isolated tap:
 - one minimal flag-gated tap in compute_live_rdm_for_case (core/live_rdm.py);
   only production line is _shadow_emit(record).
@@ -839,11 +843,11 @@ Next: Dynamic Mechanics Adapter approval.
 
 Current checkpoint: RDM_V2_RESTART_DURABILITY_CONTRACT_ACCEPTED
 
-Restart / Durability Contract (ACCEPTED — architecture decision only, NO code):
+Restart / Durability Contract (ACCEPTED â€” architecture decision only, NO code):
 - The append-only ordered row log is the source of truth.
 - Persist-before-process (durably append row before InteractionState advances).
 - Rebuild-from-history is the primary recovery mechanism.
-- The snapshot is a cache / projection only — never the source of truth.
+- The snapshot is a cache / projection only â€” never the source of truth.
 - Watermark = InteractionState.previous_row_index (single recovery anchor).
 - Geometry-in-effect must be pinned (geometry_version + bounds) or replay diverges.
 - Checkpoints are an optimization, not correctness.
@@ -923,8 +927,8 @@ Both dashboards:
 Live stream: python -m engines.stream_manager
   (prevent sleep first: powercfg /change standby-timeout-ac 0)
 
-Next: run LIVE stream continuously → accumulate post-return visits →
-validate LIVE vs REPLAY dynamic_state → B13.
+Next: run LIVE stream continuously â†’ accumulate post-return visits â†’
+validate LIVE vs REPLAY dynamic_state â†’ B13.
 
 ---
 
@@ -954,7 +958,7 @@ B12.5 complete (3 stages):
   - 14,512 post-return visits, 2,980 zones
   - SDR-led dynamic state: 86.6% accuracy
   - STRONG_HOLD=100% HOLD, ATTACKER_DOMINANT=99.6% FAIL
-  - SDR >= 1 → 99.6% FAIL (near-deterministic)
+  - SDR >= 1 â†’ 99.6% FAIL (near-deterministic)
   - Mathematical layers: derivative + integral + SDR per visit
   - Thresholds: percentile-calibrated from pre-return data
 
@@ -968,9 +972,9 @@ Streaming replay (--stream) required on this machine (24 GB RAM).
 
 Current checkpoint: PHASE1B_UNIFIED_ARCHIVE_STABLE
 
-Archive: Feb 01 → Jun 05 2026, continuous (zero seams), 4,859 zones.
+Archive: Feb 01 â†’ Jun 05 2026, continuous (zero seams), 4,859 zones.
 B12v2: 98.8% accuracy, HOLD F1=0.989, FAIL F1=0.986, evaluable=2,441.
-Physics: r=0.9991 (sigma x penetration, n=2,977) — strongest yet.
+Physics: r=0.9991 (sigma x penetration, n=2,977) â€” strongest yet.
 Streaming replay (--stream) required on this machine (24 GB RAM).
 
 Weak point identified: STABLE trajectory (44.4% hold rate, all 10 false
@@ -978,7 +982,7 @@ HOLDs). All other trajectories: STRENGTHENING/TERMINAL = 100% accuracy.
 
 Next: regime generalization (second independent period) + B12.5 + B13.
 
-Prior checkpoints (not all individually detailed here — see git log /
+Prior checkpoints (not all individually detailed here â€” see git log /
 CURRENT_CHECKPOINT.md "Prior Checkpoints"):
 - PHASE1B_STREAMING_REPLAY_STABLE
 - PHASE1B_B12_LIVE_VALIDATION
@@ -996,18 +1000,18 @@ CURRENT_CHECKPOINT.md "Prior Checkpoints"):
 `tools/generate_binance_historical_replay.py`:
 - New flag `--stream` (default off; old path byte-for-byte unchanged
   when absent).
-- New reader `stream_cached_day_trades()` — yields aggTrades from the
+- New reader `stream_cached_day_trades()` â€” yields aggTrades from the
   Tier-1 raw-trade cache one UTC day at a time (O(one day) memory).
 - New consumer `run_streaming_pipeline()`:
   - Persistent `tick_buffer` across day-file boundaries, flushed only
-    at `row_size` (500 ticks) — never at a day seam.
+    at `row_size` (500 ticks) â€” never at a day seam.
   - ONE continuous `StatisticsEngine` / `RenkoEngine` / observation
     state for the whole window.
   - Warmup primed via `deque(maxlen=500)`, tick_buffer reset at the
     warmup -> target boundary.
   - Incremental CSV writes for market-rows and observation-rows.
   - Row-count invariant assertions (`rows == ceil(target_trades/500)`,
-    non-final rows have `tick_count == 500`) — raises on violation.
+    non-final rows have `tick_count == 500`) â€” raises on violation.
   - V1/V2 replay events/episodes + archiving reuse the existing
     (unchanged) functions, fed by re-reading the observation CSV.
 - `--save-raw` is not supported together with `--stream`.
@@ -1015,12 +1019,12 @@ CURRENT_CHECKPOINT.md "Prior Checkpoints"):
 STATUS: Stages 1-3 implemented and additive-verified (compiles, 0
 deletions, old path unchanged). `--stream` run on April reproduced the
 known-good April B12v2 numbers (808 zone cases, r=0.9966, 97.8%
-accuracy) — metric-level verified. The formal Stage 3 byte-identical
+accuracy) â€” metric-level verified. The formal Stage 3 byte-identical
 sha256 comparison was not separately confirmed (the in-memory side
-OOMed on this machine during that test — see "Known Issue" below).
+OOMed on this machine during that test â€” see "Known Issue" below).
 
 **`--stream` is now REQUIRED on this machine for all replay rebuilds,
-including single months** — the in-memory path is unreliable here (see
+including single months** â€” the in-memory path is unreliable here (see
 "Known Issue"). Treat `--stream` output as the research dataset going
 forward; it is REPLAY_AGGTRADE data, same as the in-memory path (see
 CURRENT_CHECKPOINT.md "Research Data Labeling").
@@ -1029,7 +1033,7 @@ CURRENT_CHECKPOINT.md "Research Data Labeling").
 
 During the Stage 3 equivalence test, the old in-memory path OOMed on
 April (~25.5M trades) on this 24GB machine. Cause unconfirmed (possibly
-low free RAM at that moment — other processes, prior run residual
+low free RAM at that moment â€” other processes, prior run residual
 memory). `--stream` avoids this entirely by design and is required
 going forward regardless of cause. The 126-day (2026-02-01 ->
 2026-06-06) in-memory OOM estimate (~60-75GB) remains valid/unchanged.
@@ -1040,7 +1044,7 @@ Always take a snapshot/backup of `outputs/` BEFORE any run that writes
 to it (especially with `--overwrite`). See RUN_COMMANDS.md "Pre-run
 snapshot rule".
 
-## B12 Live Validation — still active
+## B12 Live Validation â€” still active
 
 `core/live_b12_validation.py` remains active, unchanged, running
 against LIVE (raw `@trade`) data, separate from the REPLAY_AGGTRADE
@@ -1064,7 +1068,7 @@ Output file: research/zone_synthesis.csv
 
 NOTE: the exact row/column counts and prediction distribution recorded
 in the prior PHASE1B_SYNTHESIS_ENGINE_STABLE checkpoint (276 rows, 13
-columns) predate the March/April/May generalization and B12v2 work —
+columns) predate the March/April/May generalization and B12v2 work â€”
 do not treat those numbers as current without re-checking
 research/zone_synthesis.csv.
 

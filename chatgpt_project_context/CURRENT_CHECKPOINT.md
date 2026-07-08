@@ -1,5 +1,93 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1D_GEOMETRY_CONTRACTS_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III adds geometry-resolution contracts only. This checkpoint
+creates the immutable boundary objects for the future Geometry Resolver without
+implementing resolution behavior, price materialization, interpolation,
+Scenario Runner integration, ScenarioSpecification assembly, Stage 1-6 changes,
+Project 1 changes, or production changes.
+
+Implemented contracts:
+- ResolvedCoordinate: geometry anchor intent only; absolute_price is not a
+  materialized row price.
+- ResolvedSegment: preserves both TimelineSegment and ExpandedInstruction so
+  future geometry resolution can combine row scheduling metadata with original
+  PrimitiveInstruction.parameters.
+- ResolvedTimeline: immutable ordered resolved segment container only; no
+  success, diagnostics, or fingerprints.
+- GeometryResolutionResult: result envelope mirroring ExpansionResult and
+  SchedulingResult with success, resolved_timeline, diagnostics, input
+  fingerprints, geometry_fingerprint, resolver_version, and
+  resolution_fingerprint.
+- GeometryResolutionRole: placeholder contract for future role mapping keyed
+  by PrimitiveType + macro_origin, not PrimitiveType alone.
+- Deterministic geometry_resolution_fingerprint helper for contract validation
+  and future resolver provenance.
+
+Architectural correction captured:
+- Future resolver input is ExpansionResult + SchedulingResult +
+  GeometryContext, not SchedulingResult alone.
+- This avoids modifying frozen TimelineSegment, SchedulingResult,
+  ExpandedInstruction, or expansion contracts.
+- Future resolver must validate scheduling_result.expansion_fingerprint ==
+  expansion_result.expansion_fingerprint before resolving.
+- TimelineSegment owns row_start, row_end, primitive_type, target_zone,
+  macro_origin, and interpolation_policy.
+- ExpandedInstruction owns PrimitiveInstruction, row_budget, and
+  PrimitiveInstruction.parameters.
+- Future resolver combines timeline.segments[i] with
+  expansion_result.expanded_instructions[i] by positional correspondence.
+
+Units contract:
+- depth, clearance, and distance are Decimal fractions of
+  GeometryReference.half_width.
+- No floats.
+- No absolute price deltas except explicit geometry anchors.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/geometry_resolution.py
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_geometry_resolution_contracts.py
+
+Validation commands:
+- python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/geometry_resolution.py
+- python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_geometry_resolution_contracts.py
+- python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_geometry_resolution_contracts.py
+- git diff --check
+- git status
+
+Validation result: geometry_resolution_contracts PASS; resolved_coordinate
+PASS; resolved_segment PASS; resolved_timeline PASS; resolution_result PASS;
+immutability PASS; determinism PASS; research_isolation PASS; errors=[];
+result=PASS.
+
+Isolation confirmed:
+- No Grammar changes.
+- No Compiler Contracts changes.
+- No Expansion Contracts changes.
+- No Macro Expansion changes.
+- No Timeline Scheduler changes.
+- No Runner changes.
+- No Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No production changes.
+
+Chapter III roadmap:
+
+Completed:
+- PHASE1D_GRAMMAR_FOUNDATION_STABLE
+- PHASE1D_COMPILER_CONTRACTS_STABLE
+- PHASE1D_EXPANSION_CONTRACTS_STABLE
+- PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+- PHASE1D_TIMELINE_SCHEDULER_STABLE
+- PHASE1D_GEOMETRY_CONTRACTS_STABLE
+
+Next planned checkpoint: PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE
+
+---
 ## Active Checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
 
 Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`

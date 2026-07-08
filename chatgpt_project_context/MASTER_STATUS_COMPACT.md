@@ -2,6 +2,56 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_GEOMETRY_CONTRACTS_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III adds immutable geometry-resolution contracts only. No
+geometry resolution logic, price materialization, interpolation, Runner
+integration, ScenarioSpecification assembly, Stage 1-6 changes, Project 1
+changes, or production changes are present.
+
+Implemented:
+- ResolvedCoordinate: absolute geometry anchor intent, not a materialized row
+  price.
+- ResolvedSegment: preserves both TimelineSegment and ExpandedInstruction.
+- ResolvedTimeline: bare immutable resolved segment container only.
+- GeometryResolutionResult: success/diagnostics/fingerprint envelope matching
+  the ExpansionResult and SchedulingResult pattern.
+- GeometryResolutionRole: future role-mapping placeholder keyed by
+  PrimitiveType + macro_origin.
+- Deterministic geometry_resolution_fingerprint helper.
+
+Architectural correction: future Geometry Resolver input is ExpansionResult +
+SchedulingResult + GeometryContext. TimelineSegment is not modified because it
+owns only row/timeline metadata; ExpandedInstruction is preserved because it
+owns PrimitiveInstruction.parameters. Future resolver must validate matching
+expansion fingerprints before resolving and pair timeline.segments[i] with
+expansion_result.expanded_instructions[i].
+
+Units: depth, clearance, and distance are Decimal fractions of
+GeometryReference.half_width; no floats and no absolute deltas except explicit
+geometry anchors.
+
+Validation: py_compile PASS for geometry_resolution.py and
+ test_geometry_resolution_contracts.py; geometry_resolution_contracts PASS,
+resolved_coordinate PASS, resolved_segment PASS, resolved_timeline PASS,
+resolution_result PASS, immutability PASS, determinism PASS,
+research_isolation PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no Grammar / Compiler Contracts / Expansion Contracts /
+Macro Expansion / Timeline Scheduler / Runner / Catalog / Stage 1-6 / Project 1
+/ production changes.
+
+Chapter III roadmap -- completed: PHASE1D_GRAMMAR_FOUNDATION_STABLE,
+PHASE1D_COMPILER_CONTRACTS_STABLE, PHASE1D_EXPANSION_CONTRACTS_STABLE,
+PHASE1D_MACRO_EXPANSION_LOGIC_STABLE, PHASE1D_TIMELINE_SCHEDULER_STABLE,
+PHASE1D_GEOMETRY_CONTRACTS_STABLE. Next planned checkpoint:
+PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
 
 Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`

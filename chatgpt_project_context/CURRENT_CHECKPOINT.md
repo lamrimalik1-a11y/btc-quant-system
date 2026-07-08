@@ -1,6 +1,90 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE1D_GEOMETRY_CONTRACTS_STABLE
+## Active Checkpoint: PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; independently audited (two rounds); awaiting
+review before commit.
+
+Project 2 Chapter III implements the deterministic Geometry Resolution
+engine: `resolve_geometry(expansion_result, scheduling_result,
+geometry_context)` resolves geometry-relative primitive intent into absolute
+geometry anchors only. No price generation, no interpolation, no
+materialization, no smoothing, no continuity repair.
+
+Implemented:
+- Explicit immutable `(PrimitiveType, macro_origin)` role table
+  (`GEOMETRY_RESOLUTION_ROLES`, 23 entries) covering every primitive
+  provenance the current grammar/macro set can produce.
+- Upstream validation: expansion failure, scheduling failure, and
+  expansion/scheduling fingerprint mismatch all reject before resolution
+  begins, preserving upstream diagnostics and appending
+  `UPSTREAM_EXPANSION_FAILED` / `UPSTREAM_SCHEDULING_FAILED` /
+  `EXPANSION_SCHEDULING_FINGERPRINT_MISMATCH`.
+- `TimelineSegment[i]` <-> `ExpandedInstruction[i]` correspondence
+  validation (`SEGMENT_INSTRUCTION_INDEX_MISMATCH`,
+  `TIMELINE_EXPANSION_LENGTH_MISMATCH`).
+- Zone lookup, required/optional parameter validation, and Decimal-fraction
+  validation, all producing deterministic FATAL diagnostics -- no silent
+  defaults.
+- Decimal-only half-width fraction arithmetic throughout.
+- `TRANSFER_TO_ZONE` handled correctly: `WITHDRAW` resolves against the
+  source zone (recovering the true destination via a `source_phrase_index`
+  cross-reference to its sibling `RAMP`/`APPROACH` primitives, since
+  Macro Expansion already repurposes `WITHDRAW`'s own `target_zone` to mean
+  "source"); `RAMP`/`APPROACH` resolve against the destination zone;
+  direction is inferred from source/target zone center comparison; identical
+  source/target centers fail deterministically with
+  `INVALID_TRANSFER_DIRECTION`.
+- `PENETRATE` without a resolvable `side` fails deterministically with
+  `UNRESOLVABLE_PENETRATION_DIRECTION` rather than silently collapsing to
+  the zone center regardless of `depth` -- this was a real defect caught and
+  fixed during audit (see below).
+- Deterministic `resolution_fingerprint` (canonical JSON + SHA-256) over
+  resolved segments, diagnostics, and all upstream fingerprints plus
+  `compiler_version`/`resolver_version`.
+- Fatal rollback: any FATAL diagnostic forces `success=False`,
+  `resolved_timeline=None` -- never a partial `ResolvedTimeline`.
+
+Audit history (two rounds, both independently verified by direct execution,
+not by trusting the implementation's own report):
+- Round 1 found two real defects, both sharing the same shape (a correct
+  Decimal offset was computed and recorded in `resolved_parameters`, but
+  never applied to the resolved coordinate's `absolute_price`):
+  `PENETRATE` without `side` silently collapsed to the exact zone center
+  regardless of `depth` (verified: depth=0.05 and depth=0.95 produced
+  byte-identical anchors); `TRANSFER_TO_ZONE`'s `WITHDRAW` step computed
+  `travel_distance_absolute` correctly but never applied it (start and end
+  coordinates were identical regardless of the authored distance).
+- Round 2 confirmed both fixed: `PENETRATE` without `side` now fails
+  deterministically (`UNRESOLVABLE_PENETRATION_DIRECTION`) instead of
+  guessing; `WITHDRAW`'s end coordinate now reflects the real offset
+  (verified against hand-computed arithmetic: source upper boundary +
+  scaled travel_distance).
+
+Boundary: no price generation, no interpolation, no row materialization, no
+smoothing, no continuity repair, no Runner, no ScenarioSpecification, no
+Stage 1-6, no Project 1, no production changes. Contracts
+(`ResolvedCoordinate`/`ResolvedSegment`/`ResolvedTimeline`/
+`GeometryResolutionResult`/`GeometryResolutionRole`) unchanged from
+PHASE1D_GEOMETRY_CONTRACTS_STABLE -- confirmed via `git diff --stat` showing
+pure appends only, zero deletions, across both audit rounds.
+
+Files created:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_geometry_resolution_logic.py
+
+Files modified:
+- experiments/psychological_levels_dynamic/scenario_catalog/compiler/geometry_resolution.py
+  (logic appended below the frozen contracts; contracts region untouched)
+
+Validation: py_compile PASS (both files); test_geometry_resolution_contracts.py
+PASS (all 8 checks); test_geometry_resolution_logic.py PASS (all 6 checks:
+basic_resolution, transfer_resolution, fatal_diagnostics,
+fingerprint_determinism, cross_process_determinism, research_isolation);
+cross-process determinism confirmed; git diff --check PASS.
+
+---
+
+## Prior Stable Checkpoint: PHASE1D_GEOMETRY_CONTRACTS_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
 

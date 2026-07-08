@@ -2,16 +2,48 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE
+
+Status: implemented, validated, and independently audited (two rounds);
+awaiting review before commit.
+
+Project 2 Chapter III implements the deterministic Geometry Resolution
+engine (`resolve_geometry(expansion_result, scheduling_result,
+geometry_context)`): resolves geometry-relative primitive intent into
+absolute geometry anchors only via an explicit 23-entry
+`(PrimitiveType, macro_origin)` role table, upstream/fingerprint/
+correspondence validation, Decimal-only fraction arithmetic, correct
+TRANSFER_TO_ZONE handling (WITHDRAW resolves against source zone via a
+sibling cross-reference, RAMP/APPROACH resolve against destination, direction
+inferred from zone centers, identical centers rejected deterministically),
+deterministic resolution_fingerprint, and fatal rollback with no partial
+output. No price generation, interpolation, materialization, smoothing, or
+continuity repair.
+
+Audit found and fixed two real defects (both: a correct Decimal offset was
+computed but never applied to the resolved coordinate): PENETRATE without
+side silently collapsed to the exact zone center regardless of depth
+(verified depth=0.05 and depth=0.95 produced identical anchors) -- now fails
+deterministically with UNRESOLVABLE_PENETRATION_DIRECTION; TRANSFER_TO_ZONE's
+WITHDRAW computed travel_distance_absolute but never applied it -- now
+verified to produce a real, distinct end coordinate matching hand-computed
+arithmetic. Contracts unchanged throughout both audit rounds (git diff
+--stat: pure appends, zero deletions).
+
+No price materialization, interpolation, Runner
+integration, ScenarioSpecification assembly, Stage 1-6 changes, Project 1
+changes, or production changes are present.
+
+---
+
+## Prior Stable Status (PHASE1D_GEOMETRY_CONTRACTS_STABLE)
+
 Current checkpoint: PHASE1D_GEOMETRY_CONTRACTS_STABLE
 
 Status: implemented and validated; awaiting review before commit.
 
-Project 2 Chapter III adds immutable geometry-resolution contracts only. No
-geometry resolution logic, price materialization, interpolation, Runner
-integration, ScenarioSpecification assembly, Stage 1-6 changes, Project 1
-changes, or production changes are present.
-
-Implemented:
+Project 2 Chapter III added immutable geometry-resolution contracts only (no
+resolution logic, present in this repository at the time). Implemented:
 - ResolvedCoordinate: absolute geometry anchor intent, not a materialized row
   price.
 - ResolvedSegment: preserves both TimelineSegment and ExpandedInstruction.

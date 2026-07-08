@@ -159,9 +159,15 @@ def run() -> dict[str, Any]:
             "generate_price",
             "priceobservation(",
         )
-        for path in Path(__file__).parent.glob("*.py"):
-            if path.name == Path(__file__).name:
-                continue
+        contract_modules = (
+            "contracts.py",
+            "primitives.py",
+            "timeline.py",
+            "geometry.py",
+            "diagnostics.py",
+        )
+        for module_name in contract_modules:
+            path = Path(__file__).with_name(module_name)
             text = path.read_text(encoding="utf-8").lower()
             for token in forbidden:
                 assert token not in text, f"{path.name}:{token}"

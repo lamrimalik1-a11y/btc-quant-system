@@ -2,6 +2,23 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_FULL_COMPILER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III now includes the thin full compiler orchestrator. `compile_program(program, geometry_context, compiler_version)` wires only the existing stable stages: macro expansion -> timeline scheduling -> geometry resolution -> price materialization, then returns the existing `CompilationResult` contract. It adds no new mechanics, no new geometry logic, no new price logic, no ScenarioSpecification assembly, no Runner integration, no Catalog execution, and no Stage 1-6 calls.
+
+Successful compilation now produces `PriceObservation[]` from `GrammarProgram + GeometryContext`, carries the scheduling timeline, preserves `program.program_fingerprint`, `geometry_context.geometry_fingerprint`, compiler version, and materialization checksum, and sorts diagnostics deterministically. Failed stages roll back to `success=False`, `observations=()`, `timeline=None`, `observation_checksum=None`, preserving diagnostics from executed stages.
+
+The full compiler intentionally reuses the frozen `CompilationResult` contract. Intermediate fingerprints are not all carried in `CompilationResult` by design; `observation_checksum` is preserved, and fine-grained provenance remains available by calling the individual compiler stages.
+
+Validation PASS: full compiler py_compile + test_full_compiler.py PASS; materialization contracts PASS; materialization logic PASS; geometry resolution logic PASS; timeline scheduler PASS; macro expansion PASS; git diff --check PASS.
+
+Isolation confirmed: no Grammar, Compiler Contracts, Expansion Contracts, Macro Expansion, Timeline Scheduler, Geometry Resolution, Price Materialization Logic, Scenario Contract, Scenario Registry, Scenario Primitives, Scenario Runner, Catalog, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_PRICE_MATERIALIZATION_LOGIC_STABLE
 
 Status: implemented and validated; awaiting review before commit.

@@ -2,6 +2,21 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_PRICE_MATERIALIZATION_LOGIC_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III now includes deterministic price materialization logic. `materialize_prices(geometry_result: GeometryResolutionResult) -> MaterializationResult` consumes only resolved geometry and emits actual `PriceObservation` rows. Supported policies are STEP and LINEAR only. STEP assigns each segment row the end anchor; LINEAR uses exact Decimal interpolation, with row_count=1 emitting only the end anchor. `PriceObservation.row_index` is generated as 1-based rows from scheduler row positions.
+
+Rollback and provenance are deterministic: failed geometry, missing timeline, missing/invalid coordinates, invalid row_count, or unsupported interpolation produce FATAL diagnostics and return `success=False`, `observations=()`, `observation_checksum=None`. Successful output reuses the existing `observation_checksum()` unchanged and records materialization provenance through `materialization_fingerprint`.
+
+Validation PASS: py_compile for materializer + logic test; test_price_materialization_logic.py step_materialization PASS, linear_single_row PASS, linear_multi_row PASS, checksum_determinism PASS, fatal_rollback PASS, cross_process_determinism PASS, research_isolation PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no Grammar, Compiler Contracts, Expansion Contracts, Macro Expansion, Timeline Scheduler, Geometry Contracts, Runner, Catalog, ScenarioSpecification, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_MATERIALIZATION_CONTRACTS_STABLE
 
 Status: implemented and validated; awaiting review before commit.

@@ -1,5 +1,42 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1D_PRICE_MATERIALIZATION_LOGIC_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III added deterministic price materialization logic:
+`materialize_prices(geometry_result: GeometryResolutionResult) -> MaterializationResult`.
+This is the first compiler phase that emits actual `PriceObservation` rows, and it consumes only `GeometryResolutionResult`.
+
+Implemented:
+- STEP materialization: every row in a resolved segment receives `end_coordinate.absolute_price`.
+- LINEAR materialization: row_count=1 emits the end anchor; row_count>1 emits exact Decimal interpolation from start anchor to end anchor.
+- 1-based `PriceObservation.row_index` generation from scheduler row positions.
+- Deterministic fatal rollback: any FATAL diagnostic returns `success=False`, `observations=()`, and `observation_checksum=None`.
+- Deterministic materialization diagnostics for failed geometry resolution, missing resolved timeline, missing/invalid coordinates, invalid row_count, and unsupported interpolation policy.
+- Checksum reuse through existing `observation_checksum()`; implementation unchanged.
+- Cross-process determinism and research-isolation validation.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_logic.py`
+
+Files modified:
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/price_materialization.py`
+- `chatgpt_project_context/CURRENT_CHECKPOINT.md`
+- `chatgpt_project_context/MASTER_STATUS_COMPACT.md`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/price_materialization.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_logic.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_logic.py`
+- `git diff --check`
+- `git status`
+
+Validation result: py_compile PASS; step_materialization PASS; linear_single_row PASS; linear_multi_row PASS; checksum_determinism PASS; fatal_rollback PASS; cross_process_determinism PASS; research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no Grammar, Compiler Contracts, Expansion Contracts, Macro Expansion, Timeline Scheduler, Geometry Contracts, Runner, Catalog, ScenarioSpecification, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
 ## Active Checkpoint: PHASE1D_MATERIALIZATION_CONTRACTS_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.

@@ -1,8 +1,10 @@
-"""Immutable price-materialization contracts; no materialization behavior.
+"""Price-materialization contracts and deterministic materialization logic.
 
-This module defines only the future Price Materializer boundary. It stores
-immutable result/provenance contracts and deterministic hashes, with no row
-generation or downstream orchestration.
+The materializer consumes only GeometryResolutionResult and emits immutable
+PriceObservation rows. It owns STEP/LINEAR row generation, checksums,
+materialization diagnostics, and rollback. It does not own grammar, expansion,
+scheduling, geometry resolution, runner execution, catalog behavior, or research
+analysis.
 """
 
 from __future__ import annotations
@@ -18,10 +20,13 @@ from experiments.psychological_levels_dynamic.scenario_contract import (
     PriceObservation,
 )
 
+from ..grammar.dimensions import PathSmoothness
 from .diagnostics import CompilerDiagnostic, DiagnosticSeverity
+from .geometry_resolution import GeometryResolutionResult, ResolvedCoordinate
 
 
 MATERIALIZATION_CONTRACT_VERSION = "MATERIALIZATION_CONTRACTS_V1"
+PRICE_MATERIALIZER_VERSION = "PRICE_MATERIALIZER_LOGIC_V1"
 
 
 def _decimal_text(value: Decimal) -> str:
@@ -174,3 +179,174 @@ class MaterializationResult:
             raise ValueError("compiler_version must not be empty")
         if not self.materializer_version.strip():
             raise ValueError("materializer_version must not be empty")
+
+
+def _fatal(
+    code: str,
+    message: str,
+    phrase_index: int | None = None,
+    parameter_name: str | None = None,
+) -> CompilerDiagnostic:
+    return CompilerDiagnostic(
+        code=code,
+        severity=DiagnosticSeverity.FATAL,
+        message=message,
+        phrase_index=phrase_index,
+        parameter_name=parameter_name,
+    )
+
+
+def _result(
+    *,
+    geometry_result: GeometryResolutionResult,
+    observations: tuple[PriceObservation, ...],
+    diagnostics: tuple[CompilerDiagnostic, ...],
+    materializer_version: str,
+) -> MaterializationResult:
+    sorted_diagnostics = tuple(sorted(diagnostics, key=lambda item: item.deterministic_key))
+    success = not any(
+        diagnostic.severity == DiagnosticSeverity.FATAL
+        for diagnostic in sorted_diagnostics
+    )
+    checksum = observation_checksum(observations) if success else None
+    fingerprint = materialization_fingerprint(
+        observation_checksum_value=checksum,
+        diagnostics=sorted_diagnostics,
+        grammar_fingerprint=geometry_result.grammar_fingerprint,
+        expansion_fingerprint=geometry_result.expansion_fingerprint,
+        timeline_fingerprint=geometry_result.timeline_fingerprint,
+        geometry_fingerprint=geometry_result.geometry_fingerprint,
+        resolution_fingerprint=geometry_result.resolution_fingerprint,
+        compiler_version=geometry_result.compiler_version,
+        materializer_version=materializer_version,
+    )
+    return MaterializationResult(
+        success=success,
+        observations=observations if success else (),
+        diagnostics=sorted_diagnostics,
+        observation_checksum=checksum,
+        materialization_fingerprint=fingerprint,
+        grammar_fingerprint=geometry_result.grammar_fingerprint,
+        expansion_fingerprint=geometry_result.expansion_fingerprint,
+        timeline_fingerprint=geometry_result.timeline_fingerprint,
+        geometry_fingerprint=geometry_result.geometry_fingerprint,
+        resolution_fingerprint=geometry_result.resolution_fingerprint,
+        compiler_version=geometry_result.compiler_version,
+        materializer_version=materializer_version,
+    )
+
+
+def _valid_price(coordinate: ResolvedCoordinate | None) -> Decimal | None:
+    if coordinate is None:
+        return None
+    price = coordinate.absolute_price
+    if not isinstance(price, Decimal) or not price.is_finite():
+        return None
+    return price
+
+
+def _step_prices(end_price: Decimal, row_count: int) -> tuple[Decimal, ...]:
+    return tuple(end_price for _ in range(row_count))
+
+
+def _linear_prices(start_price: Decimal, end_price: Decimal, row_count: int) -> tuple[Decimal, ...]:
+    if row_count == 1:
+        return (end_price,)
+    denominator = Decimal(row_count - 1)
+    return tuple(
+        start_price + (end_price - start_price) * Decimal(offset) / denominator
+        for offset in range(row_count)
+    )
+
+
+def materialize_prices(
+    geometry_result: GeometryResolutionResult,
+    materializer_version: str = PRICE_MATERIALIZER_VERSION,
+) -> MaterializationResult:
+    """Generate deterministic PriceObservation rows from resolved geometry."""
+
+    if not isinstance(geometry_result, GeometryResolutionResult):
+        raise TypeError("geometry_result must be GeometryResolutionResult")
+    if not materializer_version.strip():
+        raise ValueError("materializer_version must not be empty")
+
+    diagnostics: list[CompilerDiagnostic] = []
+    observations: list[PriceObservation] = []
+    if not geometry_result.success:
+        diagnostics.extend(geometry_result.diagnostics)
+        diagnostics.append(
+            _fatal(
+                "UPSTREAM_GEOMETRY_RESOLUTION_FAILED",
+                "geometry_result.success is False",
+            )
+        )
+        return _result(
+            geometry_result=geometry_result,
+            observations=(),
+            diagnostics=tuple(diagnostics),
+            materializer_version=materializer_version,
+        )
+    if geometry_result.resolved_timeline is None:
+        diagnostics.append(
+            _fatal(
+                "MISSING_RESOLVED_TIMELINE",
+                "successful geometry resolution did not provide a resolved timeline",
+            )
+        )
+        return _result(
+            geometry_result=geometry_result,
+            observations=(),
+            diagnostics=tuple(diagnostics),
+            materializer_version=materializer_version,
+        )
+
+    for resolved_segment in geometry_result.resolved_timeline.segments:
+        segment = resolved_segment.timeline_segment
+        phrase_index = segment.source_phrase_index
+        if segment.row_count <= 0:
+            diagnostics.append(
+                _fatal(
+                    "INVALID_ROW_COUNT",
+                    "timeline segment row_count must be positive",
+                    phrase_index,
+                    "row_count",
+                )
+            )
+            continue
+        start_price = _valid_price(resolved_segment.start_coordinate_intent)
+        end_price = _valid_price(resolved_segment.end_coordinate_intent)
+        if start_price is None or end_price is None:
+            diagnostics.append(
+                _fatal(
+                    "MISSING_OR_INVALID_COORDINATE",
+                    "resolved segment requires finite Decimal start and end coordinates",
+                    phrase_index,
+                    "coordinate",
+                )
+            )
+            continue
+        if segment.interpolation_policy == PathSmoothness.STEP:
+            prices = _step_prices(end_price, segment.row_count)
+        elif segment.interpolation_policy == PathSmoothness.LINEAR:
+            prices = _linear_prices(start_price, end_price, segment.row_count)
+        else:
+            diagnostics.append(
+                _fatal(
+                    "UNSUPPORTED_INTERPOLATION_POLICY",
+                    "only STEP and LINEAR materialization are supported",
+                    phrase_index,
+                    "interpolation_policy",
+                )
+            )
+            continue
+        observations.extend(
+            PriceObservation(row_index=segment.row_start + offset, price=price)
+            for offset, price in enumerate(prices)
+        )
+
+    return _result(
+        geometry_result=geometry_result,
+        observations=tuple(observations),
+        diagnostics=tuple(diagnostics),
+        materializer_version=materializer_version,
+    )

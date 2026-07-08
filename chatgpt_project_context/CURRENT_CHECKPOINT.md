@@ -1,5 +1,34 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1D_MATERIALIZATION_CONTRACTS_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III added price-materialization contracts only. This defines the future materialization boundary without generating prices, applying STEP/LINEAR behavior, interpolating, repairing continuity, assembling ScenarioSpecification values, invoking the Scenario Runner, or touching Stage 1-6.
+
+Implemented:
+- `MaterializationResult`: immutable success/failure envelope for future price materialization.
+- `observation_checksum(observations)`: deterministic canonical JSON + SHA-256 over only `PriceObservation.row_index` and `PriceObservation.price`, with Decimal-normalized text.
+- `materialization_fingerprint(...)`: deterministic canonical JSON + SHA-256 over observation checksum, diagnostics, upstream grammar/expansion/timeline/geometry/resolution fingerprints, `compiler_version`, and `materializer_version`.
+- Success/failure invariants: success requires non-empty observations and checksum; failure requires no observations and at least one FATAL diagnostic.
+- Research isolation guard proving no Runner/Catalog/Stage/Core/Engines/Research imports and no materialization logic is present.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/price_materialization.py`
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_contracts.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/price_materialization.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_contracts.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_contracts.py`
+- `git diff --check`
+- `git status`
+
+Validation result: py_compile PASS; materialization_contracts PASS; materialization_result PASS; observation_checksum PASS; materialization_fingerprint PASS; immutability PASS; determinism PASS; research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no Grammar, Expansion, Timeline Scheduler, Geometry Resolution, Runner, Catalog, ScenarioSpecification, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
 ## Active Checkpoint: PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; independently audited (two rounds); awaiting

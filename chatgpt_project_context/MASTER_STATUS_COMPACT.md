@@ -2,6 +2,19 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_MATERIALIZATION_CONTRACTS_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III now includes price-materialization contracts only: immutable `MaterializationResult`, deterministic `observation_checksum` over only `PriceObservation.row_index` + Decimal-normalized `price`, and deterministic `materialization_fingerprint` over observation checksum, diagnostics, upstream fingerprints, `compiler_version`, and `materializer_version`.
+
+This is a boundary contract only. It does not generate prices, apply STEP/LINEAR behavior, interpolate, repair continuity, assemble ScenarioSpecification values, invoke the Scenario Runner, or touch Stage 1-6. Validation PASS: py_compile for contract + test, test_price_materialization_contracts.py result=PASS, git diff --check PASS.
+
+Isolation confirmed: no Grammar, Expansion, Timeline Scheduler, Geometry Resolution, Runner, Catalog, ScenarioSpecification, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_GEOMETRY_RESOLUTION_LOGIC_STABLE
 
 Status: implemented, validated, and independently audited (two rounds);

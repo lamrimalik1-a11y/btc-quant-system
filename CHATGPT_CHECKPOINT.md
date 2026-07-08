@@ -1,3 +1,98 @@
+## Active Checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
+
+Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`
+
+Chapter I remains COMPLETE / STABLE through Stage 6 Prediction Evolution
+Research. Project 2 Chapter II remains stable through Phase 6 (Scientific
+Hypothesis Audit).
+
+Project 2 Chapter III (Scenario Expansion Laboratory) is now stable through
+the Timeline Scheduler:
+- Grammar Foundation: STABLE
+  (`726294ccd6e634162e8d67f974254f55b64d5a00`)
+- Compiler Contracts: STABLE
+  (`e60e52182b00a832b8614c944aec9efa331d82ae`)
+- Expansion Contracts: STABLE
+  (`6b96069bed2f553661cb5a881a16fbdfb6584829`)
+- Macro Expansion Logic: STABLE
+  (`ad662b1b503589b1a7b842641bf52d0ee5d00a27`)
+- Timeline Scheduler: STABLE
+  (`744a38d530fb2a6178751a24f3fd2191c48a32dc`)
+
+Architecture summary: the Timeline Scheduler is a pure scheduling layer
+transforming an ExpansionResult into a SchedulingResult wrapping a
+MechanicalTimeline. It owns row allocation only -- no geometry resolution,
+no price generation, no mechanics interpretation, no Runner invocation, no
+ScenarioSpecification assembly, no observation materialization.
+
+Implemented responsibilities:
+- ExpansionResult -> SchedulingResult.
+- Sequential deterministic row scheduling (rows allocated from 1; each
+  segment's row_start = previous row_end + 1).
+- One ExpandedInstruction maps to exactly one TimelineSegment -- no
+  instruction disappears, splits, or merges.
+- Gap-free scheduling.
+- Overlap-free scheduling.
+- Strict instruction ordering (instruction_index must be exactly
+  contiguous from zero, in order -- reordered indices such as [1, 0] are
+  rejected, not only non-contiguous ones).
+- Deterministic segment indexing.
+- Timeline validation (no gaps, no overlaps, final row equals
+  sum(row_budget), row_count consistency).
+- Timeline fingerprint: canonical JSON + SHA-256 over the TimelineSegment
+  sequence, grammar fingerprint, compiler version, expansion fingerprint,
+  and diagnostics.
+- Fatal rollback: any reject condition produces success=False,
+  timeline=None, and deterministic diagnostics -- never a partial
+  timeline.
+- Research isolation.
+
+Validation:
+- py_compile: PASS
+- test_timeline_scheduler.py: PASS (sequential_scheduling,
+  gap_overlap_freedom, final_row_correctness, fingerprint_determinism,
+  fatal_rollback, instruction_preservation, research_isolation)
+- Cross-process determinism: PASS
+- git diff --check: PASS
+
+Independent Architecture Review: APPROVED.
+
+Applied architectural corrections (post-review, pre-commit):
+- Preserve authored PathSmoothness when explicitly declared, instead of
+  always defaulting.
+- PathSmoothness.STEP used only as the versioned V1 fallback when no
+  explicit smoothness is present.
+- Reject reordered instruction indices (e.g. [1, 0]), not only
+  non-contiguous ones.
+- Preserve upstream ExpansionResult diagnostics alongside the new
+  UPSTREAM_EXPANSION_FAILED diagnostic, rather than discarding them.
+- Include diagnostics in timeline_fingerprint computation, so different
+  failure causes produce different fingerprints.
+
+Isolation confirmed:
+- No Grammar changes.
+- No Compiler Contracts changes.
+- No Expansion Contracts changes.
+- No Macro Expansion changes.
+- No Runner changes.
+- No Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No production changes.
+
+Chapter III roadmap:
+
+Completed:
+- ✓ PHASE1D_GRAMMAR_FOUNDATION_STABLE
+- ✓ PHASE1D_COMPILER_CONTRACTS_STABLE
+- ✓ PHASE1D_EXPANSION_CONTRACTS_STABLE
+- ✓ PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+- ✓ PHASE1D_TIMELINE_SCHEDULER_STABLE
+
+Next planned checkpoint: PHASE1D_GEOMETRY_RESOLUTION_ARCHITECTURE
+
+---
+
 ## Active Checkpoint: PHASE1C_SCIENTIFIC_HYPOTHESIS_AUDIT_STABLE
 
 Commit: `b381ce99b0199856242e104c06a8fe139a8def63`

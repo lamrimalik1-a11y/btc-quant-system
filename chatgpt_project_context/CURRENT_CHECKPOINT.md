@@ -2,19 +2,36 @@
 
 ## Active Checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
 
-Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`
+
+Status: STABLE AND VALIDATED.
 
 Project 2 Chapter III adds deterministic timeline scheduling from
-ExpansionResult to SchedulingResult and MechanicalTimeline.
+ExpansionResult to SchedulingResult and MechanicalTimeline. The scheduler is
+a pure scheduling layer: it owns row allocation only -- no geometry
+resolution, no price generation, no mechanics interpretation, no Runner
+invocation, no ScenarioSpecification assembly, no materialization.
 
-Validated guarantees:
-- Authored PathSmoothness is preserved when explicitly present.
-- PathSmoothness.STEP is used only as the versioned V1 fallback when absent.
-- Instruction indices must appear in exact contiguous order from zero.
-- Failed expansion diagnostics are preserved alongside the scheduler failure.
-- Canonical diagnostics participate in timeline_fingerprint computation.
-- Every expanded instruction maps to exactly one sequential, gap-free segment.
-- Fatal failures produce no partial timeline.
+Implemented responsibilities:
+- ExpansionResult -> SchedulingResult.
+- Sequential deterministic row scheduling (rows allocated from 1; each
+  segment's row_start = previous row_end + 1).
+- One ExpandedInstruction maps to exactly one TimelineSegment -- no
+  instruction disappears, splits, or merges.
+- Gap-free scheduling.
+- Overlap-free scheduling.
+- Strict instruction ordering (instruction_index must be exactly
+  contiguous from zero, in order; reordered indices such as [1, 0] are
+  rejected, not only non-contiguous ones).
+- Deterministic segment indexing.
+- Timeline validation (no gaps, no overlaps, final row equals
+  sum(row_budget), row_count consistency).
+- Timeline fingerprint (canonical JSON + SHA-256 over the TimelineSegment
+  sequence, grammar fingerprint, compiler version, expansion fingerprint,
+  and diagnostics).
+- Fatal rollback: success=False, timeline=None, deterministic diagnostics
+  on any reject condition -- never a partial timeline.
+- Research isolation.
 
 Boundary: no geometry resolution, price generation, materialization, Runner,
 Catalog, Stage 1-6, Project 1, or production changes.
@@ -23,7 +40,47 @@ Files created:
 - experiments/psychological_levels_dynamic/scenario_catalog/compiler/timeline_scheduler.py
 - experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_timeline_scheduler.py
 
-Validation: py_compile PASS; timeline scheduler test PASS; git diff --check PASS.
+Validation: py_compile PASS; test_timeline_scheduler.py PASS (all 7 checks:
+sequential_scheduling, gap_overlap_freedom, final_row_correctness,
+fingerprint_determinism, fatal_rollback, instruction_preservation,
+research_isolation); cross-process determinism PASS (byte-identical output
+across two independent invocations); git diff --check PASS.
+
+Independent Architecture Review: APPROVED.
+
+Applied architectural corrections (post-review, pre-commit):
+- Preserve authored PathSmoothness when explicitly declared on an
+  instruction's parameters, instead of always defaulting.
+- PathSmoothness.STEP used only as the versioned V1 fallback when no
+  explicit smoothness is present.
+- Reject reordered instruction indices (e.g. [1, 0]) -- the check compares
+  the raw sequence against range(N), not a sorted copy.
+- Preserve upstream ExpansionResult diagnostics alongside the new
+  UPSTREAM_EXPANSION_FAILED diagnostic, rather than discarding them.
+- Include diagnostics in timeline_fingerprint computation, so different
+  failure causes produce different fingerprints.
+
+Isolation confirmed:
+- No Grammar changes.
+- No Compiler Contracts changes.
+- No Expansion Contracts changes.
+- No Macro Expansion changes.
+- No Runner changes.
+- No Catalog changes.
+- No Stage 1-6 changes.
+- No Project 1 changes.
+- No production changes.
+
+Chapter III roadmap:
+
+Completed:
+- ✓ PHASE1D_GRAMMAR_FOUNDATION_STABLE
+- ✓ PHASE1D_COMPILER_CONTRACTS_STABLE
+- ✓ PHASE1D_EXPANSION_CONTRACTS_STABLE
+- ✓ PHASE1D_MACRO_EXPANSION_LOGIC_STABLE
+- ✓ PHASE1D_TIMELINE_SCHEDULER_STABLE
+
+Next planned checkpoint: PHASE1D_GEOMETRY_RESOLUTION_ARCHITECTURE
 
 ---
 

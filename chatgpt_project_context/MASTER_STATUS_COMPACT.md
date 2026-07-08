@@ -4,16 +4,35 @@
 
 Current checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
 
-Status: implemented and validated; awaiting review before commit.
+Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`
+
+Status: implemented, validated, and committed.
 
 Project 2 Chapter III adds deterministic ExpansionResult-to-MechanicalTimeline
-scheduling. Authored smoothness is preserved; STEP is fallback-only. Exact
-instruction order is enforced, upstream diagnostics survive scheduler failure,
-and canonical diagnostics are included in timeline fingerprints. Scheduling is
-sequential, gap-free, deterministic, and rollback-safe.
+scheduling via a pure scheduling layer (row allocation only): ExpansionResult
+-> SchedulingResult, sequential deterministic row scheduling, one
+ExpandedInstruction -> one TimelineSegment, gap-free and overlap-free
+scheduling, strict instruction ordering (reordered indices rejected, not only
+non-contiguous ones), deterministic segment indexing, timeline validation,
+timeline fingerprint (includes diagnostics), fatal rollback, research
+isolation.
 
 No geometry resolution, price generation, materialization, Runner, Catalog,
 Stage 1-6, Project 1, or production change is present.
+
+Independent Architecture Review: APPROVED. Applied corrections: preserve
+authored PathSmoothness (STEP is fallback-only when absent); reject
+reordered instruction indices; preserve upstream diagnostics alongside
+UPSTREAM_EXPANSION_FAILED; include diagnostics in timeline_fingerprint.
+
+Isolation confirmed: no Grammar / Compiler Contracts / Expansion Contracts /
+Macro Expansion / Runner / Catalog / Stage 1-6 / Project 1 / production
+changes.
+
+Chapter III roadmap -- completed: ✓ PHASE1D_GRAMMAR_FOUNDATION_STABLE,
+✓ PHASE1D_COMPILER_CONTRACTS_STABLE, ✓ PHASE1D_EXPANSION_CONTRACTS_STABLE,
+✓ PHASE1D_MACRO_EXPANSION_LOGIC_STABLE, ✓ PHASE1D_TIMELINE_SCHEDULER_STABLE.
+Next planned checkpoint: PHASE1D_GEOMETRY_RESOLUTION_ARCHITECTURE.
 
 ---
 

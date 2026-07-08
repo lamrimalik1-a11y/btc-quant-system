@@ -1,5 +1,52 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE1D_SPECIFICATION_ASSEMBLER_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Project 2 Chapter III added the final compiler assembler:
+`assemble_specification(compilation_result: CompilationResult, specification_name: str) -> ScenarioSpecification`.
+
+Implemented:
+- Converts successful `CompilationResult` into the existing `ScenarioSpecification` contract.
+- Reuses the exact compiled `PriceObservation` tuple via `compiled_observations`; no observations are regenerated or copied through price generation.
+- Populates required ScenarioSpecification fields with canonical metadata: row_count, start_price, observation checksum, compiler version, grammar fingerprint, geometry fingerprint, and assembler version.
+- Rejects failed compilations deterministically with `ValueError`; no partial ScenarioSpecification is created.
+- Exports `assemble_specification` from `compiler/__init__.py`.
+
+Boundary: assembler only. No calculations, interpolation, scheduling, geometry resolution, materialization, replay, Runner execution, Catalog execution, or Stage 1-6 execution.
+
+Compiler pipeline complete:
+`GrammarProgram -> CompilationResult -> ScenarioSpecification`.
+Project 2 compiler is ready for scenario generation.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/specification_assembler.py`
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_specification_assembler.py`
+
+Files modified:
+- `experiments/psychological_levels_dynamic/scenario_catalog/compiler/__init__.py`
+- `chatgpt_project_context/CURRENT_CHECKPOINT.md`
+- `chatgpt_project_context/MASTER_STATUS_COMPACT.md`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/specification_assembler.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_specification_assembler.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_specification_assembler.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_full_compiler.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_price_materialization_logic.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_geometry_resolution_logic.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_timeline_scheduler.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_macro_expansion.py`
+- `python experiments/psychological_levels_dynamic/scenario_catalog/compiler/test_compiler_contracts.py`
+- `git diff --check`
+- `git status`
+
+Validation result: specification assembler PASS; full compiler PASS; materialization logic PASS; geometry logic PASS; timeline scheduler PASS; macro expansion PASS; compiler contracts PASS; git diff --check PASS.
+
+Isolation confirmed: no Grammar, Compiler Contracts, Macro Expansion, Timeline Scheduler, Geometry Resolution, Price Materialization, Full Compiler, Scenario Runner, Catalog, Families, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
 ## Active Checkpoint: PHASE1D_FULL_COMPILER_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.

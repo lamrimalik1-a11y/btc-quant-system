@@ -2,6 +2,21 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE1D_SPECIFICATION_ASSEMBLER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Project 2 Chapter III now includes the final compiler assembler. `assemble_specification(compilation_result, specification_name)` converts successful `CompilationResult` values into the existing `ScenarioSpecification` contract, reusing the exact compiled `PriceObservation` tuple via `compiled_observations` and storing canonical provenance fields for row_count, start_price, observation checksum, compiler version, grammar fingerprint, geometry fingerprint, and assembler version. Failed compilations raise deterministic `ValueError` and never create partial specifications.
+
+Boundary: assembler only. No calculations, interpolation, scheduling, geometry resolution, materialization, replay, Runner execution, Catalog execution, or Stage 1-6 execution. Compiler pipeline complete: `GrammarProgram -> CompilationResult -> ScenarioSpecification`. Project 2 compiler is ready for scenario generation.
+
+Validation PASS: specification assembler py_compile + test PASS; full compiler PASS; materialization logic PASS; geometry logic PASS; timeline scheduler PASS; macro expansion PASS; compiler contracts PASS; git diff --check PASS.
+
+Isolation confirmed: no Grammar, Compiler Contracts, Macro Expansion, Timeline Scheduler, Geometry Resolution, Price Materialization, Full Compiler, Scenario Runner, Catalog, Families, Stage 1-6, Project 1, or production files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_FULL_COMPILER_STABLE
 
 Status: implemented and validated; awaiting review before commit.

@@ -45,16 +45,19 @@ FORBIDDEN_IMPORTS = (
     "research.",
     "random",
 )
+
+# price_materialization.py now holds both these contracts and the V1
+# materialization logic (Geometry Resolution precedent: one module, two
+# checkpoints). "pathsmoothness"/"linear"/"interpolation"/
+# "def materialize_prices" are legitimate logic-phase vocabulary now and
+# are intentionally no longer banned here; the remaining tokens still mark
+# real boundary violations.
 FORBIDDEN_CONTRACTS = (
     "scenariospecification",
     "dynamic_state",
     "research_",
-    "def materialize_prices",
     "def materialize(",
     "def generate_price",
-    "pathsmoothness",
-    "linear",
-    "interpolation",
     "run_scenario",
 )
 

@@ -206,7 +206,7 @@ def _cases() -> tuple[MatrixCase, ...]:
             "reclaim",
             (
                 _slot("reclaim", row_budget=10, target_zone="ZONE_A", side=ZoneSide.UPPER, depth=Decimal("0.40"), residence_rows=3),
-                _outside(4),
+                _slot("hold_outside", row_budget=4, target_zone="ZONE_A", side=ZoneSide.UPPER, clearance=Decimal("0.50")),
             ),
         ),
         MatrixCase(

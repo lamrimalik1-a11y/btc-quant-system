@@ -72,12 +72,14 @@ def _summary_value(value: Any, key: str) -> Any:
 
 def _compact_summary(result: ScenarioRunResult) -> tuple[tuple[str, Any], ...]:
     stage3 = result.stage3_transition_summary
+    stage4 = result.stage4_graph_summary
     stage5 = result.stage5_trajectory_summary
     stage6 = result.stage6_hypothesis_summary
     return (
         ("completed_visits", result.completed_visits),
         ("zones_observed", result.zones_observed),
         ("transitions_generated", _summary_value(stage3, "transitions_generated")),
+        ("stage4_transitions_generated", _summary_value(stage4, "transitions_generated")),
         ("trajectory_records", _summary_value(stage5, "trajectory_records")),
         ("eligible_hypotheses", _summary_value(stage6, "eligible_hypotheses")),
         ("confirmed_hypotheses", _summary_value(stage6, "confirmed_hypotheses")),
@@ -115,6 +117,9 @@ def _batch_fingerprint(
     diagnostics: tuple[str, ...],
     runner_version: str,
     batch_execution_version: str,
+    source_manifest_fingerprint: str | None,
+    batch_compilation_fingerprint: str | None,
+    batch_assembly_fingerprint: str | None,
 ) -> str:
     return execution_contract_fingerprint(
         (
@@ -122,6 +127,9 @@ def _batch_fingerprint(
             diagnostics,
             runner_version,
             batch_execution_version,
+            source_manifest_fingerprint,
+            batch_compilation_fingerprint,
+            batch_assembly_fingerprint,
         )
     )
 
@@ -184,7 +192,18 @@ def execute_batch(
     assembled_specifications: tuple[AssembledSpecification, ...],
     execution_context: RunnerExecutionContext,
     batch_execution_version: str = BATCH_EXECUTION_VERSION,
+    source_manifest_fingerprint: str | None = None,
+    batch_compilation_fingerprint: str | None = None,
+    batch_assembly_fingerprint: str | None = None,
 ) -> BatchExecutionResult:
+    """Execute assembled specifications through the existing Scenario Runner.
+
+    RunnerExecutionContext geometry/session fields are expected to have already
+    been merged into ScenarioSpecification.geometry_parameters by
+    PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE. This function uses
+    execution_context.runner_version only for provenance and fingerprinting.
+    """
+
     if not isinstance(assembled_specifications, tuple):
         raise TypeError("assembled_specifications must be tuple")
     if not all(isinstance(value, AssembledSpecification) for value in assembled_specifications):
@@ -218,6 +237,9 @@ def execute_batch(
         diagnostics=diagnostics,
         runner_version=execution_context.runner_version,
         batch_execution_version=batch_execution_version,
+        source_manifest_fingerprint=source_manifest_fingerprint,
+        batch_compilation_fingerprint=batch_compilation_fingerprint,
+        batch_assembly_fingerprint=batch_assembly_fingerprint,
     )
     return BatchExecutionResult(
         success=success,
@@ -229,9 +251,9 @@ def execute_batch(
         failed_scenario_ids=failed_scenario_ids,
         skipped_scenario_ids=skipped_scenario_ids,
         diagnostics=diagnostics,
-        source_manifest_fingerprint=None,
-        batch_compilation_fingerprint=None,
-        batch_assembly_fingerprint=None,
+        source_manifest_fingerprint=source_manifest_fingerprint,
+        batch_compilation_fingerprint=batch_compilation_fingerprint,
+        batch_assembly_fingerprint=batch_assembly_fingerprint,
         batch_execution_fingerprint=batch_fingerprint,
         runner_version=execution_context.runner_version,
         batch_execution_version=batch_execution_version,

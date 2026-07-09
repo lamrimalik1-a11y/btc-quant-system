@@ -199,14 +199,31 @@ def run() -> dict[str, Any]:
             "completed_visits",
             "zones_observed",
             "transitions_generated",
+            "stage4_transitions_generated",
             "trajectory_records",
             "eligible_hypotheses",
             "confirmed_hypotheses",
             "pending_hypotheses",
             "runner_result",
         )
+        summary = dict(success_batch.scenario_results[0].summary)
+        assert "stage4_transitions_generated" in summary
+        assert summary["stage4_transitions_generated"] is None or isinstance(summary["stage4_transitions_generated"], int)
         assert success_batch.scenario_results[0].summary[-1][1] in {"PASS", "FAIL"}
         checks["summary_generation"] = True
+
+        provenance_batch = execute_batch(
+            (first,),
+            context,
+            "PHASE2C_BATCH_EXECUTION_TEST_V1",
+            source_manifest_fingerprint="sha256:" + "1" * 64,
+            batch_compilation_fingerprint="sha256:" + "2" * 64,
+            batch_assembly_fingerprint="sha256:" + "3" * 64,
+        )
+        assert provenance_batch.runner_version == context.runner_version
+        assert provenance_batch.source_manifest_fingerprint == "sha256:" + "1" * 64
+        assert provenance_batch.batch_compilation_fingerprint == "sha256:" + "2" * 64
+        assert provenance_batch.batch_assembly_fingerprint == "sha256:" + "3" * 64
 
         repeat = execute_batch((first, second), context, "PHASE2C_BATCH_EXECUTION_TEST_V1")
         assert repeat == success_batch
@@ -215,6 +232,7 @@ def run() -> dict[str, Any]:
         assert partial_repeat == partial
         assert partial.batch_execution_fingerprint != success_batch.batch_execution_fingerprint
         assert runner_fail_batch.batch_execution_fingerprint != success_batch.batch_execution_fingerprint
+        assert provenance_batch.batch_execution_fingerprint != success_batch.batch_execution_fingerprint
         checks["fingerprint_determinism"] = True
 
         if os.environ.get("BATCH_EXECUTION_CHILD") == "1":
@@ -222,6 +240,7 @@ def run() -> dict[str, Any]:
                 "success_fingerprint": success_batch.batch_execution_fingerprint,
                 "partial_fingerprint": partial.batch_execution_fingerprint,
                 "runner_fail_fingerprint": runner_fail_batch.batch_execution_fingerprint,
+                "provenance_fingerprint": provenance_batch.batch_execution_fingerprint,
                 "result": "PASS",
             }
         env = dict(os.environ)
@@ -253,6 +272,7 @@ def main() -> None:
         print(f"success={report['success_fingerprint']}")
         print(f"partial={report['partial_fingerprint']}")
         print(f"runner_fail={report['runner_fail_fingerprint']}")
+        print(f"provenance={report['provenance_fingerprint']}")
         print(f"result={report['result']}")
         if report["result"] != "PASS":
             raise SystemExit(1)

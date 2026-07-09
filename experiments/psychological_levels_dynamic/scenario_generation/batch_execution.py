@@ -80,10 +80,10 @@ def _compact_summary(result: ScenarioRunResult) -> tuple[tuple[str, Any], ...]:
         ("zones_observed", result.zones_observed),
         ("transitions_generated", _summary_value(stage3, "transitions_generated")),
         ("stage4_transitions_generated", _summary_value(stage4, "transitions_generated")),
-        ("trajectory_records", _summary_value(stage5, "trajectory_records")),
+        ("trajectory_records", _summary_value(stage5, "trajectory_records_generated")),
         ("eligible_hypotheses", _summary_value(stage6, "eligible_hypotheses")),
-        ("confirmed_hypotheses", _summary_value(stage6, "confirmed_hypotheses")),
-        ("pending_hypotheses", _summary_value(stage6, "pending_hypotheses")),
+        ("confirmed_hypotheses", _summary_value(stage6, "confirmed_count")),
+        ("pending_hypotheses", _summary_value(stage6, "pending_count")),
         ("runner_result", result.result),
     )
 

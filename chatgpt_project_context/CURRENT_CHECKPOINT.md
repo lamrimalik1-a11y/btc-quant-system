@@ -1,6 +1,137 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE2C_EXECUTION_CONTRACTS_STABLE
+## Active Checkpoint: PHASE2C_SMALL_BATCH_STABILITY_10_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; documentation checkpoint only.
+
+Chapter IV verified a deterministic 10-scenario stability campaign through
+the complete Project 2 pipeline:
+
+Generation -> Manifest Validation -> Batch Compilation -> Batch Specification
+Assembly -> Batch Execution -> real Scenario Runner -> Stage 1-6.
+
+Campaign result:
+- 10 deterministic scenarios generated.
+- 10 scenarios executed.
+- PASS count: 10.
+- FAIL count: 0.
+- skipped count: 0.
+- Two repeated executions produced identical ordering, execution summaries,
+  Stage 1-6 outputs, per-scenario fingerprints, batch fingerprints, and
+  provenance.
+- No cross-scenario contamination detected.
+- PASS/FAIL storage verified.
+- Research isolation verified.
+
+Batch execution fingerprint:
+- `sha256:77832037c66cc30fd0821af181cf688cf8912835cfc8fb1992095b6ddc7b378b`
+
+Boundary:
+Documentation/checkpoint update only. No logic changes. No Runner, Catalog,
+Stage 1-6, Compiler, Project 1, production, core, engines, or research changes.
+
+---
+## Active Checkpoint: PHASE2C_SMALL_BATCH_EXECUTION_PROOF_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; documentation checkpoint only (no functional
+changes made as part of this entry).
+
+Chapter IV proved the full Project 2 pipeline end-to-end at small scale:
+
+Generation Templates -> Scenario Generation -> Manifest Validation -> Batch
+Compilation -> Batch Specification Assembly -> Batch Execution -> real
+Scenario Runner -> Stage 1-6.
+
+Proof result:
+- 7 deterministic scenarios generated from one `GrammarTemplate` (a repeated
+  6-cycle center-dwell / hold-outside pattern, one generated program per
+  outside-clearance axis value) -- within the required 5-10 range.
+- Manifest validation passed (`validate_manifest`): no diagnostics.
+- Batch compilation passed (`compile_generation_batch`): 7/7 compiled, 0
+  failed.
+- Batch specification assembly passed (`assemble_batch`): 7/7 assembled,
+  Runner-ready `geometry_parameters` confirmed present.
+- Batch execution passed (`execute_batch`): 7/7 executed, 0 failed, 0
+  skipped, using the real, unmodified Scenario Runner (`run_scenario`) via a
+  throwaway per-scenario registry and replay provider -- no Runner
+  modification.
+- Real Stage 1-6 path verified: every executed scenario produced genuine
+  `completed_visits=6`, real Stage 3/4/5/6 summary dicts (not
+  `NOT_AVAILABLE`), `transitions_generated=4`, and `eligible_hypotheses=2`.
+- Ordering preserved: `scenario_index` and `specification_fingerprint`
+  cross-checked against the assembled-specification order for every
+  scenario.
+- PASS/FAIL stored per scenario: every record's `runner_result` verified to
+  be exactly `"PASS"` or `"FAIL"`; all 7 were `"PASS"` in this run.
+- Stage summaries present: `stage3_transition_summary`,
+  `stage4_graph_summary`, `stage5_trajectory_summary`,
+  `stage6_hypothesis_summary` confirmed to be real dicts on every executed
+  record.
+- Stage 4 compact summary present: `stage4_transitions_generated` confirmed
+  present and equal to the raw `stage4_graph_summary["transitions_generated"]`
+  value on every record.
+- Provenance fingerprints propagated end-to-end: `source_manifest_fingerprint`,
+  `batch_compilation_fingerprint`, and `batch_assembly_fingerprint` on the
+  resulting `BatchExecutionResult` verified to match the upstream
+  `ScenarioManifest`/`BatchCompilationResult`/`BatchAssemblyResult`
+  fingerprints exactly; `batch_execution_fingerprint` confirmed well-formed.
+- Determinism confirmed: a full independent second run of the entire
+  pipeline (fresh generation through fresh execution) produced identical
+  fingerprints at every stage and an identical `BatchExecutionResult`.
+- Cross-process determinism confirmed via the established subprocess
+  child-comparison pattern.
+- Research isolation confirmed: no Catalog, core, engines, or research
+  imports in the proof script.
+
+Follow-up: PHASE2C_EXECUTION_SUMMARY_KEY_FIX -- passed.
+While building the proof, inspection of the raw Stage 5/6 summary dicts
+(not just the pre-existing test fixtures) surfaced that `_compact_summary()`
+in `batch_execution.py` was reading three keys that do not exist under those
+names in the real Stage 5/6 output, silently returning `None` for all three
+on every real execution:
+- `"trajectory_records"` -> corrected to read `trajectory_records_generated`
+- `"confirmed_hypotheses"` -> corrected to read `confirmed_count`
+- `"pending_hypotheses"` -> corrected to read `pending_count`
+The compact summary's own output key names are unchanged (still
+`trajectory_records`/`confirmed_hypotheses`/`pending_hypotheses`) -- only the
+lookup into the underlying Stage 5/6 dicts changed. Verified: the existing
+`test_batch_execution.py` regression suite still passes unmodified, and a
+fresh pipeline run now shows genuine non-`None` values
+(`trajectory_records=6`, `confirmed_hypotheses=1`, `pending_hypotheses=1`)
+matching the raw Stage 5/6 dicts exactly. This bug had survived two prior
+audit rounds because those tests used hand-built `summary` fixtures with the
+"right" keys already baked in; it was only caught once a real multi-visit
+Stage 5/6 run was inspected directly.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/test_small_batch_execution_proof.py`
+
+Files modified (functional fix, applied prior to this documentation entry):
+- `experiments/psychological_levels_dynamic/scenario_generation/batch_execution.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_small_batch_execution_proof.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_small_batch_execution_proof.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_batch_execution.py`
+- `git diff --check`
+- `git status`
+
+Validation result: generated_5_to_10_scenarios PASS; manifest_validated PASS;
+batch_compiled PASS; specifications_assembled PASS; batch_executed PASS;
+ordering_preserved PASS; pass_fail_stored PASS; stage_summaries_present PASS;
+stage4_summary_present PASS; provenance_fingerprints_propagated PASS;
+determinism_confirmed PASS; cross_process_determinism PASS;
+research_isolation PASS; errors=[]; result=PASS.
+test_batch_execution.py rerun after the key fix: all 8 checks PASS
+unchanged.
+
+Isolation confirmed: no Runner, Catalog, Stage 1-6, Compiler, Project 1,
+production, core, engines, or research files were modified. `batch_execution.py`
+is Project 2 scenario-generation orchestration code, not Runner/Stage/Catalog
+internals -- it calls those unmodified.
+
+---
+## Prior Stable Checkpoint: PHASE2C_EXECUTION_CONTRACTS_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; audited (post-patch) and approved for commit.
 

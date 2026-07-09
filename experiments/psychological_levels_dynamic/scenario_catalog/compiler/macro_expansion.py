@@ -297,7 +297,7 @@ def _expand_phrase(
                 PrimitiveType.APPROACH: ("side", "depth"),
                 PrimitiveType.ENTER: ("side", "depth"),
                 PrimitiveType.PENETRATE: ("side", "depth"),
-                PrimitiveType.HOLD: ("depth", "residence_rows"),
+                PrimitiveType.HOLD: ("side", "depth", "residence_rows"),
             }[primitive_type]
             parameters = _parameters(phrase.params, *names)
         elif phrase.phrase_type == PhraseType.TRANSFER_TO_ZONE:

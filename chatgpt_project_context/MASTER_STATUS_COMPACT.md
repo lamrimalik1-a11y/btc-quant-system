@@ -2,6 +2,36 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE2C_EXECUTION_CONTRACTS_STABLE
+
+Status: implemented and validated; audited (post-patch) and approved for commit.
+
+Chapter IV added the immutable contracts future Batch Execution logic will
+produce: `ScenarioExecutionRecord` (per-scenario outcome, including a
+runner_result field required exactly when execution_status is EXECUTED and
+forbidden otherwise) and `BatchExecutionResult` (batch-level aggregate,
+structurally rejecting success=True whenever any EXECUTED record has
+runner_result=="FAIL"). `execution_contract_fingerprint()` provides
+deterministic canonical JSON + SHA-256 fingerprinting, matching the existing
+generation_contract_fingerprint pattern.
+
+Boundary: contracts only. No Scenario Runner import, no execution logic, no
+Compiler/Batch Compiler/Batch Specification Assembler/Catalog/Stage 1-6
+coupling, no Project 1, no production changes.
+
+Validation PASS: py_compile for execution_contracts + test;
+test_execution_contracts.py scenario_execution_record PASS,
+batch_execution_result PASS, runner_result_guard PASS, fingerprint_determinism
+PASS, immutability PASS, research_isolation PASS, cross_process_determinism
+PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no Scenario Runner, Compiler, Batch Compiler, Batch
+Specification Assembler, Catalog, Stage 1-6, Project 1, production, core,
+engines, or research files were modified by this checkpoint.
+
+---
+## Prior Stable Status (PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE)
+
 Current checkpoint: PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE
 
 Status: implemented and validated; awaiting review before commit.

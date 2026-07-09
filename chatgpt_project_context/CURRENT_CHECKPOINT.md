@@ -1,6 +1,62 @@
 # Current Checkpoint
 
-## Active Checkpoint: PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE
+## Active Checkpoint: PHASE2C_EXECUTION_CONTRACTS_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; audited (post-patch) and approved for commit.
+
+Chapter IV added the immutable contracts future Batch Execution logic will
+produce: `ScenarioExecutionRecord` (per-scenario outcome) and
+`BatchExecutionResult` (batch-level aggregate). Contracts only -- no Scenario
+Runner import, no execution logic, no Compiler/Batch Compiler/Batch
+Specification Assembler/Catalog/Stage 1-6 coupling.
+
+Implemented:
+- `ScenarioExecutionRecord`: scenario_id, scenario_index, specification_fingerprint,
+  execution_status (EXECUTED/FAILED/SKIPPED), scenario_run_result (opaque frozen
+  dataclass payload, deliberately untyped to avoid importing scenario_runner),
+  runner_result (PASS/FAIL, required exactly when EXECUTED, forbidden otherwise),
+  summary, diagnostics, execution_fingerprint.
+- `BatchExecutionResult`: success, total/executed/failed/skipped scenario counts,
+  scenario_results (index-ordered), failed/skipped scenario IDs cross-checked
+  against the records themselves, diagnostics, upstream fingerprints
+  (source_manifest/batch_compilation/batch_assembly), batch_execution_fingerprint,
+  runner_version, batch_execution_version.
+- `execution_contract_fingerprint(value)`: deterministic canonical JSON + SHA-256,
+  matching the established generation_contract_fingerprint pattern, including
+  recursive Enum canonicalization.
+
+Post-patch correctness guard (the reason this went through two audit rounds):
+`BatchExecutionResult(success=True)` now structurally rejects any EXECUTED
+record whose runner_result is "FAIL" -- a batch where every scenario ran
+cleanly but mechanically failed can no longer report success=True with zero
+failed_scenarios. Verified by independently reconstructing the exact forged
+batch that previously passed incorrectly and confirming it now raises
+ValueError.
+
+Boundary: contracts only. No runner calls, no compiler calls, no catalog
+calls, no scenario execution, no Project 1, no production changes.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/execution_contracts.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_execution_contracts.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/execution_contracts.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_execution_contracts.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_execution_contracts.py`
+- `git diff --check`
+- `git status`
+
+Validation result: scenario_execution_record PASS; batch_execution_result PASS;
+runner_result_guard PASS; fingerprint_determinism PASS; immutability PASS;
+research_isolation PASS; cross_process_determinism PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no Scenario Runner, Compiler, Batch Compiler, Batch
+Specification Assembler, Catalog, Stage 1-6, Project 1, production, core,
+engines, or research files were modified by this checkpoint.
+
+---
+## Prior Stable Checkpoint: PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
 

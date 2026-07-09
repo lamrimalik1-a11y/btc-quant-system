@@ -52,11 +52,12 @@ def ramp(
     distance: Decimal,
     direction: Direction,
     smoothness: PathSmoothness = PathSmoothness.LINEAR,
+    target_zone: str | None = None,
 ) -> GrammarPhrase:
     return _phrase(
         PhraseType.RAMP,
         row_budget,
-        None,
+        target_zone,
         "Move by a declared distance and direction.",
         direction=direction,
         distance=distance,

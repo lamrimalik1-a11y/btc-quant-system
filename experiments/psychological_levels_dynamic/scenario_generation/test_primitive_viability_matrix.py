@@ -192,7 +192,7 @@ def _cases() -> tuple[MatrixCase, ...]:
         ),
         MatrixCase(
             "ramp",
-            (_slot("ramp", row_budget=4, distance=Decimal("0.40"), direction=Direction.UP, smoothness=PathSmoothness.LINEAR),),
+            (_slot("ramp", row_budget=4, distance=Decimal("0.40"), direction=Direction.UP, smoothness=PathSmoothness.LINEAR, target_zone="ZONE_A"),),
         ),
         MatrixCase(
             "oscillate",

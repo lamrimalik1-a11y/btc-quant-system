@@ -243,8 +243,12 @@ def run() -> dict[str, Any]:
             expand(3, "ZONE_A", (Decimal("0.1"), Decimal("0.2"))),
             transfer_to_zone(3, "ZONE_A", "ZONE_B", Decimal("4")),
         )
+        legacy_ramp = ramp(2, Decimal("1"), Direction.UP)
+        targeted_ramp = ramp(2, Decimal("1"), Direction.UP, target_zone="ZONE_A")
         legacy_penetrate = penetrate(2, "ZONE_A", Decimal("0.2"))
         sided_penetrate = penetrate(2, "ZONE_A", Decimal("0.2"), ZoneSide.UPPER)
+        assert legacy_ramp.target_zone is None
+        assert targeted_ramp.target_zone == "ZONE_A"
         assert tuple(param.name for param in legacy_penetrate.params) == ("depth",)
         assert dict((param.name, param.value) for param in sided_penetrate.params)["side"] == ZoneSide.UPPER
         assert all(isinstance(item, GrammarPhrase) for item in constructors)

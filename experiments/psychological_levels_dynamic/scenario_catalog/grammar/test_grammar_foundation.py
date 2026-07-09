@@ -225,6 +225,7 @@ def run() -> dict[str, Any]:
             approach_zone(2, "ZONE_A", ZoneSide.LOWER, Decimal("1")),
             enter_zone(2, "ZONE_A", ZoneSide.LOWER, Decimal("0.1")),
             penetrate(2, "ZONE_A", Decimal("0.2")),
+            penetrate(2, "ZONE_A", Decimal("0.2"), ZoneSide.UPPER),
             withdraw(2, "ZONE_A", ZoneSide.LOWER, Decimal("1")),
             hold_outside(
                 2, "ZONE_A", ZoneSide.UPPER, Decimal("0.1")
@@ -242,6 +243,10 @@ def run() -> dict[str, Any]:
             expand(3, "ZONE_A", (Decimal("0.1"), Decimal("0.2"))),
             transfer_to_zone(3, "ZONE_A", "ZONE_B", Decimal("4")),
         )
+        legacy_penetrate = penetrate(2, "ZONE_A", Decimal("0.2"))
+        sided_penetrate = penetrate(2, "ZONE_A", Decimal("0.2"), ZoneSide.UPPER)
+        assert tuple(param.name for param in legacy_penetrate.params) == ("depth",)
+        assert dict((param.name, param.value) for param in sided_penetrate.params)["side"] == ZoneSide.UPPER
         assert all(isinstance(item, GrammarPhrase) for item in constructors)
         assert not any(
             hasattr(item, attribute)

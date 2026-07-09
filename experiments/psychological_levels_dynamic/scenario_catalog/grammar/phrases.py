@@ -116,13 +116,17 @@ def penetrate(
     row_budget: int,
     target_zone: str,
     depth: Decimal,
+    side: ZoneSide | None = None,
 ) -> GrammarPhrase:
+    params: dict[str, Any] = {"depth": depth}
+    if side is not None:
+        params["side"] = side
     return _phrase(
         PhraseType.PENETRATE,
         row_budget,
         target_zone,
         "Hold a declared geometry-relative penetration depth.",
-        depth=depth,
+        **params,
     )
 
 

@@ -1,5 +1,61 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV added the Batch Specification Assembler between Batch Compiler and
+future Batch Execution. The layer consumes `BatchCompilationResult` plus
+`RunnerExecutionContext`, converts every successful `CompilationResult` into an
+`AssembledSpecification`, skips failed compilations, preserves deterministic
+ordering, and never executes scenarios.
+
+Implemented:
+- `RunnerExecutionContext`: immutable runner context carrying symbol,
+  GeometryContext, active_window, spacing, zone_half_width, market_timestamp,
+  session_id, runner_version, and deterministic execution_context_fingerprint.
+- `BatchAssemblyResult`: frozen result envelope with total compilation count,
+  assembled specifications, failed program IDs, deterministic diagnostics,
+  batch_compilation_fingerprint, batch_assembly_fingerprint, and
+  assembly_version.
+- `assemble_batch(batch_compilation_result, execution_context,
+  assembly_version)`: assembles successful compiler outputs only, skips failed
+  compilations, preserves input order, and produces deterministic fingerprints.
+- Runner-ready specification merge: after `assemble_specification()` returns,
+  the assembler uses `dataclasses.replace()` to merge explicit
+  RunnerExecutionContext geometry/session fields into
+  `ScenarioSpecification.geometry_parameters`: spacing, zone_half_width,
+  active_window, symbol, market_timestamp, and session_id. The session_id stays
+  batch-level for now; no per-scenario suffix is added.
+
+Boundary: assembler only. No Scenario Runner, no Catalog execution, no Stage
+1-6 execution, no Batch Execution, no Project 1, and no production changes.
+No ScenarioSpecification mutation and no object.__setattr__ are used by the
+batch assembler.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/runner_execution_context.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/batch_specification_assembler.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_batch_specification_assembler.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/runner_execution_context.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/batch_specification_assembler.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_batch_specification_assembler.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_batch_specification_assembler.py`
+- `git diff --check`
+- `git status`
+
+Validation result: successful_batch PASS; partial_failure PASS;
+ordering_preserved PASS; runner_ready_geometry PASS; fingerprint_determinism
+PASS; cross_process_determinism PASS; research_isolation PASS; errors=[];
+result=PASS.
+
+Isolation confirmed: no Runner, Catalog, Stage 1-6, Compiler, Batch Compiler,
+Project 1, production, core, engines, or research files were modified by this
+checkpoint.
+
+---
 ## Active Checkpoint: PHASE2B_BATCH_COMPILER_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.

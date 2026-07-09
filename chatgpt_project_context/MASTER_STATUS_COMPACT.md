@@ -2,6 +2,42 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE2C_BATCH_SPECIFICATION_ASSEMBLER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV added the Batch Specification Assembler. `assemble_batch()` consumes
+`BatchCompilationResult` plus immutable `RunnerExecutionContext`, assembles every
+successful `CompilationResult` into an `AssembledSpecification`, skips failed
+compilations, preserves ordering, records failed program IDs and deterministic
+diagnostics, and returns a frozen `BatchAssemblyResult`.
+
+Runner-ready merge: after `assemble_specification()` returns, the assembler uses
+`dataclasses.replace()` to merge RunnerExecutionContext fields into
+`ScenarioSpecification.geometry_parameters`: spacing, zone_half_width,
+active_window, symbol, market_timestamp, and session_id. session_id remains
+batch-level for now unless a later execution phase requires per-scenario trace
+IDs.
+
+Boundary: assembler only. No Scenario Runner, no Catalog execution, no Stage
+1-6 execution, no Batch Execution, no Project 1, no production changes, no
+ScenarioSpecification mutation, and no object.__setattr__ in the batch
+assembler.
+
+Validation PASS: py_compile for runner_execution_context,
+batch_specification_assembler, and test; test_batch_specification_assembler.py
+successful_batch PASS, partial_failure PASS, ordering_preserved PASS,
+runner_ready_geometry PASS, fingerprint_determinism PASS,
+cross_process_determinism PASS, research_isolation PASS, errors=[],
+result=PASS; git diff --check PASS.
+
+Isolation confirmed: no Runner, Catalog, Stage 1-6, Compiler, Batch Compiler,
+Project 1, production, core, engines, or research files were modified by this
+checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE2B_BATCH_COMPILER_STABLE
 
 Status: implemented and validated; awaiting review before commit.

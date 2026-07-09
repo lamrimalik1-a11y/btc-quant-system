@@ -2,6 +2,95 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE2B_COMPILER_SMOKE_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV added compiler-smoke validation for generated `GrammarProgram`
+objects. `run_compiler_smoke(generation_result, geometry_context,
+compiler_version, smoke_version)` compiles each generated program with the
+existing `compile_program()` path and returns a frozen `CompilerSmokeResult`
+containing success/failure counts, all `CompilationResult` values,
+deterministic diagnostics, and a deterministic smoke fingerprint.
+
+Boundary: compiler integration only. No ScenarioSpecification assembly, no
+Scenario Runner, no Catalog execution, no Stage 1-6 execution, no Project 1,
+no production changes. The smoke fingerprint covers generation_fingerprint,
+all observation_checksum values, diagnostics, compiler_version, and
+smoke_version.
+
+Validation PASS: py_compile for compiler_smoke + test; test_compiler_smoke.py
+all_compile_success PASS, compilation_failure PASS, diagnostics_preserved PASS,
+determinism PASS, cross_process_determinism PASS, research_isolation PASS,
+errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no runner, catalog execution, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
+Current checkpoint: PHASE2B_MANIFEST_VALIDATION_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV added deterministic ScenarioManifest integrity validation:
+`ManifestValidationResult` and `validate_manifest(manifest, validator_version)`.
+Checks entry_id uniqueness, entry_index contiguity, entry ordering, duplicate
+GrammarProgram/combination fingerprint detection, generation/compilation
+status consistency, required fingerprint presence, summary count
+reconciliation, and an independent recomputation of `manifest_fingerprint`
+against the stored value.
+
+Boundary: validation only. No compiler calls, no runner calls, no Grammar
+semantics inspection, no execution, no ScenarioSpecification generation.
+`manifest_validation.py` imports only `contracts.py` -- not `generator.py`,
+not Grammar -- so it can validate any ScenarioManifest independently of how
+it was produced.
+
+Validation PASS: py_compile for manifest_validation + test;
+test_manifest_validation.py valid_manifest PASS, duplicate_entry_ids PASS,
+duplicate_program_fingerprints PASS, duplicate_combination_fingerprints PASS,
+summary_validation PASS, fingerprint_determinism PASS,
+cross_process_determinism PASS, research_isolation PASS, errors=[], result=PASS;
+git diff --check PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Prior Stable Status (PHASE2B_SMALL_DETERMINISTIC_GENERATOR_STABLE)
+
+Current checkpoint: PHASE2B_SMALL_DETERMINISTIC_GENERATOR_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV now includes the first deterministic Scenario Generation Engine implementation. `generate_programs(template, generator_version)` expands one `GrammarTemplate` through Cartesian product `ParameterAxis` values, resolves `PhraseSlot` fixed and axis-bound parameters, builds valid `GrammarProgram` objects, records `ManifestEntry` values, builds a `ScenarioManifest`, detects duplicate `GrammarProgram` fingerprints as `SKIPPED_DUPLICATE`, caps generation at 10 programs, and returns a frozen `GenerationResult` with deterministic generation fingerprint.
+
+Boundary: generation only. No compiler calls, no runner calls, no execution, no ScenarioSpecification generation, no batch compilation, no Catalog integration, and no Stage calls.
+
+Validation PASS: py_compile for generator + test; test_small_generator.py single_axis_generation PASS, multi_axis_generation PASS, deterministic_order PASS, duplicate_detection PASS, manifest_generation PASS, grammar_program_validity PASS, fingerprint_determinism PASS, cross_process_determinism PASS, research_isolation PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1, production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
+Current checkpoint: PHASE2B_GENERATION_CONTRACTS_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV started the Scenario Generation Engine foundation with contracts only: `GenerationCampaign`, `ParameterAxis`, `PhraseSlot`, `GenerationRule`, `GrammarTemplate`, `ManifestEntry`, `ScenarioManifest`, `GenerationSummary`, and deterministic `generation_contract_fingerprint()` over canonical JSON + SHA-256.
+
+Boundary: no generation logic, no compiler calls, no runner calls, no Stage calls, no scenario execution, and no Catalog integration. The generator will live before the compiler; the compiler remains one-program-in / one-result-out.
+
+Validation PASS: py_compile for contracts + test; test_generation_contracts.py generation_campaign PASS, parameter_axis PASS, phrase_slot PASS, generation_rule PASS, grammar_template PASS, manifest_entry PASS, scenario_manifest PASS, generation_summary PASS, fingerprint_determinism PASS, immutability PASS, research_isolation PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1, production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE1D_SPECIFICATION_ASSEMBLER_STABLE
 
 Status: implemented and validated; awaiting review before commit.

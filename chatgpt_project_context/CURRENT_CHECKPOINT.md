@@ -1,5 +1,176 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE2B_COMPILER_SMOKE_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV added compiler-smoke validation for generated `GrammarProgram` objects.
+The smoke layer validates generated programs against the existing stable compiler
+only: generation result -> generated GrammarProgram values -> `compile_program()`
+-> `CompilationResult` collection.
+
+Implemented:
+- `CompilerSmokeResult`: frozen smoke result envelope with success/failure counts,
+  all `CompilationResult` values, deterministic diagnostics, `smoke_fingerprint`,
+  and `smoke_version`.
+- `run_compiler_smoke(generation_result, geometry_context, compiler_version,
+  smoke_version)`: compiles every generated program, records deterministic
+  compilation failures, preserves compiler diagnostics, and never assembles a
+  ScenarioSpecification.
+- `smoke_fingerprint` covers generation_fingerprint, all compilation
+  observation_checksum values, diagnostics, compiler_version, and smoke_version.
+- Regression validation covers all-success compilation, deterministic compiler
+  failure, diagnostics preservation, deterministic repeated runs,
+  cross-process determinism, and research isolation.
+
+Boundary: compiler integration only. No specification assembly, no Scenario
+Runner, no Catalog execution, no Stage 1-6 execution, no Project 1, and no
+production changes.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/compiler_smoke.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_compiler_smoke.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/compiler_smoke.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_compiler_smoke.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_compiler_smoke.py`
+- `git diff --check`
+- `git status`
+
+Validation result: all_compile_success PASS; compilation_failure PASS;
+diagnostics_preserved PASS; determinism PASS; cross_process_determinism PASS;
+research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no runner, catalog execution, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Active Checkpoint: PHASE2B_MANIFEST_VALIDATION_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV added deterministic ScenarioManifest integrity validation. Validates
+generation output only -- no compiler calls, no runner calls, no Grammar
+semantics inspection, no execution, no ScenarioSpecification generation.
+
+Implemented:
+- `ManifestValidationResult`: frozen result envelope (success, validated_manifest,
+  diagnostics, validation_summary, validation_fingerprint, validator_version),
+  with the same success/failure symmetry discipline as `CompilationResult` and
+  `GenerationResult` (failure forces `validated_manifest=None` and requires
+  non-empty diagnostics; success requires a `validated_manifest`).
+- `validate_manifest(manifest, validator_version) -> ManifestValidationResult`:
+  runs entry_id uniqueness, entry_index contiguity, entry ordering, duplicate
+  GrammarProgram-fingerprint detection (with orphaned-duplicate referential
+  check), duplicate combination-fingerprint detection, generation/compilation
+  status consistency, required-fingerprint presence, summary count
+  reconciliation, template_id referential integrity, and an independent
+  recomputation of `manifest_fingerprint` (does not trust the stored value).
+- Independently recomputes a `GenerationSummary` (counts + coverage by
+  template / family / generation status) directly from manifest entries
+  rather than trusting any externally supplied summary.
+- `validation_fingerprint` covers manifest_fingerprint + summary + diagnostics
+  + validator_version via the existing `generation_contract_fingerprint()`.
+
+Boundary: validation only. No compiler, runner, Catalog, Stage 1-6, or Grammar
+imports -- `manifest_validation.py` imports only `contracts.py` (stdlib +
+dataclasses otherwise). Does not import `generator.py` either, so it can
+validate any ScenarioManifest, not just ones the current small generator
+produced.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/manifest_validation.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_manifest_validation.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/manifest_validation.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_manifest_validation.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_manifest_validation.py`
+- `git diff --check`
+- `git status`
+
+Validation result: valid_manifest PASS; duplicate_entry_ids PASS;
+duplicate_program_fingerprints PASS; duplicate_combination_fingerprints PASS;
+summary_validation PASS; fingerprint_determinism PASS;
+cross_process_determinism PASS; research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Prior Stable Checkpoint: PHASE2B_SMALL_DETERMINISTIC_GENERATOR_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV added the first deterministic Scenario Generation Engine implementation. This phase generates `GrammarProgram` objects only.
+
+Implemented:
+- `GenerationResult`: frozen generation result envelope with programs, manifest, diagnostics, generation fingerprint, and generator version.
+- `generate_programs(template, generator_version)`: deterministic single-template generator.
+- Cartesian product expansion over `ParameterAxis` values.
+- `PhraseSlot` resolution via fixed and axis-bound parameters.
+- Construction of valid `GrammarProgram` objects only.
+- `ManifestEntry` records for generated and skipped-duplicate combinations.
+- `ScenarioManifest` with deterministic manifest fingerprint.
+- Duplicate `GrammarProgram` fingerprint detection with `SKIPPED_DUPLICATE` manifest entries.
+- Maximum 10 generated programs per call; larger expansions fail deterministically.
+- Generation fingerprint over manifest fingerprint, program fingerprints, generator version, and diagnostics.
+
+Boundary: deterministic generation only. No compiler calls, no runner calls, no execution, no ScenarioSpecification generation, no batch compilation, no Catalog integration, no Stage calls.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/generator.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_small_generator.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/generator.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_small_generator.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_small_generator.py`
+- `git diff --check`
+- `git status`
+
+Validation result: single_axis_generation PASS; multi_axis_generation PASS; deterministic_order PASS; duplicate_detection PASS; manifest_generation PASS; grammar_program_validity PASS; fingerprint_determinism PASS; cross_process_determinism PASS; research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1, production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Active Checkpoint: PHASE2B_GENERATION_CONTRACTS_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV started the Scenario Generation Engine foundation with immutable contracts only.
+
+Implemented:
+- `GenerationCampaign`: top-level research grouping.
+- `ParameterAxis`: deterministic immutable parameter axis values.
+- `PhraseSlot`: declarative phrase-constructor slot contract; no constructor calls.
+- `GenerationRule`: declarative rule metadata only.
+- `GrammarTemplate`: template/family/axis/rule container.
+- `ManifestEntry`: per-combination generation/compilation provenance envelope.
+- `ScenarioManifest`: manifest-level grouping and fingerprints.
+- `GenerationSummary`: aggregate generation/compile counts and coverage report.
+- `generation_contract_fingerprint(value)`: deterministic canonical JSON + SHA-256 over supported canonical values and frozen dataclasses.
+
+Boundary: contracts only. No generation logic, no compiler calls, no runner calls, no Stage calls, no scenario execution, no Catalog integration. The generator will live before the compiler; the compiler remains one-program-in / one-result-out.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/__init__.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/contracts.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_generation_contracts.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/contracts.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_generation_contracts.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_generation_contracts.py`
+- `git diff --check`
+- `git status`
+
+Validation result: generation_campaign PASS; parameter_axis PASS; phrase_slot PASS; generation_rule PASS; grammar_template PASS; manifest_entry PASS; scenario_manifest PASS; generation_summary PASS; fingerprint_determinism PASS; immutability PASS; research_isolation PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no compiler, runner, catalog, Stage 1-6, Project 1, production, core, engines, or research files were modified by this checkpoint.
+
+---
 ## Active Checkpoint: PHASE1D_SPECIFICATION_ASSEMBLER_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.

@@ -165,6 +165,10 @@ def run() -> dict[str, Any]:
         assert actual_row_budgets == expected_row_budgets
         accepted_items = result.expanded_instructions[2:7]
         reclaim_items = result.expanded_instructions[7:11]
+        accepted_penetrate_params = dict((p.name, p.value) for p in accepted_items[2].instruction.parameters)
+        reclaim_penetrate_params = dict((p.name, p.value) for p in reclaim_items[2].instruction.parameters)
+        assert accepted_penetrate_params["side"] == ZoneSide.UPPER
+        assert reclaim_penetrate_params["side"] == ZoneSide.UPPER
         assert accepted_items[-1].row_budget == 3
         assert reclaim_items[-1].row_budget == 4
         assert dict((p.name, p.value) for p in accepted_items[-1].instruction.parameters)["acceptance_rows"] == 3

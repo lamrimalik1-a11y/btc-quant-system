@@ -287,7 +287,7 @@ def _expand_phrase(
             names = {
                 PrimitiveType.APPROACH: ("side", "clearance"),
                 PrimitiveType.ENTER: ("side", "clearance"),
-                PrimitiveType.PENETRATE: ("clearance",),
+                PrimitiveType.PENETRATE: ("side", "clearance"),
                 PrimitiveType.WITHDRAW: ("side", "clearance"),
                 PrimitiveType.HOLD_OUTSIDE: ("side", "clearance", "acceptance_rows"),
             }[primitive_type]
@@ -296,7 +296,7 @@ def _expand_phrase(
             names = {
                 PrimitiveType.APPROACH: ("side", "depth"),
                 PrimitiveType.ENTER: ("side", "depth"),
-                PrimitiveType.PENETRATE: ("depth",),
+                PrimitiveType.PENETRATE: ("side", "depth"),
                 PrimitiveType.HOLD: ("depth", "residence_rows"),
             }[primitive_type]
             parameters = _parameters(phrase.params, *names)

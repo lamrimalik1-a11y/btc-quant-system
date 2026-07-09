@@ -2,6 +2,38 @@
 
 ## Current Stable Status
 
+Current checkpoint: PHASE2B_BATCH_COMPILER_STABLE
+
+Status: implemented and validated; awaiting review before commit.
+
+Chapter IV added deterministic batch compilation for generated `GrammarProgram`
+objects. `compile_generation_batch(generation_result, geometry_context,
+compiler_version, batch_version)` attempts every generated program, separates
+successful and failed compilations, preserves successful `CompilationResult`
+objects unchanged, records failed program IDs and deterministic diagnostics, and
+returns a frozen `BatchCompilationResult`.
+
+Boundary: compiler only. No ScenarioSpecification assembly, no Scenario Runner,
+no Catalog execution, no Stage 1-6 execution, no Project 1, no production
+changes. The batch fingerprint covers generation_fingerprint, all observation
+checksums, program fingerprints, diagnostics, compiler_version, and
+batch_version.
+
+Relationship to compiler_smoke.py: compiler_smoke.py remains a smoke/
+integration proof; batch_compiler.py is the official batch compilation layer
+for Phase 2C preparation. Both are kept deliberately, not redundantly.
+
+Validation PASS: py_compile for batch_compiler + test; test_batch_compiler.py
+batch_success PASS, partial_failure PASS, determinism PASS,
+cross_process_determinism PASS, diagnostics_preserved PASS, research_isolation
+PASS, errors=[], result=PASS; git diff --check PASS.
+
+Isolation confirmed: no runner, catalog execution, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
+## Current Stable Status
+
 Current checkpoint: PHASE2B_COMPILER_SMOKE_STABLE
 
 Status: implemented and validated; awaiting review before commit.

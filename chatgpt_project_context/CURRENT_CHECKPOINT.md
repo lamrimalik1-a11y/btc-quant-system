@@ -1,5 +1,60 @@
 # Current Checkpoint
 
+## Active Checkpoint: PHASE2B_BATCH_COMPILER_STABLE
+
+Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.
+
+Chapter IV added deterministic batch compilation for generated `GrammarProgram`
+objects. The batch compiler sits after Scenario Generation and before any future
+batch execution. It compiles generated programs only and never assembles
+ScenarioSpecifications, calls the Scenario Runner, executes Catalog scenarios,
+or calls Stage 1-6.
+
+Implemented:
+- `BatchCompilationResult`: frozen result envelope with total, compiled, and
+  failed program counts, successful `CompilationResult` values, failed program
+  IDs, deterministic diagnostics, `batch_compilation_fingerprint`,
+  compiler_version, and batch_version.
+- `compile_generation_batch(generation_result, geometry_context,
+  compiler_version, batch_version)`: attempts every generated program, separates
+  successful and failed compilations, preserves successful `CompilationResult`
+  objects unchanged, records deterministic failure diagnostics, and never stops
+  after the first failure.
+- `batch_compilation_fingerprint` covers generation_fingerprint, all observation
+  checksums, program fingerprints, diagnostics, compiler_version, and
+  batch_version.
+- Regression validation covers all-success batches, partial failures,
+  deterministic ordering, deterministic diagnostics, diagnostics preservation,
+  cross-process determinism, and research isolation.
+
+Boundary: compiler only. No assembler, no Scenario Runner, no Catalog execution,
+no Stage 1-6 execution, no Project 1, and no production changes.
+
+Relationship to `compiler_smoke.py`: `compiler_smoke.py` remains a smoke/
+integration proof (does the existing compiler pipeline accept generated
+GrammarProgram objects at all). `batch_compiler.py` is the official batch
+compilation layer this chapter builds on going forward, in preparation for
+Phase 2C. Both stay; they are not redundant by accident.
+
+Files created:
+- `experiments/psychological_levels_dynamic/scenario_generation/batch_compiler.py`
+- `experiments/psychological_levels_dynamic/scenario_generation/test_batch_compiler.py`
+
+Validation commands:
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/batch_compiler.py`
+- `python -m py_compile experiments/psychological_levels_dynamic/scenario_generation/test_batch_compiler.py`
+- `python experiments/psychological_levels_dynamic/scenario_generation/test_batch_compiler.py`
+- `git diff --check`
+- `git status`
+
+Validation result: batch_success PASS; partial_failure PASS; determinism PASS;
+cross_process_determinism PASS; diagnostics_preserved PASS; research_isolation
+PASS; errors=[]; result=PASS.
+
+Isolation confirmed: no runner, catalog execution, Stage 1-6, Project 1,
+production, core, engines, or research files were modified by this checkpoint.
+
+---
 ## Active Checkpoint: PHASE2B_COMPILER_SMOKE_STABLE
 
 Status: IMPLEMENTED AND VALIDATED; awaiting review before commit.

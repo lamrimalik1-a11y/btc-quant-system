@@ -1,7 +1,10 @@
-﻿"""Execute the first 100-scenario Project 2 campaign through the full pipeline."""
+"""Execute the first 100-scenario Project 2 campaign through the full pipeline."""
 
 from __future__ import annotations
 
+import json
+import os
+import subprocess
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -252,6 +255,67 @@ def _signal_targets(report: tuple[tuple[str, Any], ...]) -> dict[str, Any]:
     }
 
 
+
+def _cross_process_payload(result: CampaignDesignerResult) -> dict[str, Any]:
+    return {
+        "campaign_specification_fingerprint": result.campaign_specification.campaign_specification_fingerprint,
+        "campaign_result_fingerprint": result.campaign_result.campaign_fingerprint,
+        "campaign_designer_fingerprint": result.campaign_designer_fingerprint,
+        "campaign_result": result.campaign_result,
+        "families": tuple(
+            {
+                "family_name": payload.family_name,
+                "family_pipeline_fingerprint": payload.family_pipeline_fingerprint,
+                "generation_fingerprint": payload.generation_result.generation_fingerprint,
+                "manifest_fingerprint": None
+                if payload.generation_result.manifest is None
+                else payload.generation_result.manifest.manifest_fingerprint,
+                "compilation_fingerprint": None
+                if payload.batch_compilation_result is None
+                else payload.batch_compilation_result.batch_compilation_fingerprint,
+                "assembly_fingerprint": None
+                if payload.batch_assembly_result is None
+                else payload.batch_assembly_result.batch_assembly_fingerprint,
+                "batch_execution_fingerprint": None
+                if payload.batch_execution_result is None
+                else payload.batch_execution_result.batch_execution_fingerprint,
+                "stage_1_6_summaries": tuple(
+                    {
+                        "scenario_id": record.scenario_id,
+                        "scenario_index": record.scenario_index,
+                        "execution_status": record.execution_status,
+                        "runner_result": record.runner_result,
+                        "compact_summary": record.summary,
+                        "stage3_transition_summary": None
+                        if record.scenario_run_result is None
+                        else record.scenario_run_result.stage3_transition_summary,
+                        "stage4_graph_summary": None
+                        if record.scenario_run_result is None
+                        else record.scenario_run_result.stage4_graph_summary,
+                        "stage5_trajectory_summary": None
+                        if record.scenario_run_result is None
+                        else record.scenario_run_result.stage5_trajectory_summary,
+                        "stage6_hypothesis_summary": None
+                        if record.scenario_run_result is None
+                        else record.scenario_run_result.stage6_hypothesis_summary,
+                    }
+                    for record in (() if payload.batch_execution_result is None else payload.batch_execution_result.scenario_results)
+                ),
+            }
+            for payload in result.family_execution_payloads
+        ),
+    }
+
+
+def _payload_json(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, default=str, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def _run_cross_process_payload() -> dict[str, Any]:
+    env = dict(os.environ)
+    env["PHASE2D_CAMPAIGN_100_CROSS_PROCESS_CHILD"] = "1"
+    output = subprocess.check_output([sys.executable, str(MODULE_PATH)], text=True, env=env)
+    return json.loads(output)
 def _research_isolated() -> bool:
     source = MODULE_PATH.read_text(encoding="utf-8").lower()
     imports = "\n".join(
@@ -283,6 +347,7 @@ def run() -> dict[str, Any]:
         "transitions_across_many_scenarios": False,
         "per_family_signal_report_present": False,
         "research_isolation": False,
+        "cross_process_determinism": False,
     }
     summary: dict[str, Any] = {}
     family_signal_report: tuple[tuple[str, Any], ...] = ()
@@ -341,6 +406,10 @@ def run() -> dict[str, Any]:
             and signal_targets["total_transitions"] > 0
         )
         checks["research_isolation"] = _research_isolated()
+        first_child_payload = _run_cross_process_payload()
+        second_child_payload = _run_cross_process_payload()
+        local_payload = json.loads(_payload_json(_cross_process_payload(result)))
+        checks["cross_process_determinism"] = first_child_payload == second_child_payload == local_payload
 
         summary = {
             "campaign_success": result.success,
@@ -354,6 +423,18 @@ def run() -> dict[str, Any]:
             "family_pipeline_fingerprints": _family_pipeline_fingerprints(result),
             "batch_execution_fingerprints": _family_batch_fingerprints(result),
             "signal_targets": signal_targets,
+            "cross_process_fingerprints_verified": (
+                "campaign_specification_fingerprint",
+                "campaign_result_fingerprint",
+                "campaign_designer_fingerprint",
+                "family_pipeline_fingerprint",
+                "generation_fingerprint",
+                "manifest_fingerprint",
+                "compilation_fingerprint",
+                "assembly_fingerprint",
+                "batch_execution_fingerprint",
+                "stage_1_6_summaries",
+            ),
         }
     except Exception as exc:
         errors.append(f"{type(exc).__name__}: {exc}")
@@ -363,6 +444,9 @@ def run() -> dict[str, Any]:
 
 
 def main() -> None:
+    if os.environ.get("PHASE2D_CAMPAIGN_100_CROSS_PROCESS_CHILD") == "1":
+        print(_payload_json(_cross_process_payload(_execute_campaign())))
+        return
     report = run()
     for field in (
         "all_10_families_executed",
@@ -383,6 +467,7 @@ def main() -> None:
         "transitions_across_many_scenarios",
         "per_family_signal_report_present",
         "research_isolation",
+        "cross_process_determinism",
     ):
         print(f"{field} = {'PASS' if report[field] else 'FAIL'}")
     print("family_signal_report columns = family, scenarios, visits, zero_visit_scenarios, scenarios_gte3_visits, transitions, scenarios_with_transitions, trajectory_records, eligible_hypotheses, confirmed_hypotheses, pending_hypotheses")
@@ -393,7 +478,7 @@ def main() -> None:
     print(f"result = {report['result']}")
     if report["result"] != "PASS":
         raise SystemExit(1)
-    print("PHASE2D_SIGNAL_RICH_CAMPAIGN_100_REDESIGN PASS")
+    print("PHASE2D_CAMPAIGN_100_CROSS_PROCESS_DETERMINISM PASS")
 
 
 if __name__ == "__main__":

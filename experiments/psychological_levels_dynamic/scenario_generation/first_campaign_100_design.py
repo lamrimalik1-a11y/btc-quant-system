@@ -1,4 +1,4 @@
-"""First 100-scenario Project 2 research campaign design.
+﻿"""First 100-scenario Project 2 research campaign design.
 
 Design/generation validation only: no compilation, assembly, batch execution,
 Scenario Runner, Catalog execution, Stage 1-6, Project 1, or production calls.
@@ -37,7 +37,7 @@ from experiments.psychological_levels_dynamic.scenario_generation.manifest_valid
     validate_manifest,
 )
 
-FIRST_CAMPAIGN_100_DESIGN_VERSION = "PHASE2D_FIRST_CAMPAIGN_100_DESIGN_V1"
+FIRST_CAMPAIGN_100_DESIGN_VERSION = "PHASE2D_SIGNAL_RICH_CAMPAIGN_100_DESIGN_V1"
 FIRST_CAMPAIGN_ID = "PHASE2D_FIRST_RESEARCH_CAMPAIGN_100"
 FIRST_CAMPAIGN_TARGET_COUNT = 100
 
@@ -100,7 +100,7 @@ def _axis_slot(
     )
 
 
-def _outside(rows: int = 4, clearance: Decimal = Decimal("0.50")) -> PhraseSlot:
+def _outside(rows: int = 4, clearance: Decimal = Decimal("0.55")) -> PhraseSlot:
     return _slot(
         "hold_outside",
         row_budget=rows,
@@ -108,6 +108,49 @@ def _outside(rows: int = 4, clearance: Decimal = Decimal("0.50")) -> PhraseSlot:
         side=ZoneSide.UPPER,
         clearance=clearance,
     )
+
+
+def _enter(depth: Decimal = Decimal("0.20"), rows: int = 3) -> PhraseSlot:
+    return _slot(
+        "enter_zone",
+        row_budget=rows,
+        target_zone="ZONE_A",
+        side=ZoneSide.LOWER,
+        depth=depth,
+    )
+
+
+def _penetrate_axis(axis_name: str, rows: int = 4) -> PhraseSlot:
+    return _axis_slot(
+        "penetrate",
+        axis_bindings=(("depth", axis_name),),
+        row_budget=rows,
+        target_zone="ZONE_A",
+        side=ZoneSide.LOWER,
+    )
+
+
+def _penetrate_fixed(depth: Decimal, rows: int = 4) -> PhraseSlot:
+    return _slot(
+        "penetrate",
+        row_budget=rows,
+        target_zone="ZONE_A",
+        side=ZoneSide.LOWER,
+        depth=depth,
+    )
+
+
+def _penetration_cycle(depth_axis: str | None = None, *, fixed_depth: Decimal = Decimal("0.34")) -> tuple[PhraseSlot, ...]:
+    penetrate_slot = _penetrate_axis(depth_axis) if depth_axis is not None else _penetrate_fixed(fixed_depth)
+    return (_enter(), penetrate_slot, _outside())
+
+
+def _repeat(pattern: tuple[PhraseSlot, ...], count: int) -> tuple[PhraseSlot, ...]:
+    return tuple(slot for _ in range(count) for slot in pattern)
+
+
+def _depth_axis(name: str, values: tuple[str, ...]) -> ParameterAxis:
+    return ParameterAxis(name, tuple(Decimal(value) for value in values))
 
 
 def _template(
@@ -120,7 +163,7 @@ def _template(
 ) -> GrammarTemplate:
     return GrammarTemplate(
         template_id=template_id,
-        template_version="1",
+        template_version="2",
         family_tag=family_tag,
         description=description,
         phrase_slots=phrase_slots,
@@ -149,34 +192,20 @@ def _baseline_enter_exit() -> CampaignFamilySpec:
     return _family(
         family_name="BASELINE_ENTER_EXIT",
         template=_template(
-            template_id="FIRST100_BASELINE_ENTER_EXIT",
+            template_id="FIRST100_BASELINE_ENTER_EXIT_SIGNAL_RICH",
             family_tag="BASELINE_ENTER_EXIT",
-            description="Simple deterministic enter/exit cycles.",
-            phrase_slots=(
-                _axis_slot(
-                    "enter_zone",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=4,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.20",
-                "0.24",
-                "0.28",
-                "0.32",
-                "0.36",
-                "0.40",
-                "0.44",
-                "0.48",
-                "0.52",
-                "0.56",
-            ))),),
+            description="Repeated shallow enter/exit cycles kept within the viable entry envelope.",
+            phrase_slots=_repeat((_axis_slot(
+                "enter_zone",
+                axis_bindings=(("depth", "depth"),),
+                row_budget=3,
+                target_zone="ZONE_A",
+                side=ZoneSide.LOWER,
+            ), _outside()), 5),
+            axes=(_depth_axis("depth", ("0.10", "0.11", "0.12", "0.13", "0.14", "0.15", "0.16", "0.17", "0.18", "0.19")),),
         ),
-        coverage_tags=("baseline_cycle", "enter_zone"),
-        notes="Control-like enter/exit authoring coverage.",
+        coverage_tags=("baseline_cycle", "repeated_enter_exit"),
+        notes="Signal-rich baseline: five completed shallow enter/exit cycles per generated program.",
     )
 
 
@@ -184,35 +213,14 @@ def _direct_penetration() -> CampaignFamilySpec:
     return _family(
         family_name="DIRECT_PENETRATION",
         template=_template(
-            template_id="FIRST100_DIRECT_PENETRATION",
+            template_id="FIRST100_DIRECT_PENETRATION_SIGNAL_RICH",
             family_tag="DIRECT_PENETRATION",
-            description="Enter then hold explicit penetration depth.",
-            phrase_slots=(
-                _slot("enter_zone", row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER, depth=Decimal("0.25")),
-                _axis_slot(
-                    "penetrate",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=4,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.26",
-                "0.30",
-                "0.34",
-                "0.38",
-                "0.42",
-                "0.46",
-                "0.50",
-                "0.54",
-                "0.58",
-                "0.62",
-            ))),),
+            description="Repeated enter/penetrate/exit cycles with one variable penetration depth.",
+            phrase_slots=_repeat(_penetration_cycle("depth"), 5),
+            axes=(_depth_axis("depth", ("0.22", "0.24", "0.26", "0.28", "0.30", "0.32", "0.34", "0.36", "0.38", "0.40")),),
         ),
-        coverage_tags=("direct_penetration", "single_visit"),
-        notes="Direct penetration authoring coverage without inferred side.",
+        coverage_tags=("direct_penetration", "repeated_cycles"),
+        notes="Main reliable signal mechanism: five repeated penetration visits.",
     )
 
 
@@ -220,40 +228,20 @@ def _progressive_penetration() -> CampaignFamilySpec:
     return _family(
         family_name="PROGRESSIVE_PENETRATION",
         template=_template(
-            template_id="FIRST100_PROGRESSIVE_PENETRATION",
+            template_id="FIRST100_PROGRESSIVE_PENETRATION_SIGNAL_RICH",
             family_tag="PROGRESSIVE_PENETRATION",
-            description="Two increasing penetration holds before exit.",
+            description="Five visits with increasing fixed penetration depths plus one variable final depth.",
             phrase_slots=(
-                _slot("enter_zone", row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER, depth=Decimal("0.20")),
-                _axis_slot(
-                    "penetrate",
-                    axis_bindings=(("depth", "first_depth"),),
-                    row_budget=3,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _axis_slot(
-                    "penetrate",
-                    axis_bindings=(("depth", "second_depth"),),
-                    row_budget=3,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.22")),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.26")),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.30")),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.34")),
+                *_penetration_cycle("final_depth"),
             ),
-            axes=(
-                ParameterAxis("first_depth", tuple(Decimal(value) for value in ("0.24", "0.28"))),
-                ParameterAxis("second_depth", tuple(Decimal(value) for value in (
-                    "0.36",
-                    "0.40",
-                    "0.44",
-                    "0.48",
-                    "0.52",
-                ))),
-            ),
+            axes=(_depth_axis("final_depth", ("0.36", "0.38", "0.40", "0.42", "0.44", "0.46", "0.48", "0.50", "0.52", "0.54")),),
         ),
         coverage_tags=("progressive_depth", "penetration_sequence"),
-        notes="Increasing penetration-depth coverage.",
+        notes="Progressive within-scenario depth sequence with five complete visits.",
     )
 
 
@@ -261,42 +249,14 @@ def _weak_attacks() -> CampaignFamilySpec:
     return _family(
         family_name="WEAK_ATTACKS",
         template=_template(
-            template_id="FIRST100_WEAK_ATTACKS",
+            template_id="FIRST100_WEAK_ATTACKS_SIGNAL_RICH",
             family_tag="WEAK_ATTACKS",
-            description="Repeated shallow entries with outside recovery.",
-            phrase_slots=(
-                _axis_slot(
-                    "enter_zone",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=3,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(rows=5, clearance=Decimal("0.55")),
-                _axis_slot(
-                    "enter_zone",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=3,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(rows=5, clearance=Decimal("0.55")),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.10",
-                "0.12",
-                "0.14",
-                "0.16",
-                "0.18",
-                "0.20",
-                "0.22",
-                "0.24",
-                "0.26",
-                "0.28",
-            ))),),
+            description="Repeated shallow penetration cycles inside the viable weak-depth envelope.",
+            phrase_slots=_repeat(_penetration_cycle("depth"), 5),
+            axes=(_depth_axis("depth", ("0.10", "0.11", "0.12", "0.13", "0.14", "0.15", "0.16", "0.17", "0.18", "0.19")),),
         ),
-        coverage_tags=("weak_depth", "repeated_visits"),
-        notes="Shallow repeated-visit coverage.",
+        coverage_tags=("weak_depth", "repeated_penetration"),
+        notes="Weak attacks are shallow but repeated enough to produce completed visits.",
     )
 
 
@@ -304,44 +264,14 @@ def _strong_attacks() -> CampaignFamilySpec:
     return _family(
         family_name="STRONG_ATTACKS",
         template=_template(
-            template_id="FIRST100_STRONG_ATTACKS",
+            template_id="FIRST100_STRONG_ATTACKS_SIGNAL_RICH",
             family_tag="STRONG_ATTACKS",
-            description="Repeated deeper entries and penetration holds.",
-            phrase_slots=(
-                _slot("enter_zone", row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER, depth=Decimal("0.40")),
-                _axis_slot(
-                    "penetrate",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=5,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(rows=4, clearance=Decimal("0.60")),
-                _slot("enter_zone", row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER, depth=Decimal("0.40")),
-                _axis_slot(
-                    "penetrate",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=5,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.LOWER,
-                ),
-                _outside(rows=4, clearance=Decimal("0.60")),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.50",
-                "0.54",
-                "0.58",
-                "0.62",
-                "0.66",
-                "0.70",
-                "0.74",
-                "0.78",
-                "0.82",
-                "0.86",
-            ))),),
+            description="Repeated deeper penetration cycles.",
+            phrase_slots=_repeat(_penetration_cycle("depth"), 5),
+            axes=(_depth_axis("depth", ("0.42", "0.46", "0.50", "0.54", "0.58", "0.62", "0.66", "0.70", "0.74", "0.78")),),
         ),
         coverage_tags=("strong_depth", "repeated_penetration"),
-        notes="Deeper repeated-penetration coverage.",
+        notes="Strong attacks use repeated complete penetration visits rather than single episodes.",
     )
 
 
@@ -349,34 +279,21 @@ def _accepted_break() -> CampaignFamilySpec:
     return _family(
         family_name="ACCEPTED_BREAK",
         template=_template(
-            template_id="FIRST100_ACCEPTED_BREAK",
+            template_id="FIRST100_ACCEPTED_BREAK_SIGNAL_RICH",
             family_tag="ACCEPTED_BREAK",
-            description="Accepted-break macro with varied clearance.",
-            phrase_slots=(
-                _axis_slot(
-                    "accepted_break",
-                    axis_bindings=(("clearance", "clearance"),),
-                    row_budget=12,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.UPPER,
-                    acceptance_rows=4,
-                ),
-            ),
-            axes=(ParameterAxis("clearance", tuple(Decimal(value) for value in (
-                "0.30",
-                "0.34",
-                "0.38",
-                "0.42",
-                "0.46",
-                "0.50",
-                "0.54",
-                "0.58",
-                "0.62",
-                "0.66",
-            ))),),
+            description="Repeated accepted-break macro cycles.",
+            phrase_slots=_repeat((_axis_slot(
+                "accepted_break",
+                axis_bindings=(("clearance", "clearance"),),
+                row_budget=12,
+                target_zone="ZONE_A",
+                side=ZoneSide.UPPER,
+                acceptance_rows=4,
+            ), _outside(rows=4, clearance=Decimal("0.60"))), 4),
+            axes=(_depth_axis("clearance", ("0.22", "0.24", "0.26", "0.28", "0.30", "0.32", "0.34", "0.36", "0.38", "0.40")),),
         ),
-        coverage_tags=("accepted_break", "outside_residence"),
-        notes="Accepted-break macro coverage with explicit acceptance residence.",
+        coverage_tags=("accepted_break", "repeated_macro_cycles"),
+        notes="Accepted-break macro repeated four times with explicit outside residence.",
     )
 
 
@@ -384,35 +301,21 @@ def _reclaim() -> CampaignFamilySpec:
     return _family(
         family_name="RECLAIM",
         template=_template(
-            template_id="FIRST100_RECLAIM",
+            template_id="FIRST100_RECLAIM_SIGNAL_RICH",
             family_tag="RECLAIM",
-            description="Reclaim macro followed by clear outside exit.",
-            phrase_slots=(
-                _axis_slot(
-                    "reclaim",
-                    axis_bindings=(("depth", "depth"),),
-                    row_budget=12,
-                    target_zone="ZONE_A",
-                    side=ZoneSide.UPPER,
-                    residence_rows=4,
-                ),
-                _outside(rows=5, clearance=Decimal("0.50")),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.22",
-                "0.26",
-                "0.30",
-                "0.34",
-                "0.38",
-                "0.42",
-                "0.46",
-                "0.50",
-                "0.54",
-                "0.58",
-            ))),),
+            description="Repeated reclaim macro cycles followed by clear outside exits.",
+            phrase_slots=_repeat((_axis_slot(
+                "reclaim",
+                axis_bindings=(("depth", "depth"),),
+                row_budget=12,
+                target_zone="ZONE_A",
+                side=ZoneSide.UPPER,
+                residence_rows=4,
+            ), _outside(rows=5, clearance=Decimal("0.55"))), 4),
+            axes=(_depth_axis("depth", ("0.22", "0.24", "0.26", "0.28", "0.30", "0.32", "0.34", "0.36", "0.38", "0.40")),),
         ),
-        coverage_tags=("reclaim", "inside_residence"),
-        notes="Reclaim macro coverage with explicit post-reclaim exit.",
+        coverage_tags=("reclaim", "repeated_macro_cycles"),
+        notes="Reclaim macro repeated four times with clear post-reclaim exits.",
     )
 
 
@@ -420,9 +323,9 @@ def _ramp_to_entry() -> CampaignFamilySpec:
     return _family(
         family_name="RAMP_TO_ENTRY",
         template=_template(
-            template_id="FIRST100_RAMP_TO_ENTRY",
+            template_id="FIRST100_RAMP_TO_ENTRY_SIGNAL_RICH",
             family_tag="RAMP_TO_ENTRY",
-            description="Ramp connector before an authored zone entry.",
+            description="Ramp connector followed by repeated penetration cycles.",
             phrase_slots=(
                 _axis_slot(
                     "ramp",
@@ -432,24 +335,12 @@ def _ramp_to_entry() -> CampaignFamilySpec:
                     direction=Direction.UP,
                     smoothness=PathSmoothness.LINEAR,
                 ),
-                _slot("enter_zone", row_budget=4, target_zone="ZONE_A", side=ZoneSide.LOWER, depth=Decimal("0.35")),
-                _outside(),
+                *_repeat(_penetration_cycle(None, fixed_depth=Decimal("0.30")), 4),
             ),
-            axes=(ParameterAxis("distance", tuple(Decimal(value) for value in (
-                "0.10",
-                "0.14",
-                "0.18",
-                "0.22",
-                "0.26",
-                "0.30",
-                "0.34",
-                "0.38",
-                "0.42",
-                "0.46",
-            ))),),
+            axes=(_depth_axis("distance", ("0.02", "0.04", "0.06", "0.08", "0.10", "0.12", "0.14", "0.16", "0.18", "0.20")),),
         ),
-        coverage_tags=("ramp_connector", "entry_after_connector"),
-        notes="Ramp is used only as a deterministic connector before entry.",
+        coverage_tags=("ramp_connector", "repeated_penetration"),
+        notes="Ramp remains a connector; signal comes from repeated penetration cycles.",
     )
 
 
@@ -457,32 +348,20 @@ def _multi_return_cycles() -> CampaignFamilySpec:
     return _family(
         family_name="MULTI_RETURN_CYCLES",
         template=_template(
-            template_id="FIRST100_MULTI_RETURN_CYCLES",
+            template_id="FIRST100_MULTI_RETURN_CYCLES_SIGNAL_RICH",
             family_tag="MULTI_RETURN_CYCLES",
-            description="Three repeated return cycles with varied depth.",
-            phrase_slots=(
-                _axis_slot("enter_zone", axis_bindings=(("depth", "depth"),), row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER),
-                _outside(rows=4, clearance=Decimal("0.50")),
-                _axis_slot("enter_zone", axis_bindings=(("depth", "depth"),), row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER),
-                _outside(rows=4, clearance=Decimal("0.50")),
-                _axis_slot("enter_zone", axis_bindings=(("depth", "depth"),), row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER),
-                _outside(rows=4, clearance=Decimal("0.50")),
-            ),
-            axes=(ParameterAxis("depth", tuple(Decimal(value) for value in (
-                "0.18",
-                "0.22",
-                "0.26",
-                "0.30",
-                "0.34",
-                "0.38",
-                "0.42",
-                "0.46",
-                "0.50",
-                "0.54",
-            ))),),
+            description="Six repeated return cycles with viable shallow entries.",
+            phrase_slots=_repeat((_axis_slot(
+                "enter_zone",
+                axis_bindings=(("depth", "depth"),),
+                row_budget=3,
+                target_zone="ZONE_A",
+                side=ZoneSide.LOWER,
+            ), _outside(rows=4, clearance=Decimal("0.55"))), 6),
+            axes=(_depth_axis("depth", ("0.10", "0.11", "0.12", "0.13", "0.14", "0.15", "0.16", "0.17", "0.18", "0.19")),),
         ),
         coverage_tags=("multiple_returns", "repeated_visits"),
-        notes="Multiple return-cycle coverage.",
+        notes="Multiple return-cycle coverage deliberately kept in the viable shallow range.",
     )
 
 
@@ -490,34 +369,32 @@ def _sparse_interaction() -> CampaignFamilySpec:
     return _family(
         family_name="SPARSE_INTERACTION",
         template=_template(
-            template_id="FIRST100_SPARSE_INTERACTION",
+            template_id="FIRST100_SPARSE_INTERACTION_SIGNAL_RICH",
             family_tag="SPARSE_INTERACTION",
-            description="Sparse visits separated by longer outside holds.",
+            description="Sparse but valid penetration visits separated by longer outside holds.",
             phrase_slots=(
-                _axis_slot("enter_zone", axis_bindings=(("depth", "depth"),), row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.22")),
                 _axis_slot(
                     "hold_outside",
                     axis_bindings=(("row_budget", "gap_rows"),),
                     target_zone="ZONE_A",
                     side=ZoneSide.UPPER,
-                    clearance=Decimal("0.55"),
+                    clearance=Decimal("0.60"),
                 ),
-                _axis_slot("enter_zone", axis_bindings=(("depth", "depth"),), row_budget=3, target_zone="ZONE_A", side=ZoneSide.LOWER),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.26")),
                 _axis_slot(
                     "hold_outside",
                     axis_bindings=(("row_budget", "gap_rows"),),
                     target_zone="ZONE_A",
                     side=ZoneSide.UPPER,
-                    clearance=Decimal("0.55"),
+                    clearance=Decimal("0.60"),
                 ),
+                *_penetration_cycle(None, fixed_depth=Decimal("0.30")),
             ),
-            axes=(
-                ParameterAxis("depth", tuple(Decimal(value) for value in ("0.22", "0.30"))),
-                ParameterAxis("gap_rows", (4, 5, 6, 7, 8)),
-            ),
+            axes=(ParameterAxis("gap_rows", (4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),),
         ),
         coverage_tags=("sparse_interaction", "long_recovery_gap"),
-        notes="Sparse interaction coverage with deterministic outside gaps.",
+        notes="Sparse interaction remains sparse but now has three complete visits per scenario.",
     )
 
 
@@ -536,15 +413,15 @@ def build_campaign_specification() -> CampaignSpecification:
     )
     fingerprint = campaign_specification_fingerprint_payload(
         campaign_id=FIRST_CAMPAIGN_ID,
-        campaign_version="1",
-        campaign_goal="Design the first deterministic 100-scenario Project 2 research campaign.",
+        campaign_version="2",
+        campaign_goal="Design a signal-rich deterministic 100-scenario Project 2 research campaign.",
         families=families,
         target_scenario_count=FIRST_CAMPAIGN_TARGET_COUNT,
     )
     return CampaignSpecification(
         campaign_id=FIRST_CAMPAIGN_ID,
-        campaign_version="1",
-        campaign_goal="Design the first deterministic 100-scenario Project 2 research campaign.",
+        campaign_version="2",
+        campaign_goal="Design a signal-rich deterministic 100-scenario Project 2 research campaign.",
         families=families,
         target_scenario_count=FIRST_CAMPAIGN_TARGET_COUNT,
         campaign_specification_fingerprint=fingerprint,

@@ -1,4 +1,4 @@
-﻿"""Validation for the first 100-scenario Project 2 campaign design."""
+"""Validation for the first 100-scenario Project 2 campaign design."""
 
 from __future__ import annotations
 
@@ -131,7 +131,7 @@ def run() -> dict[str, Any]:
         )
         assert len(coverage) == 10
         assert all(tags for _, tags in coverage)
-        assert ("RAMP_TO_ENTRY", ("ramp_connector", "entry_after_connector")) in coverage
+        assert ("RAMP_TO_ENTRY", ("ramp_connector", "repeated_penetration")) in coverage
         checks["family_coverage_preserved"] = True
 
         repeated = design_first_campaign_100()
@@ -220,4 +220,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

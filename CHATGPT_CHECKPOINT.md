@@ -1,3 +1,121 @@
+# PHASE2D_REPORT_GENERATION_STABLE
+
+Checkpoint date: 2026-07-10
+
+Status: STABLE.
+
+Report generator commit: `fa295e8e63b309b439f32078f67dcf4a889f1627`
+
+Tag: `PHASE2D_REPORT_GENERATION_STABLE`
+
+==================================================
+PHASE2D COMPLETED
+==================================================
+
+Primitive viability program:
+- PENETRATE side authoring fix
+- RECLAIM forwarding fix
+- RECLAIM viability clearance fix
+- RAMP target-zone authoring fix
+
+Primitive status:
+
+VIABLE_NON_TRIVIAL
+- enter_zone
+- penetrate
+- accepted_break
+- reclaim
+
+VIABLE_EMPTY
+- ramp (connector primitive)
+
+NOT_VIABLE / DEFERRED
+- retest_boundary (deferred)
+
+==================================================
+CAMPAIGN ARCHITECTURE
+==================================================
+
+Stable contracts:
+- CampaignFamilySpec
+- CampaignSpecification
+- CampaignFamilyResult
+- CampaignResult
+
+Stable orchestration:
+- CampaignDesignerResult
+- CampaignFamilyExecutionPayload
+- run_campaign()
+
+Deterministic fingerprints are stable across campaign design, campaign execution, family pipelines, batch execution, report contracts, and report generation.
+
+Campaign design:
+- 100-scenario deterministic campaign
+- signal-rich redesign
+- cross-process determinism verified
+
+==================================================
+RESEARCH REPORT
+==================================================
+
+Research report contracts:
+- ResearchReportMetadata
+- ResearchCoverageSummary
+- ResearchFamilySummary
+- ResearchTransitionSummary
+- ResearchTrajectorySummary
+- ResearchHypothesisSummary
+- ResearchCampaignReport
+
+Research report generator:
+- build_research_campaign_report(...)
+- deterministic report generation
+- report reconciliation
+- cross-process determinism
+- no raw ScenarioRunResult / ScenarioExecutionRecord / BatchExecutionResult embedded
+- no file I/O, charts, execution, Runner, Stage, Catalog, Project 1, or production imports
+
+==================================================
+CURRENT VERIFIED SIGNAL-RICH RESULTS
+==================================================
+
+- 100 generated
+- 100 executed
+- 100 passed
+- 0 failed
+- 0 skipped
+- 0 zero-visit scenarios
+- 100 scenarios with >=3 completed visits
+- 100 scenarios with transitions
+- 260 transitions
+- 460 completed visits
+- 460 trajectory records
+- 63 eligible hypotheses
+- 10 confirmed
+- 53 pending
+
+Fingerprints:
+- Campaign result: `sha256:56faeb9c8832ee692a24af43a5bb6074f2909241db3e790b9d11c4fa1124dc31`
+- Campaign designer: `sha256:3c7fb473c9ea99aa1745d47cb5eb88fbfddb3ec4ab2f50dd75793f43513646a8`
+- Research report: `sha256:af779c8d9c9198c1b306ae6ebfe35503050ee5a1900b4c22935501e48c1d8ad6`
+
+==================================================
+KNOWN DEFERRED ITEMS
+==================================================
+
+- retest_boundary remains deferred.
+- Persistent report artifact generation is not implemented.
+- Visualization/charts are not implemented.
+- Statistical comparison, sensitivity analysis, and research interpretation remain future work.
+
+==================================================
+NEXT RECOMMENDED PHASE
+==================================================
+
+PHASE2E_RESEARCH_REPORT_ARTIFACT_AND_ANALYSIS_DESIGN:
+
+Design the report artifact/export and analysis boundary using the stable report contracts and generator, without modifying Runner, Stage 1-6, Campaign Designer, Generator, Compiler, Catalog, Project 1, or production.
+
 ## Active Checkpoint: PHASE1D_TIMELINE_SCHEDULER_STABLE
 
 Commit: `744a38d530fb2a6178751a24f3fd2191c48a32dc`

@@ -220,11 +220,15 @@ def run() -> dict[str, Any]:
         "banned_language_scan": False,
         "tests_write_only_to_temp_directories": False,
         "gitattributes_rule": False,
-        "no_real_repository_artifact": False,
+        "repository_artifacts_unchanged": False,
         "pinned_renderer_checksum": False,
     }
     errors: list[str] = []
     try:
+        repo_artifact_dir = REPO_ROOT / DEFAULT_RESEARCH_ARTIFACT_JSON_DIRECTORY
+        artifacts_before = tuple(
+            sorted(repo_artifact_dir.rglob("*.json"))
+        ) if repo_artifact_dir.exists() else ()
         rendered = _rendered_bytes()
         render_fingerprint = research_artifact_json_render_fingerprint(rendered)
         filename = research_artifact_json_filename(ARTIFACT_ID, ARTIFACT_VERSION)
@@ -430,12 +434,11 @@ def run() -> dict[str, Any]:
             and checks["no_regeneration"]
             and checks["forbidden_imports"]
         )
-        repo_artifact_dir = REPO_ROOT / DEFAULT_RESEARCH_ARTIFACT_JSON_DIRECTORY
-        checks["no_real_repository_artifact"] = not (
-            repo_artifact_dir.exists()
-            and any(repo_artifact_dir.rglob("*.json"))
-        )
-        checks["tests_write_only_to_temp_directories"] = checks["no_real_repository_artifact"]
+        artifacts_after = tuple(
+            sorted(repo_artifact_dir.rglob("*.json"))
+        ) if repo_artifact_dir.exists() else ()
+        checks["repository_artifacts_unchanged"] = artifacts_after == artifacts_before
+        checks["tests_write_only_to_temp_directories"] = checks["repository_artifacts_unchanged"]
         gitattributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
         checks["gitattributes_rule"] = (
             gitattributes.splitlines().count(EXPECTED_GITATTRIBUTES_RULE) == 1

@@ -156,6 +156,39 @@ def _require_label(name: str, value: str, allowed: frozenset[str]) -> None:
         raise ValueError(f"{name} has invalid descriptive label")
 
 
+def _active_signal_dimension_count(family: "ResearchFamilyAnalysis") -> int:
+    return sum(
+        1
+        for value in (
+            family.visit_density,
+            family.transition_density,
+            family.trajectory_density,
+            family.eligibility_rate,
+        )
+        if value is not None and value > Decimal("0")
+    )
+
+
+def _signal_richness_for_count(signal_dimension_count: int) -> str:
+    if signal_dimension_count == 0:
+        return "NO_SIGNAL"
+    if signal_dimension_count == 1:
+        return "LOW_SIGNAL"
+    if signal_dimension_count in (2, 3):
+        return "MEDIUM_SIGNAL"
+    if signal_dimension_count == 4:
+        return "RICH_SIGNAL"
+    raise ValueError("signal_dimension_count must be in the closed interval 0..4")
+
+
+def _sample_sufficiency_for_family(family: "ResearchFamilyAnalysis") -> str:
+    if family.scenarios_generated == 0:
+        return "NOT_APPLICABLE"
+    if family.eligible_hypotheses > 0:
+        return "SUFFICIENT_SAMPLE"
+    return "INSUFFICIENT_SAMPLE"
+
+
 def research_analysis_metadata_fingerprint_payload(
     *,
     analysis_id: str,
@@ -773,6 +806,31 @@ class ResearchCampaignAnalysis:
             raise ValueError("transition totals must reconcile by family")
         if self.trajectory_analysis.total_trajectory_records != sum(family.trajectory_records for family in self.family_analyses):
             raise ValueError("trajectory totals must reconcile by family")
+        for family in self.family_analyses:
+            expected_signal_dimension_count = _active_signal_dimension_count(family)
+            if family.signal_dimension_count != expected_signal_dimension_count:
+                raise ValueError("family signal_dimension_count must reconcile from source dimensions")
+            expected_signal_richness = _signal_richness_for_count(expected_signal_dimension_count)
+            if family.signal_richness_class != expected_signal_richness:
+                raise ValueError("family signal_richness_class must reconcile from signal_dimension_count")
+            expected_sample_sufficiency = _sample_sufficiency_for_family(family)
+            if family.sample_sufficiency_class != expected_sample_sufficiency:
+                raise ValueError("family sample_sufficiency_class must reconcile from source counts")
+        expected_zero_transition_families = tuple(
+            sorted(family.family_name for family in self.family_analyses if family.transitions == 0)
+        )
+        if self.transition_analysis.families_with_zero_transitions != expected_zero_transition_families:
+            raise ValueError("families_with_zero_transitions must exactly reconcile from family analyses")
+        expected_zero_trajectory_families = tuple(
+            sorted(family.family_name for family in self.family_analyses if family.trajectory_records == 0)
+        )
+        if self.trajectory_analysis.families_with_zero_trajectory_records != expected_zero_trajectory_families:
+            raise ValueError("families_with_zero_trajectory_records must exactly reconcile from family analyses")
+        expected_no_eligible_families = tuple(
+            sorted(family.family_name for family in self.family_analyses if family.eligible_hypotheses == 0)
+        )
+        if self.hypothesis_analysis.families_with_no_eligible_hypotheses != expected_no_eligible_families:
+            raise ValueError("families_with_no_eligible_hypotheses must exactly reconcile from family analyses")
         _require_expected_rate(
             "trajectory_analysis.trajectory_density",
             self.trajectory_analysis.trajectory_density,

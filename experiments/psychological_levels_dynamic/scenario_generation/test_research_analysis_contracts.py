@@ -78,6 +78,11 @@ BANNED_PROSE_FRAGMENTS = (
     "exit recommendation",
     "forecast",
     "strategy ranking",
+    "generalize",
+    "generalization",
+    "proves",
+    "weaker",
+    "degraded",
     "machine learning",
     "learned threshold",
     "better",
@@ -533,6 +538,44 @@ def _semantic_rejected(factory: Any) -> bool:
     except ValueError:
         return True
     return False
+
+
+def _campaign_from_parts(
+    *,
+    families: tuple[ResearchFamilyAnalysis, ...] | None = None,
+    coverage: ResearchCoverageAnalysis | None = None,
+    transition: ResearchTransitionAnalysis | None = None,
+    trajectory: ResearchTrajectoryAnalysis | None = None,
+    hypothesis: ResearchHypothesisAnalysis | None = None,
+) -> ResearchCampaignAnalysis:
+    metadata = _metadata()
+    actual_families = _families() if families is None else families
+    actual_coverage = _coverage() if coverage is None else coverage
+    actual_transition = _transition() if transition is None else transition
+    actual_trajectory = _trajectory() if trajectory is None else trajectory
+    actual_hypothesis = _hypothesis() if hypothesis is None else hypothesis
+    diagnostics: tuple[str, ...] = ()
+    fingerprint = research_campaign_analysis_fingerprint_payload(
+        metadata=metadata,
+        family_analyses=actual_families,
+        coverage_analysis=actual_coverage,
+        transition_analysis=actual_transition,
+        trajectory_analysis=actual_trajectory,
+        hypothesis_analysis=actual_hypothesis,
+        diagnostics=diagnostics,
+    )
+    return ResearchCampaignAnalysis(
+        metadata=metadata,
+        family_analyses=actual_families,
+        coverage_analysis=actual_coverage,
+        transition_analysis=actual_transition,
+        trajectory_analysis=actual_trajectory,
+        hypothesis_analysis=actual_hypothesis,
+        diagnostics=diagnostics,
+        campaign_analysis_fingerprint=fingerprint,
+    )
+
+
 def run() -> dict[str, Any]:
     errors: list[str] = []
     checks = {
@@ -566,6 +609,17 @@ def run() -> dict[str, Any]:
         "inconsistent_unique_shared_coverage_tags_rejected": False,
         "invalid_signal_dimension_count_rejected": False,
         "per_family_visit_coverage_reconciliation_rejected": False,
+        "incorrect_campaign_signal_dimension_count_rejected": False,
+        "incorrect_signal_richness_class_rejected": False,
+        "incorrect_sample_sufficiency_class_rejected": False,
+        "missing_zero_transition_family_rejected": False,
+        "extra_zero_transition_family_rejected": False,
+        "missing_zero_trajectory_family_rejected": False,
+        "extra_zero_trajectory_family_rejected": False,
+        "missing_no_eligible_family_rejected": False,
+        "extra_no_eligible_family_rejected": False,
+        "campaign_trajectory_density_rejected": False,
+        "campaign_hypothesis_eligibility_rate_rejected": False,
     }
     fingerprint = ""
     try:
@@ -833,6 +887,86 @@ def run() -> dict[str, Any]:
                     diagnostics=(),
                 ),
             )
+        )
+        checks["incorrect_campaign_signal_dimension_count_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(families=(_semantic_family(signal_dimension_count=3), _families()[1]))
+        )
+        checks["incorrect_signal_richness_class_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(families=(_semantic_family(signal_richness_class="MEDIUM_SIGNAL"), _families()[1]))
+        )
+        checks["incorrect_sample_sufficiency_class_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(
+                families=(_semantic_family(sample_sufficiency_class="INSUFFICIENT_SAMPLE"), _families()[1])
+            )
+        )
+
+        zero_transition_families = (
+            _families()[0],
+            _family(
+                "BETA_FAMILY",
+                ("beta_tag", "shared_tag"),
+                visits=40,
+                transitions=0,
+                trajectories=40,
+                eligible=0,
+                confirmed=0,
+                pending=0,
+                richness="MEDIUM_SIGNAL",
+            ),
+        )
+        zero_transition_rows = (("ALPHA_FAMILY", 26), ("BETA_FAMILY", 0))
+        missing_zero_transition = _semantic_transition(
+            total_transitions=26,
+            per_family_transition_counts=zero_transition_rows,
+            transition_density=Decimal("1.3"),
+            top_transition_contributor_share=Decimal("1"),
+            families_with_zero_transitions=(),
+        )
+        checks["missing_zero_transition_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(families=zero_transition_families, transition=missing_zero_transition)
+        )
+        extra_zero_transition = _semantic_transition(families_with_zero_transitions=("BETA_FAMILY",))
+        checks["extra_zero_transition_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(transition=extra_zero_transition)
+        )
+
+        zero_trajectory_families = (
+            _families()[0],
+            _family(
+                "BETA_FAMILY",
+                ("beta_tag", "shared_tag"),
+                visits=40,
+                transitions=20,
+                trajectories=0,
+                eligible=0,
+                confirmed=0,
+                pending=0,
+                richness="MEDIUM_SIGNAL",
+            ),
+        )
+        zero_trajectory_rows = (("ALPHA_FAMILY", 46), ("BETA_FAMILY", 0))
+        missing_zero_trajectory = _semantic_trajectory(
+            total_trajectory_records=46,
+            per_family_trajectory_records=zero_trajectory_rows,
+            trajectory_density=Decimal("2.3"),
+            top_trajectory_contributor_share=Decimal("1"),
+            families_with_zero_trajectory_records=(),
+        )
+        checks["missing_zero_trajectory_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(families=zero_trajectory_families, trajectory=missing_zero_trajectory)
+        )
+        extra_zero_trajectory = _semantic_trajectory(families_with_zero_trajectory_records=("BETA_FAMILY",))
+        checks["extra_zero_trajectory_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(trajectory=extra_zero_trajectory)
+        )
+
+        missing_no_eligible = _semantic_hypothesis(families_with_no_eligible_hypotheses=())
+        checks["missing_no_eligible_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(hypothesis=missing_no_eligible)
+        )
+        extra_no_eligible = _semantic_hypothesis(families_with_no_eligible_hypotheses=("ALPHA_FAMILY", "BETA_FAMILY"))
+        checks["extra_no_eligible_family_rejected"] = _semantic_rejected(
+            lambda: _campaign_from_parts(hypothesis=extra_no_eligible)
         )
         checks["classification_determinism"] = tuple(
             family.signal_richness_class for family in _analysis().family_analyses

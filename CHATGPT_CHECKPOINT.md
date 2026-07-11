@@ -1,3 +1,121 @@
+================================================================================================================
+PHASE2F_RESEARCH_ARTIFACT_LAYER_COMPLETE
+================================================================================================================
+
+STATUS: STABLE CHECKPOINT
+
+Permanent artifact checkpoint:
+
+PHASE2F_FIRST_RESEARCH_ARTIFACT_EXPORTED
+
+Artifact commit:
+24e85de
+
+Completed Phase2F checkpoints:
+
+- PHASE2F_RESEARCH_ARTIFACT_CONTRACTS_STABLE
+  Commit: bdfe08f697074c7aeb7bed16ac1fd3eeec08e2c6
+
+- PHASE2F_RESEARCH_ARTIFACT_GENERATOR_STABLE
+  Commit: c29ee42
+
+- PHASE2F_RESEARCH_ARTIFACT_JSON_RENDERER_STABLE
+  Commit: 451f40f
+
+- PHASE2F_RESEARCH_ARTIFACT_JSON_EXPORTER_STABLE
+  Commit: 6201ee0
+
+- PHASE2F_FIRST_RESEARCH_ARTIFACT_EXPORTED
+  Commit: 24e85de
+
+Final deterministic pipeline:
+
+Campaign
+    ↓
+Research Campaign Report
+    ↓
+Research Campaign Analysis
+    ↓
+Research Artifact
+    ↓
+Canonical JSON Renderer
+    ↓
+Atomic JSON Exporter
+    ↓
+Permanent Git-versioned Research Artifact
+
+Permanent artifact:
+
+Path:
+experiments/psychological_levels_dynamic/scenario_generation/artifacts/json/PHASE2F_RESEARCH_ARTIFACT__1.json
+
+Artifact ID:
+PHASE2F_RESEARCH_ARTIFACT
+
+Artifact version:
+1
+
+Byte count:
+14705
+
+Analysis fingerprint:
+sha256:11eb46f171e7e1ce09dbd818234ec59e268b8901ebbe128993658353359929f1
+
+Artifact fingerprint:
+sha256:4a401701509dbaeaa2b52c30bd442768b29b11881ec19627ae4c4356ef47c1de
+
+Canonical JSON render fingerprint:
+sha256:c9ccc23f8294b22a1228af054b38b0a1aa29d0e7862eb6cc54c417d7a7c2d2b5
+
+Byte protection:
+
+.gitattributes rule:
+
+experiments/psychological_levels_dynamic/scenario_generation/artifacts/**/*.json -text
+
+Verified properties:
+
+- UTF-8 without BOM
+- no CR bytes
+- exactly one trailing LF
+- Git attribute text: unset
+- exact post-commit checksum verified
+- exact byte-for-byte regeneration verified
+- idempotent re-export returns ALREADY_EXISTS_IDENTICAL
+- conflicting content is rejected
+- immutable versioning policy
+- no renderer/exporter mutation of JSON bytes
+- no Project 1 changes
+- no production changes
+- no Runner changes
+- no Stage 1–6 changes
+- no report or analysis architecture changes
+
+Immutable versioning policy:
+
+PHASE2F_RESEARCH_ARTIFACT__1.json must never be rewritten.
+
+Any intentional future content change requires:
+
+- incrementing artifact_version
+- creating a new JSON artifact file
+- retaining version 1 unchanged
+
+Deferred:
+
+- Markdown rendering/export
+- HTML/PDF views
+- second research campaign
+- multi-campaign comparison contracts
+- multi-campaign comparison engine
+- unrelated technical-debt cleanup
+
+Recommended next architecture decision:
+
+Design the second research campaign before implementing comparison logic.
+
+================================================================================================================
+
 # PHASE2D_REPORT_GENERATION_STABLE
 
 Checkpoint date: 2026-07-10
